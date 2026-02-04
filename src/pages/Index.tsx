@@ -1,12 +1,35 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { ProductEntryForm } from "@/components/ProductEntryForm";
+import { Package } from "lucide-react";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Package className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-foreground">Product Data Entry</h1>
+            <p className="text-xs text-muted-foreground">Enter product details for catalog submission</p>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        <ProductEntryForm />
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-card mt-8">
+        <div className="max-w-4xl mx-auto px-4 py-3 text-center">
+          <p className="text-xs text-muted-foreground">
+            One SKU per submission • Required fields marked with *
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
