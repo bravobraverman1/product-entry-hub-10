@@ -15,7 +15,7 @@ export function FormSection({
 }: FormSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm">
-      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors flex flex-col">
+      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full px-4 py-3 hover:bg-muted/50 transition-colors flex-col flex items-end justify-between">
         <div className="flex items-center gap-2">
           {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
           <span className="font-medium text-sm">{title}</span>
