@@ -13,7 +13,7 @@ export function FormSection({ title, children, defaultOpen = true, required = fa
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-border rounded-md bg-card overflow-hidden">
+    <div className="border border-border rounded-lg bg-card overflow-hidden shadow-sm">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

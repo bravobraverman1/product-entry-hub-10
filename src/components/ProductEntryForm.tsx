@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormSection } from "@/components/FormSection";
-import { CategorySelector } from "@/components/CategorySelector";
+import { CategoryTreeDropdown } from "@/components/CategoryTreeDropdown";
 import { ImageUrlInputs } from "@/components/ImageUrlInputs";
 import { SpecificationsInputs, Specifications } from "@/components/SpecificationsInputs";
-import { buildCategoryPath, hasChoice3 } from "@/data/categoryData";
+import { useCategories } from "@/hooks/useCategories";
 import { CheckCircle, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,22 +38,22 @@ const initialSpecs: Specifications = {
 
 export function ProductEntryForm() {
   const { toast } = useToast();
-  
+  const { categories } = useCategories();
+
   // Basic Info
   const [sku, setSku] = useState("");
   const [title, setTitle] = useState("");
-  
-  // Categories
-  const [choice1, setChoice1] = useState("");
-  const [choice2, setChoice2] = useState("");
-  const [choice3, setChoice3] = useState("");
-  
+
+  // Categories (new tree-based)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [mainCategory, setMainCategory] = useState("");
+
   // Images (8 slots)
   const [imageUrls, setImageUrls] = useState<string[]>(Array(8).fill(""));
-  
+
   // Specifications
   const [specs, setSpecs] = useState<Specifications>(initialSpecs);
-  
+
   // Form state
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,9 +83,10 @@ export function ProductEntryForm() {
     }
 
     // Category validation
-    const requiresChoice3 = choice1 && choice2 && hasChoice3(choice1, choice2);
-    if (!choice1 || !choice2 || (requiresChoice3 && !choice3)) {
-      newErrors.category = "Complete category path is required";
+    if (selectedCategories.length === 0) {
+      newErrors.category = "At least one category must be selected";
+    } else if (!mainCategory) {
+      newErrors.category = "Please set one selected category as the MAIN category.";
     }
 
     // At least one image URL required
@@ -100,9 +101,8 @@ export function ProductEntryForm() {
   const resetForm = () => {
     setSku("");
     setTitle("");
-    setChoice1("");
-    setChoice2("");
-    setChoice3("");
+    setSelectedCategories([]);
+    setMainCategory("");
     setImageUrls(Array(8).fill(""));
     setSpecs(initialSpecs);
     setErrors({});
@@ -110,7 +110,7 @@ export function ProductEntryForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast({
         variant: "destructive",
@@ -123,16 +123,16 @@ export function ProductEntryForm() {
     setIsSubmitting(true);
 
     try {
-      const categoryPath = buildCategoryPath(choice1, choice2, choice3);
-      
-      // Prepare form data for Google Sheets
+      const otherPaths = selectedCategories.filter((p) => p !== mainCategory);
+      const allPaths = [mainCategory, ...otherPaths];
+
       const formData = {
+        timestamp: new Date().toISOString(),
         sku: sku.trim(),
         title: title.trim(),
-        categoryPath,
-        choice1,
-        choice2,
-        choice3: choice3 || "",
+        MainCategoryPath: mainCategory,
+        OtherCategoryPaths: otherPaths.join(";"),
+        AllCategoryPaths: allPaths.join(";"),
         imageUrl1: imageUrls[0] || "",
         imageUrl2: imageUrls[1] || "",
         imageUrl3: imageUrls[2] || "",
@@ -145,25 +145,21 @@ export function ProductEntryForm() {
       };
 
       // TODO: Replace with your Google Sheets Web App URL
-      // Example: const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
       console.log("Form data to submit:", formData);
-      
-      // Simulate API call (replace with actual Google Sheets submission)
+
+      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Show success
+
       setShowSuccess(true);
       toast({
         title: "Product Submitted!",
         description: `SKU ${sku} has been added successfully.`,
       });
 
-      // Reset form after delay
       setTimeout(() => {
         setShowSuccess(false);
         resetForm();
       }, 2000);
-
     } catch (error) {
       console.error("Submission error:", error);
       toast({
@@ -212,13 +208,12 @@ export function ProductEntryForm() {
 
       {/* Categories Section */}
       <FormSection title="Categories" required defaultOpen>
-        <CategorySelector
-          choice1={choice1}
-          choice2={choice2}
-          choice3={choice3}
-          onChoice1Change={setChoice1}
-          onChoice2Change={setChoice2}
-          onChoice3Change={setChoice3}
+        <CategoryTreeDropdown
+          categories={categories}
+          selectedPaths={selectedCategories}
+          mainPath={mainCategory}
+          onSelectedChange={setSelectedCategories}
+          onMainChange={setMainCategory}
           error={errors.category}
         />
       </FormSection>
