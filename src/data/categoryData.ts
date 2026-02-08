@@ -1,5 +1,4 @@
 // Category hierarchy data structure
-// Format: Choice 1 -> Choice 2 -> Choice 3 (optional)
 
 export interface CategoryLevel {
   name: string;
@@ -45,12 +44,8 @@ export const categoryTree: CategoryLevel[] = [
           { name: "Accent Lamps" },
         ],
       },
-      {
-        name: "Track Lighting",
-      },
-      {
-        name: "Recessed Lighting",
-      },
+      { name: "Track Lighting" },
+      { name: "Recessed Lighting" },
     ],
   },
   {
@@ -73,15 +68,9 @@ export const categoryTree: CategoryLevel[] = [
           { name: "Step Lights" },
         ],
       },
-      {
-        name: "Flood Lights",
-      },
-      {
-        name: "Post Lights",
-      },
-      {
-        name: "String Lights",
-      },
+      { name: "Flood Lights" },
+      { name: "Post Lights" },
+      { name: "String Lights" },
     ],
   },
   {
@@ -111,12 +100,8 @@ export const categoryTree: CategoryLevel[] = [
           { name: "Warehouse Lights" },
         ],
       },
-      {
-        name: "Emergency Lighting",
-      },
-      {
-        name: "Exit Signs",
-      },
+      { name: "Emergency Lighting" },
+      { name: "Exit Signs" },
     ],
   },
   {
@@ -130,15 +115,9 @@ export const categoryTree: CategoryLevel[] = [
           { name: "Smart Strips" },
         ],
       },
-      {
-        name: "Neon Signs",
-      },
-      {
-        name: "Fairy Lights",
-      },
-      {
-        name: "Novelty Lights",
-      },
+      { name: "Neon Signs" },
+      { name: "Fairy Lights" },
+      { name: "Novelty Lights" },
     ],
   },
   {
@@ -152,15 +131,9 @@ export const categoryTree: CategoryLevel[] = [
           { name: "Bluetooth Bulbs" },
         ],
       },
-      {
-        name: "Smart Switches",
-      },
-      {
-        name: "Smart Dimmers",
-      },
-      {
-        name: "Smart Controllers",
-      },
+      { name: "Smart Switches" },
+      { name: "Smart Dimmers" },
+      { name: "Smart Controllers" },
     ],
   },
   {
@@ -184,55 +157,58 @@ export const categoryTree: CategoryLevel[] = [
           { name: "Dimmable" },
         ],
       },
-      {
-        name: "Halogen",
-      },
-      {
-        name: "CFL",
-      },
+      { name: "Halogen" },
+      { name: "CFL" },
     ],
   },
   {
     name: "Accessories",
     children: [
-      {
-        name: "Drivers & Transformers",
-      },
-      {
-        name: "Mounting Hardware",
-      },
-      {
-        name: "Cables & Connectors",
-      },
-      {
-        name: "Dimmers & Controls",
-      },
+      { name: "Drivers & Transformers" },
+      { name: "Mounting Hardware" },
+      { name: "Cables & Connectors" },
+      { name: "Dimmers & Controls" },
     ],
   },
 ];
 
-// Helper function to get Choice 2 options based on Choice 1
-export function getChoice2Options(choice1: string): CategoryLevel[] {
-  const level1 = categoryTree.find((cat) => cat.name === choice1);
-  return level1?.children || [];
+// Check if a node is a leaf (no children)
+export function isLeaf(node: CategoryLevel): boolean {
+  return !node.children || node.children.length === 0;
 }
 
-// Helper function to get Choice 3 options based on Choice 1 and Choice 2
-export function getChoice3Options(choice1: string, choice2: string): CategoryLevel[] {
-  const level1 = categoryTree.find((cat) => cat.name === choice1);
-  const level2 = level1?.children?.find((cat) => cat.name === choice2);
-  return level2?.children || [];
+// Build full path for all leaves in the tree
+export interface LeafPath {
+  path: string;
+  segments: string[];
 }
 
-// Helper function to check if Choice 3 is applicable
-export function hasChoice3(choice1: string, choice2: string): boolean {
-  return getChoice3Options(choice1, choice2).length > 0;
+export function getAllLeafPaths(tree: CategoryLevel[], prefix: string[] = []): LeafPath[] {
+  const results: LeafPath[] = [];
+  for (const node of tree) {
+    const segments = [...prefix, node.name];
+    if (isLeaf(node)) {
+      results.push({ path: segments.join("/"), segments });
+    } else if (node.children) {
+      results.push(...getAllLeafPaths(node.children, segments));
+    }
+  }
+  return results;
 }
 
-// Build the final category path
-export function buildCategoryPath(choice1: string, choice2: string, choice3?: string): string {
-  if (!choice1) return "";
-  if (!choice2) return choice1;
-  if (!choice3 || !hasChoice3(choice1, choice2)) return `${choice1}/${choice2}`;
-  return `${choice1}/${choice2}/${choice3}`;
+// Filter tree nodes by search query — keeps parents if any descendant leaf matches
+export function filterTree(tree: CategoryLevel[], query: string): CategoryLevel[] {
+  const lower = query.toLowerCase();
+  return tree
+    .map((node) => {
+      if (isLeaf(node)) {
+        return node.name.toLowerCase().includes(lower) ? node : null;
+      }
+      const filteredChildren = filterTree(node.children!, lower);
+      if (filteredChildren.length > 0) {
+        return { ...node, children: filteredChildren };
+      }
+      return node.name.toLowerCase().includes(lower) ? { ...node } : null;
+    })
+    .filter(Boolean) as CategoryLevel[];
 }
