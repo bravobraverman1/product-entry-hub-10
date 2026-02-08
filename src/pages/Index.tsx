@@ -1,9 +1,7 @@
 import { ProductEntryForm } from "@/components/ProductEntryForm";
 import { Package } from "lucide-react";
-
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-muted/30">
+  return <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-3">
@@ -18,7 +16,7 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-4 py-6 border-destructive">
         <ProductEntryForm />
       </main>
 
@@ -30,8 +28,6 @@ const Index = () => {
           </p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
