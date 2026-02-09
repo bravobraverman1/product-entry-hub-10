@@ -1,51 +1,38 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { defaultProducts } from "@/data/defaultProducts";
+import { defaultProducts, type Product } from "@/data/defaultProducts";
+import { defaultProperties, defaultLegalValues, type PropertyDefinition, type LegalValue } from "@/data/defaultProperties";
 import { categoryTree, type CategoryLevel } from "@/data/categoryData";
 
-export interface ProductRecord {
-  sku: string;
-  status: string;
-  visibility: number;
-}
-
-export interface MasterFilterLabel {
-  label: string;
-  row: number;
-}
-
 export interface SheetData {
-  products: ProductRecord[];
+  products: Product[];
   categories: CategoryLevel[];
-  masterFilterLabels: MasterFilterLabel[];
+  properties: PropertyDefinition[];
+  legalValues: LegalValue[];
 }
-
-const defaultData: SheetData = {
-  products: defaultProducts.map((p) => ({
-    sku: p.sku,
-    status: "READY",
-    visibility: 1,
-  })),
-  categories: categoryTree,
-  masterFilterLabels: [
-    { label: "Wattage", row: 39 },
-    { label: "Voltage", row: 40 },
-    { label: "Lumens", row: 41 },
-    { label: "CRI", row: 42 },
-    { label: "IP Rating", row: 43 },
-  ],
-};
 
 async function fetchSheetData(): Promise<SheetData> {
   const { data, error } = await supabase.functions.invoke("google-sheets", {
-    body: { action: "readAll" },
+    body: { action: "read" },
   });
+
   if (error) throw error;
-  if (data?.useDefaults) return defaultData;
+
+  // If the edge function returns that credentials are not configured, use defaults
+  if (data?.useDefaults) {
+    return {
+      products: defaultProducts,
+      categories: categoryTree,
+      properties: defaultProperties,
+      legalValues: defaultLegalValues,
+    };
+  }
+
   return {
-    products: data.products ?? defaultData.products,
-    categories: data.categories ?? defaultData.categories,
-    masterFilterLabels: data.masterFilterLabels ?? defaultData.masterFilterLabels,
+    products: data.products ?? defaultProducts,
+    categories: data.categories ?? categoryTree,
+    properties: data.properties ?? defaultProperties,
+    legalValues: data.legalValues ?? defaultLegalValues,
   };
 }
 
@@ -53,48 +40,14 @@ export function useSheetData() {
   return useQuery<SheetData>({
     queryKey: ["sheet-data"],
     queryFn: fetchSheetData,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 min cache
     retry: 1,
-    initialData: defaultData,
-  });
-}
-
-export function useSubmitProduct() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: {
-      sku: string;
-      chatgptData: string;
-      categories: string;
-      title: string;
-      description: string;
-      imageUrls: string[];
-      masterFilterValues?: { row: number; value: string }[];
-    }) => {
-      const { error } = await supabase.functions.invoke("google-sheets", {
-        body: { action: "writeSubmission", ...payload },
-      });
-      if (error) {
-        console.warn("Sheet write failed:", error);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sheet-data"] });
-    },
-  });
-}
-
-export function useSetVisibility() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ sku, visible }: { sku: string; visible: number }) => {
-      const { error } = await supabase.functions.invoke("google-sheets", {
-        body: { action: "setVisibility", sku, visible },
-      });
-      if (error) console.warn("Visibility update failed:", error);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sheet-data"] });
+    // On error, still provide defaults via initialData
+    initialData: {
+      products: defaultProducts,
+      categories: categoryTree,
+      properties: defaultProperties,
+      legalValues: defaultLegalValues,
     },
   });
 }
