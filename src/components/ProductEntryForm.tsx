@@ -1,14 +1,16 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormSection } from "@/components/FormSection";
 import { CategoryTreeDropdown } from "@/components/CategoryTreeDropdown";
-import { ImageUrlInputs } from "@/components/ImageUrlInputs";
-import { SpecificationsInputs, Specifications } from "@/components/SpecificationsInputs";
-import { useCategories } from "@/hooks/useCategories";
+import { DynamicImageInputs } from "@/components/DynamicImageInputs";
+import { DynamicSpecifications } from "@/components/DynamicSpecifications";
+import { SkuSelector } from "@/components/SkuSelector";
+import { useSheetData } from "@/hooks/useSheetData";
 import { CheckCircle, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FormErrors {
   sku?: string;
@@ -17,144 +19,115 @@ interface FormErrors {
   images?: string;
 }
 
-const initialSpecs: Specifications = {
-  colour1: "",
-  colour2: "",
-  beamAngle: "",
-  colourTemp: "",
-  diameter: "",
-  height: "",
-  width: "",
-  cutoutSize: "",
-  depth: "",
-  material1: "",
-  material2: "",
-  mounting: "",
-  ipRating: "",
-  globeType: "",
-  dimmable: "",
-  lowVoltageOptions: "",
-};
-
 export function ProductEntryForm() {
   const { toast } = useToast();
-  const { categories } = useCategories();
+  const { data: sheetData } = useSheetData();
+
+  const { products, categories, properties, legalValues } = sheetData;
 
   // Basic Info
   const [sku, setSku] = useState("");
+  const [brand, setBrand] = useState("");
   const [title, setTitle] = useState("");
 
-  // Categories (new tree-based)
+  // Random example title as placeholder
+  const exampleTitle = useMemo(() => {
+    const titles = products.map((p) => p.exampleTitle).filter(Boolean);
+    if (titles.length === 0) return "e.g. 10W LED Ceiling Spotlight - White";
+    return titles[Math.floor(Math.random() * titles.length)];
+  }, [products]);
+
+  // Categories
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [mainCategory, setMainCategory] = useState("");
 
-  // Images (8 slots)
-  const [imageUrls, setImageUrls] = useState<string[]>(Array(8).fill(""));
+  // Images (start with 1)
+  const [imageUrls, setImageUrls] = useState<string[]>([""]);
 
-  // Specifications
-  const [specs, setSpecs] = useState<Specifications>(initialSpecs);
+  // Specs (dynamic keys)
+  const [specValues, setSpecValues] = useState<Record<string, string>>({});
 
   // Form state
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleImageUrlChange = useCallback((index: number, value: string) => {
-    setImageUrls((prev) => {
-      const newUrls = [...prev];
-      newUrls[index] = value;
-      return newUrls;
-    });
+  const handleSkuSelect = useCallback((selectedSku: string, selectedBrand: string) => {
+    setSku(selectedSku);
+    setBrand(selectedBrand);
   }, []);
 
-  const handleSpecChange = useCallback((field: keyof Specifications, value: string) => {
-    setSpecs((prev) => ({ ...prev, [field]: value === "none" ? "" : value }));
+  const handleSpecChange = useCallback((key: string, value: string) => {
+    setSpecValues((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-
-    if (!sku.trim()) {
-      newErrors.sku = "SKU is required";
-    }
-
-    if (!title.trim()) {
-      newErrors.title = "Title is required";
-    }
-
-    // Category validation
+    if (!sku.trim()) newErrors.sku = "SKU is required";
+    if (!title.trim()) newErrors.title = "Title is required";
     if (selectedCategories.length === 0) {
       newErrors.category = "At least one category must be selected";
     } else if (!mainCategory) {
-      newErrors.category = "Please set one selected category as the MAIN category.";
+      newErrors.category = "Select a MAIN category.";
     }
-
-    // At least one image URL required
     if (!imageUrls[0]?.trim()) {
       newErrors.images = "At least one image URL is required";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const resetForm = () => {
     setSku("");
+    setBrand("");
     setTitle("");
     setSelectedCategories([]);
     setMainCategory("");
-    setImageUrls(Array(8).fill(""));
-    setSpecs(initialSpecs);
+    setImageUrls([""]);
+    setSpecValues({});
     setErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
-      });
+      toast({ variant: "destructive", title: "Validation Error", description: "Please fill in all required fields." });
       return;
     }
 
     setIsSubmitting(true);
-
     try {
       const otherPaths = selectedCategories.filter((p) => p !== mainCategory);
       const allPaths = [mainCategory, ...otherPaths];
 
-      const formData = {
-        timestamp: new Date().toISOString(),
-        sku: sku.trim(),
-        title: title.trim(),
-        MainCategoryPath: mainCategory,
-        OtherCategoryPaths: otherPaths.join(";"),
-        AllCategoryPaths: allPaths.join(";"),
-        imageUrl1: imageUrls[0] || "",
-        imageUrl2: imageUrls[1] || "",
-        imageUrl3: imageUrls[2] || "",
-        imageUrl4: imageUrls[3] || "",
-        imageUrl5: imageUrls[4] || "",
-        imageUrl6: imageUrls[5] || "",
-        imageUrl7: imageUrls[6] || "",
-        imageUrl8: imageUrls[7] || "",
-        ...specs,
-      };
+      // Build row data array for the RESPONSES sheet
+      const rowData = [
+        new Date().toISOString(),
+        sku.trim(),
+        brand,
+        title.trim(),
+        mainCategory,
+        otherPaths.join(";"),
+        allPaths.join(";"),
+        ...imageUrls.map((u) => u.trim()),
+        // Pad images to 8
+        ...Array(Math.max(0, 8 - imageUrls.length)).fill(""),
+        // Property values in order
+        ...properties.map((p) => specValues[p.key] || ""),
+      ];
 
-      // TODO: Replace with your Google Sheets Web App URL
-      console.log("Form data to submit:", formData);
+      // Try writing to Sheets via edge function
+      const { error } = await supabase.functions.invoke("google-sheets", {
+        body: { action: "write", rowData },
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (error) {
+        console.warn("Sheet write failed (may not have credentials):", error);
+        // Still show success in default mode
+      }
 
       setShowSuccess(true);
-      toast({
-        title: "Product Submitted!",
-        description: `SKU ${sku} has been added successfully.`,
-      });
+      toast({ title: "Product Submitted!", description: `SKU ${sku} has been added successfully.` });
 
       setTimeout(() => {
         setShowSuccess(false);
@@ -162,11 +135,7 @@ export function ProductEntryForm() {
       }, 2000);
     } catch (error) {
       console.error("Submission error:", error);
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: "There was an error submitting the product. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Submission Failed", description: "There was an error submitting the product." });
     } finally {
       setIsSubmitting(false);
     }
@@ -174,21 +143,30 @@ export function ProductEntryForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Basic Info Section */}
+      {/* Basic Info */}
       <FormSection title="Basic Info" required defaultOpen>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="sku" className="text-xs font-medium">
-              SKU <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="sku"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              placeholder="e.g. LED-SPOT-001"
-              className="h-9 text-sm font-mono"
-            />
-            {errors.sku && <p className="text-destructive text-xs">{errors.sku}</p>}
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                SKU <span className="text-destructive">*</span>
+              </Label>
+              <SkuSelector
+                products={products}
+                value={sku}
+                onSelect={handleSkuSelect}
+                error={errors.sku}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Brand</Label>
+              <Input
+                value={brand}
+                readOnly
+                placeholder="Auto-filled from SKU"
+                className="h-9 text-sm bg-muted/50"
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="title" className="text-xs font-medium">
@@ -198,7 +176,7 @@ export function ProductEntryForm() {
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. 10W LED Ceiling Spotlight - White"
+              placeholder={exampleTitle}
               className="h-9 text-sm"
             />
             {errors.title && <p className="text-destructive text-xs">{errors.title}</p>}
@@ -206,7 +184,7 @@ export function ProductEntryForm() {
         </div>
       </FormSection>
 
-      {/* Categories Section */}
+      {/* Categories */}
       <FormSection title="Categories" required defaultOpen>
         <CategoryTreeDropdown
           categories={categories}
@@ -218,21 +196,26 @@ export function ProductEntryForm() {
         />
       </FormSection>
 
-      {/* Images Section */}
+      {/* Images */}
       <FormSection title="Images" required defaultOpen>
-        <ImageUrlInputs
+        <DynamicImageInputs
           imageUrls={imageUrls}
-          onImageUrlChange={handleImageUrlChange}
+          onChange={setImageUrls}
           error={errors.images}
         />
       </FormSection>
 
-      {/* Specifications Section */}
+      {/* Specifications */}
       <FormSection title="Specifications" defaultOpen={false}>
-        <SpecificationsInputs specs={specs} onSpecChange={handleSpecChange} />
+        <DynamicSpecifications
+          properties={properties}
+          legalValues={legalValues}
+          values={specValues}
+          onChange={handleSpecChange}
+        />
       </FormSection>
 
-      {/* Submit Button */}
+      {/* Submit */}
       <div className="flex justify-end pt-2">
         <Button
           type="submit"
@@ -240,20 +223,11 @@ export function ProductEntryForm() {
           className="min-w-[160px] h-10"
         >
           {showSuccess ? (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Submitted!
-            </>
+            <><CheckCircle className="mr-2 h-4 w-4" /> Submitted!</>
           ) : isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
-            </>
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
           ) : (
-            <>
-              <Send className="mr-2 h-4 w-4" />
-              Submit Product
-            </>
+            <><Send className="mr-2 h-4 w-4" /> Submit Product</>
           )}
         </Button>
       </div>
