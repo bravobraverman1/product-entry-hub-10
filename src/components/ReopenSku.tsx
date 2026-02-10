@@ -2,15 +2,23 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, RotateCcw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { reopenSku, type ReopenedProduct } from "@/lib/api";
 
 interface ReopenSkuProps {
   onReopened: (data: ReopenedProduct) => void;
+  dockSkus?: string[];
 }
 
-export function ReopenSku({ onReopened }: ReopenSkuProps) {
+export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
   const { toast } = useToast();
   const [sku, setSku] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,6 +63,23 @@ export function ReopenSku({ onReopened }: ReopenSkuProps) {
             className="h-9 text-sm font-mono"
           />
         </div>
+        {dockSkus.length > 0 && (
+          <Select value={sku} onValueChange={(value) => {
+            setSku(value);
+            setReopened(false);
+          }}>
+            <SelectTrigger className="w-48 h-9">
+              <SelectValue placeholder="Or select from dock…" />
+            </SelectTrigger>
+            <SelectContent>
+              {dockSkus.map((skuOption) => (
+                <SelectItem key={skuOption} value={skuOption}>
+                  {skuOption}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Button
           type="button"
           variant="outline"

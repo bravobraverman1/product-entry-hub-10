@@ -16,6 +16,7 @@ import {
   fetchSkus,
   fetchCategories,
   fetchProperties,
+  fetchRecentSubmissions,
   submitProduct,
   addLegalValue,
   type SkuEntry,
@@ -47,6 +48,12 @@ export function ProductEntryForm() {
     staleTime: 5 * 60_000,
   });
 
+  const { data: submissions = [] } = useQuery({
+    queryKey: ["recent-submissions"],
+    queryFn: fetchRecentSubmissions,
+    staleTime: 30_000,
+  });
+
   const { data: propData } = useQuery({
     queryKey: ["properties"],
     queryFn: fetchProperties,
@@ -74,6 +81,11 @@ export function ProductEntryForm() {
     if (titles.length === 0) return "e.g. 10W LED Ceiling Spotlight - White";
     return titles[Math.floor(Math.random() * titles.length)];
   }, [skus]);
+
+  // Dock SKUs for reopen dropdown
+  const dockSkus = useMemo(() => {
+    return submissions.map((sub) => sub.sku).filter(Boolean);
+  }, [submissions]);
 
   // Categories
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -222,7 +234,7 @@ export function ProductEntryForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Reopen SKU */}
       <FormSection title="Reopen SKU" defaultOpen={false}>
-        <ReopenSku onReopened={handleReopened} />
+        <ReopenSku onReopened={handleReopened} dockSkus={dockSkus} />
       </FormSection>
 
       {/* Basic Info */}

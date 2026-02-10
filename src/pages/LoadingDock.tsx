@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Download, Eye, FileText, Trash2, Send, Loader2, Pencil } from "lucide-react";
+import { Upload, Download, Eye, FileText, Trash2, Send, Loader2, Pencil, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchRecentSubmissions, deleteSubmission, sendAllAndClearDock } from "@/lib/api";
 import { FormSection } from "@/components/FormSection";
@@ -134,7 +134,7 @@ const LoadingDock = () => {
                   <TableRow>
                     <TableHead className="text-xs">SKU</TableHead>
                     <TableHead className="text-xs">Date / Time</TableHead>
-                    <TableHead className="text-xs text-right">Actions</TableHead>
+                    <TableHead className="text-xs text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -144,7 +144,7 @@ const LoadingDock = () => {
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(sub.submittedAt).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right space-x-1">
+                      <TableCell className="text-center space-x-1">
                         <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleComingSoon}>
                           <Pencil className="h-3 w-3 mr-1" /> Edit
                         </Button>
@@ -153,6 +153,9 @@ const LoadingDock = () => {
                         </Button>
                         <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleComingSoon}>
                           <Eye className="h-3 w-3 mr-1" /> View
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleComingSoon}>
+                          <Mail className="h-3 w-3 mr-1" /> Email
                         </Button>
                         <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(sub.id)}>
                           <Trash2 className="h-3 w-3" />
