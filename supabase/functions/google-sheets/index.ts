@@ -189,8 +189,24 @@ async function readAllSheets(token: string, sheetId: string) {
   })).filter((p) => p.sku);
 
   // Parse CATEGORIES: full path strings -> build tree
-  const categoryPaths = categoriesRaw.slice(1).map((row) => row[0]).filter(Boolean);
+  // STRICT: Read ONLY from CATEGORIES tab, skip header row (row 1), data starts at row 2
+  const categoryPaths = categoriesRaw.slice(1).map((row) => {
+    const path = row[0] ?? "";
+    // Trim whitespace from the entire path and from each segment
+    return path.trim();
+  }).filter((p) => p.length > 0);
+  
+  // Fail loudly if no categories found
+  if (categoryPaths.length === 0) {
+    console.error("ERROR: CATEGORIES tab is empty or missing data. Expected at least one category path in column A, row 2+");
+    throw new Error("CATEGORIES tab has no data. Add category paths to the CATEGORIES sheet starting at row 2 (e.g., 'Indoor Lights/Wall Lights')");
+  }
+  
   const categories = buildCategoryTree(categoryPaths);
+  
+  // Count actual leaf paths (not tree nodes) for logging
+  const leafPathCount = categoryPaths.length;
+  console.log(`Successfully read ${leafPathCount} category paths from CATEGORIES tab`);
 
   // Parse PROPERTIES: PropertyName, Key, InputType, Section
   const properties = propertiesRaw.slice(1).map((row) => ({
@@ -206,7 +222,7 @@ async function readAllSheets(token: string, sheetId: string) {
     allowedValue: row[1] ?? "",
   })).filter((l) => l.propertyName && l.allowedValue);
 
-  return { products, categories, properties, legalValues };
+  return { products, categories, properties, legalValues, categoryPathCount: leafPathCount };
 }
 
 function buildCategoryTree(paths: string[]) {

@@ -127,36 +127,49 @@ export async function fetchBrand(sku: string): Promise<string> {
 // ── Categories ──────────────────────────────────────────────
 
 export async function fetchCategories(): Promise<CategoryLevel[]> {
-  // Try Supabase Google Sheets first
+  // STRICT: Read ONLY from Supabase Google Sheets if configured
+  // No fallbacks to defaults or other sources
   if (isSupabaseGoogleSheetsConfigured()) {
     try {
       const data = await readGoogleSheets();
-      if (data.categories && !data.useDefaults) {
-        return data.categories;
+      if (data.useDefaults) {
+        throw new Error("Google Sheets credentials not found. Cannot fetch categories from sheet.");
       }
+      if (!data.categories || data.categories.length === 0) {
+        throw new Error("CATEGORIES tab is empty or could not be parsed. Add category paths to the CATEGORIES sheet.");
+      }
+      return data.categories;
     } catch (error) {
-      console.error("Error fetching categories from Supabase Google Sheets:", error);
+      // Log the error and re-throw - don't silently fall back
+      console.error("FATAL: Error fetching categories from Google Sheets:", error);
+      throw new Error(`Failed to load categories from Google Sheet: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
 
-  // Fall back to Apps Script or defaults
-  if (!isConfigured()) {
-    return categoryTree;
-  }
-  return apiFetch<CategoryLevel[]>("/categories");
+  // If Google Sheets is not configured, we cannot proceed - no fallback
+  throw new Error("Google Sheets integration is not configured. Cannot load categories.");
 }
 
 export async function updateCategories(
   paths: string[]
 ): Promise<void> {
-  if (!isConfigured()) {
-    console.warn("[mock] updateCategories called with", paths.length, "paths");
-    return;
+  // STRICT: Write ONLY to Google Sheets if configured
+  if (isSupabaseGoogleSheetsConfigured()) {
+    try {
+      const success = await writeCategoriesToGoogleSheets(paths);
+      if (!success) {
+        throw new Error("Failed to write categories to Google Sheets");
+      }
+      console.log("Categories successfully updated in Google Sheets");
+      return;
+    } catch (error) {
+      console.error("FATAL: Error updating categories in Google Sheets:", error);
+      throw new Error(`Failed to save categories to Google Sheet: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
-  await apiFetch("/categories/update", {
-    method: "POST",
-    body: JSON.stringify({ paths }),
-  });
+
+  // If Google Sheets is not configured, we cannot proceed - no fallback
+  throw new Error("Google Sheets integration is not configured. Cannot save categories.");
 }
 
 // ── Properties & Legal Values ───────────────────────────────

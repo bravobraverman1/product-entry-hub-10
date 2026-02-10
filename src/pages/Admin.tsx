@@ -337,7 +337,7 @@ const Admin = () => {
         });
       } else {
         const productCount = data?.products?.length ?? 0;
-        const categoryCount = data?.categories?.length ?? 0;
+        const categoryCount = data?.categoryPathCount ?? 0;
         toast({ 
           title: "Connected ✅", 
           description: `Successfully connected to your Google Sheet! Found ${productCount} products and ${categoryCount} categories.` 

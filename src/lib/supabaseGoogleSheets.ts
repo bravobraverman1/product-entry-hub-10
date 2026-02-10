@@ -19,6 +19,7 @@ interface GoogleSheetsReadResponse {
   categories?: CategoryLevel[];
   properties?: PropertyDefinition[];
   legalValues?: LegalValue[];
+  categoryPathCount?: number;
 }
 
 /**
