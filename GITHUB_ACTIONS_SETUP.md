@@ -27,107 +27,73 @@ Before running the workflow, you need:
 
 You'll need three pieces of information from Supabase:
 
-### Get Your Supabase Access Token (Navigate from Front Page)
+### Get Your Supabase Access Token
 
-1. Visit https://supabase.com/dashboard
-2. You'll see the main Supabase dashboard with your projects listed
-3. Look at the top-right corner - you'll see your profile icon
-4. Click on your profile icon → look for **"Account Settings"** or **"Preferences"**
-5. In the left sidebar, click **"Access Tokens"**
-6. Click **"Generate new token"** button
-7. A dialog will appear:
-   - **Token name:** Type "Product Entry Hub"
-   - Leave other settings as default
-8. Click **"Generate"**
-9. The token will appear (starts with `sbp_`)
-10. **Copy this token** and save it temporarily
-11. ⚠️ You won't see it again, so keep it safe!
+1. Visit https://supabase.com/dashboard/account/tokens
+2. Click **"Generate new token"**
+3. Give it a name like "Product Entry Hub"
+4. Copy the token (starts with `sbp_`)
+5. **Keep this safe!** You'll need it in the next step
 
-### Get Your Supabase Project Reference (Navigate from Front Page)
+### Get Your Supabase Project Reference
 
-1. Visit https://supabase.com/dashboard
-2. You'll see your projects listed
-3. Click on the project you want to use
-4. Once inside the project, look at the top-left
-5. Click on the **project name** dropdown
-6. In the dropdown, you'll see **"Project Settings"** option
-7. Click **"Project Settings"**
-8. You'll see several tabs at the top - look for **"General"**
-9. Click the **"General"** tab
-10. Scroll down to find **"Reference ID"** (looks like: `abcdefghijklmnop`)
-11. **Copy this value**
+1. Go to https://supabase.com/dashboard
+2. Select your project
+3. Click **Settings** (gear icon) → **General**
+4. Look for **Reference ID** (e.g., `abcdefghijklmnop`)
+5. Copy this value
 
-### Get Your Database Password (Navigate from Front Page)
+### Get Your Database Password
 
-1. Visit https://supabase.com/dashboard
-2. Click on your project to open it
-3. Click on **"Project Settings"** (see steps above)
-4. In the sidebar on the left, click **"Database"**
-5. Look for the section labeled **"Database password"**
-6. Click **"Reset password"** button
-7. Confirm the action when prompted
-8. A new password will be generated and displayed
-9. **Copy this password** immediately
+This is the password you created when you initially set up your Supabase project. If you don't remember it:
 
-## Step 2: Add GitHub Secrets (Navigate from Front Page)
+1. Go to https://supabase.com/dashboard
+2. Select your project
+3. Click **Settings** → **Database**
+4. Click **Reset password** to set a new one
+5. Copy the new password
+
+## Step 2: Add GitHub Secrets
 
 Now you'll add these three pieces of information as GitHub Secrets.
 
-1. Visit https://github.com and log in
-2. Navigate to your repository (or type the URL: `github.com/YOUR_USERNAME/product-entry-hub-10`)
-3. At the top of the repository, you'll see several tabs: **Code**, **Issues**, **Pull requests**, etc.
-4. Click the **Settings** tab on the far right
-5. In the left sidebar, look for **"Security"** section
-6. Click **"Secrets and variables"** → **"Actions"**
-7. You'll see a blue button **"New repository secret"**
+1. Go to your GitHub repository
+2. Click **Settings** (top navigation)
+3. Click **Secrets and variables** → **Actions** (left sidebar)
+4. Click **New repository secret**
+5. Add the first secret:
+   - **Name:** `SUPABASE_ACCESS_TOKEN`
+   - **Value:** Paste the token you copied (starts with `sbp_`)
+   - Click **Add secret**
 
-### Add Secret 1: SUPABASE_ACCESS_TOKEN
+6. Click **New repository secret** again
+7. Add the second secret:
+   - **Name:** `SUPABASE_PROJECT_REF`
+   - **Value:** Paste your project reference ID (e.g., `abcdefghijklmnop`)
+   - Click **Add secret**
 
-1. Click **"New repository secret"**
-2. In the **"Name"** field, type: `SUPABASE_ACCESS_TOKEN`
-3. In the **"Secret"** field, paste the token you copied (starts with `sbp_`)
-4. Click **"Add secret"**
+8. Click **New repository secret** one more time
+9. Add the third secret:
+   - **Name:** `SUPABASE_DB_PASSWORD`
+   - **Value:** Paste your database password
+   - Click **Add secret**
 
-### Add Secret 2: SUPABASE_PROJECT_REF
+**✓ Done!** You should now see all three secrets listed.
 
-1. Click **"New repository secret"** again
-2. In the **"Name"** field, type: `SUPABASE_PROJECT_REF`
-3. In the **"Secret"** field, paste your project reference ID
-4. Click **"Add secret"**
-
-### Add Secret 3: SUPABASE_DB_PASSWORD
-
-1. Click **"New repository secret"** one more time
-2. In the **"Name"** field, type: `SUPABASE_DB_PASSWORD`
-3. In the **"Secret"** field, paste your database password
-4. Click **"Add secret"**
-
-## Step 3: Run the Workflow (Navigate from Front Page)
+## Step 3: Run the Workflow
 
 Now you can activate your Google Sheets connection with just a few clicks:
 
-1. Visit https://github.com and log in
-2. Navigate to your repository: `github.com/YOUR_USERNAME/product-entry-hub-10`
-3. You'll see the repository main page with several tabs at the top
-4. Click the **"Actions"** tab
-5. You'll see the list of available workflows on the left side
-6. Look for **"Deploy Google Sheets Connection"** in the list
-7. Click on it
-8. You'll see the workflow details
-9. On the right side, click the blue **"Run workflow"** button
-10. A dropdown section will appear
-11. You can leave the settings as default, or select your environment:
-    - **production** (for your live setup)
-    - **staging** (for testing)
-12. Click **"Run workflow"** button to confirm
+1. Go to your GitHub repository
+2. Click the **Actions** tab (top navigation)
+3. In the left sidebar, click **"Deploy Google Sheets Connection"**
+4. Click the **"Run workflow"** button on the right
+5. Select your environment:
+   - **production** (recommended for most users)
+   - **staging** (for testing)
+6. Click **"Run workflow"** to start the deployment
 
-### Monitor the Workflow
-
-1. You'll see the workflow appear in the list
-2. It will show a **yellow circle** (🟡) while running
-3. Wait 2-3 minutes
-4. When it completes, you'll see a **green checkmark** (✓) - success!
-5. If there's a red X (❌), click the workflow to see error details
+**⏳ Wait for completion:** The workflow typically takes 2-3 minutes.
 
 When it's done, you'll see a green checkmark (✓) indicating success.
 
