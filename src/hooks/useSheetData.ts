@@ -1,53 +1,37 @@
+// This hook is kept for backward compatibility but the app now uses
+// the modular api.ts layer with individual react-query hooks.
+// If you need a unified hook, you can still import this.
+
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { defaultProducts, type Product } from "@/data/defaultProducts";
-import { defaultProperties, defaultLegalValues, type PropertyDefinition, type LegalValue } from "@/data/defaultProperties";
-import { categoryTree, type CategoryLevel } from "@/data/categoryData";
+import { fetchSkus, fetchCategories, fetchProperties, type SkuEntry } from "@/lib/api";
+import type { CategoryLevel } from "@/data/categoryData";
+import type { PropertyDefinition, LegalValue } from "@/data/defaultProperties";
 
 export interface SheetData {
-  products: Product[];
+  products: SkuEntry[];
   categories: CategoryLevel[];
   properties: PropertyDefinition[];
   legalValues: LegalValue[];
 }
 
-async function fetchSheetData(): Promise<SheetData> {
-  const { data, error } = await supabase.functions.invoke("google-sheets", {
-    body: { action: "read" },
-  });
-
-  if (error) throw error;
-
-  // If the edge function returns that credentials are not configured, use defaults
-  if (data?.useDefaults) {
-    return {
-      products: defaultProducts,
-      categories: categoryTree,
-      properties: defaultProperties,
-      legalValues: defaultLegalValues,
-    };
-  }
-
+async function fetchAll(): Promise<SheetData> {
+  const [products, categories, propData] = await Promise.all([
+    fetchSkus(),
+    fetchCategories(),
+    fetchProperties(),
+  ]);
   return {
-    products: data.products ?? defaultProducts,
-    categories: data.categories ?? categoryTree,
-    properties: data.properties ?? defaultProperties,
-    legalValues: data.legalValues ?? defaultLegalValues,
+    products,
+    categories,
+    properties: propData.properties,
+    legalValues: propData.legalValues,
   };
 }
 
 export function useSheetData() {
   return useQuery<SheetData>({
     queryKey: ["sheet-data"],
-    queryFn: fetchSheetData,
-    staleTime: 5 * 60 * 1000, // 5 min cache
-    retry: 1,
-    // On error, still provide defaults via initialData
-    initialData: {
-      products: defaultProducts,
-      categories: categoryTree,
-      properties: defaultProperties,
-      legalValues: defaultLegalValues,
-    },
+    queryFn: fetchAll,
+    staleTime: 5 * 60 * 1000,
   });
 }
