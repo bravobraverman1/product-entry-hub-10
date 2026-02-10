@@ -43,6 +43,10 @@ Follow these steps in order:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
+3. **Enable both APIs:**
+  - **Google Sheets API**
+  - **Google Drive API**
+  (APIs & Services → Library → search each → Enable)
 3. Navigate to **IAM & Admin** → **Service Accounts**
 4. Click **Create Service Account**
 5. Enter a name (e.g., "product-entry-hub-sheets-access")
