@@ -46,9 +46,12 @@ function getCorsHeaders(origin?: string) {
   const allowAll = ALLOWED_ORIGINS.includes("*");
   const isAllowed = !!origin && ALLOWED_ORIGINS.some((allowed) => originMatches(allowed, origin));
   
-  // Always reflect the request origin if it's allowed or if wildcard is set.
-  // Never return '*' when request includes auth headers (browser will reject it).
-  const allowOrigin = (allowAll || isAllowed) ? origin : (ALLOWED_ORIGINS[0] || "");
+  // If wildcard is set OR origin matches allowlist, reflect the origin.
+  // Otherwise, use the first allowed origin or fall back to the request origin.
+  // Security is enforced via Supabase authentication (apikey + JWT verification).
+  const allowOrigin = (allowAll || isAllowed) 
+    ? origin 
+    : (ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS[0] : origin);
 
   return {
     "Access-Control-Allow-Origin": allowOrigin || "*",
