@@ -37,17 +37,6 @@ jobs:
         run: |
           supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
 
-      - name: Set Edge Function Secrets
-        run: |
-            echo "Setting secrets..."
-            cat > /tmp/secrets.env << 'EOF'
-            GOOGLE_SERVICE_ACCOUNT_KEY=${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
-            GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}
-            EOF
-            supabase secrets set --env-file /tmp/secrets.env
-            rm /tmp/secrets.env
-            echo "✓ Secrets configured successfully"
-
       - name: Deploy Edge Function
         run: |
           supabase functions deploy google-sheets
