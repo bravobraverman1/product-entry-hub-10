@@ -47,6 +47,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -280,38 +281,37 @@ const Admin = () => {
   const [appsScriptUrl, setAppsScriptUrl] = useState(getConfigValue("APPS_SCRIPT_BASE_URL", ""));
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
-  const [googleServiceAccountKey, setGoogleServiceAccountKey] = useState(getConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", ""));
-  const [googleSheetId, setGoogleSheetId] = useState(getConfigValue("GOOGLE_SHEET_ID", ""));
   const [testingConnection, setTestingConnection] = useState(false);
 
   const testSupabaseConnection = async () => {
-    if (!googleServiceAccountKey.trim() || !googleSheetId.trim()) {
-      toast({ 
-        variant: "destructive", 
-        title: "Missing Configuration", 
-        description: "Please provide both Service Account Key and Sheet ID before testing." 
-      });
-      return;
-    }
-
     setTestingConnection(true);
     try {
-      // Save settings to localStorage for the test to work
-      setConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", googleServiceAccountKey);
-      setConfigValue("GOOGLE_SHEET_ID", googleSheetId);
-      
-      const { readGoogleSheets } = await import("@/lib/supabaseGoogleSheets");
-      const result = await readGoogleSheets();
-      
-      if (result.useDefaults) {
+      // Test the edge function connection (credentials should be in Supabase secrets)
+      const { data, error } = await supabase.functions.invoke("google-sheets", {
+        body: {
+          action: "read"
+          // No credentials in request - should use environment variables
+        },
+      });
+
+      if (error) {
         toast({ 
           variant: "destructive", 
-          title: "Connection Failed", 
-          description: "Could not connect to Google Sheets. Check your credentials and Sheet ID." 
+          title: "Connection Error", 
+          description: `Failed to connect: ${error.message || 'Unknown error'}`
+        });
+        return;
+      }
+      
+      if (data?.useDefaults) {
+        toast({ 
+          variant: "destructive", 
+          title: "Configuration Missing", 
+          description: "Google Sheets credentials not found in Supabase. Please ensure you've completed Step 4 (Add Secrets) and Step 5 (Deploy Function)." 
         });
       } else {
-        const productCount = result.products?.length ?? 0;
-        const categoryCount = result.categories?.length ?? 0;
+        const productCount = data?.products?.length ?? 0;
+        const categoryCount = data?.categories?.length ?? 0;
         toast({ 
           title: "Connection Successful! ✓", 
           description: `Connected to your sheet. Found ${productCount} products and ${categoryCount} categories.` 
@@ -321,7 +321,7 @@ const Admin = () => {
       toast({ 
         variant: "destructive", 
         title: "Connection Error", 
-        description: error instanceof Error ? error.message : "An unexpected error occurred." 
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Make sure the Edge Function is deployed." 
       });
     } finally {
       setTestingConnection(false);
@@ -329,51 +329,10 @@ const Admin = () => {
   };
 
   const saveConnectionSettings = () => {
-    // Validate Google Service Account Key if provided
-    if (googleServiceAccountKey.trim()) {
-      try {
-        const parsed = JSON.parse(googleServiceAccountKey);
-        // Check for required fields with explicit validation
-        if (!parsed.type || typeof parsed.type !== 'string' || parsed.type.trim() === '' ||
-            !parsed.project_id || typeof parsed.project_id !== 'string' || parsed.project_id.trim() === '' ||
-            !parsed.private_key || typeof parsed.private_key !== 'string' || parsed.private_key.trim() === '' ||
-            !parsed.client_email || typeof parsed.client_email !== 'string' || parsed.client_email.trim() === '') {
-          toast({ 
-            variant: "destructive", 
-            title: "Invalid JSON Key", 
-            description: "The Google Service Account Key is missing required fields (type, project_id, private_key, client_email)." 
-          });
-          return;
-        }
-      } catch (error) {
-        toast({ 
-          variant: "destructive", 
-          title: "Invalid JSON", 
-          description: "The Google Service Account Key must be valid JSON. Please check the format." 
-        });
-        return;
-      }
-    }
-
-    // Validate Google Sheet ID format if provided
-    if (googleSheetId.trim()) {
-      // Google Sheet IDs are alphanumeric with hyphens/underscores, minimum 30 characters
-      if (googleSheetId.trim().length < 30 || !/^[a-zA-Z0-9_-]+$/.test(googleSheetId.trim())) {
-        toast({ 
-          variant: "destructive", 
-          title: "Invalid Sheet ID", 
-          description: "The Google Sheet ID format appears incorrect. It should be a long alphanumeric string (minimum 30 characters)." 
-        });
-        return;
-      }
-    }
-
-    // Save all settings
+    // Save all settings (Google Sheets credentials are now managed server-side)
     setConfigValue("APPS_SCRIPT_BASE_URL", appsScriptUrl);
     setConfigValue("INSTRUCTIONS_PDF_URL", pdfUrl);
     setConfigValue("DRIVE_CSV_FOLDER_ID", driveFolderId);
-    setConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", googleServiceAccountKey);
-    setConfigValue("GOOGLE_SHEET_ID", googleSheetId);
     
     toast({ 
       title: "Saved", 
@@ -417,74 +376,247 @@ const Admin = () => {
             </div>
           </div>
 
-          {/* Method 1: Supabase Edge Function Configuration */}
-          <div className="border border-primary/20 rounded-lg p-4 space-y-3 bg-primary/5">
-            <h4 className="text-sm font-semibold">Method 1: Google Service Account (Recommended)</h4>
-            <div className="rounded-lg border border-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 p-3 space-y-1">
-              <p className="text-xs font-semibold text-yellow-900 dark:text-yellow-100">⚠️ Security Notice</p>
-              <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                Credentials are stored in your browser's localStorage. Only use this on trusted devices. For production deployments, consider setting credentials server-side via Supabase dashboard instead.
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Configure your Google Service Account credentials below. Follow the <a href="https://github.com/bravobraverman1/product-entry-hub-10/blob/main/GOOGLE_SHEETS_SETUP.md" target="_blank" rel="noopener noreferrer" className="underline">complete setup guide</a> for step-by-step instructions.
-            </p>
-            
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Google Service Account Key (JSON)</Label>
-              <Textarea 
-                value={googleServiceAccountKey} 
-                onChange={(e) => setGoogleServiceAccountKey(e.target.value)} 
-                placeholder='Paste the entire JSON key file contents here: {"type": "service_account", "project_id": "...", ...}'
-                className="min-h-32 text-xs font-mono"
-              />
-              <p className="text-xs text-muted-foreground">
-                Create a Google Service Account, download the JSON key file, and paste its entire contents here.
-              </p>
-            </div>
-            
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Google Sheet ID</Label>
-              <Input 
-                value={googleSheetId} 
-                onChange={(e) => setGoogleSheetId(e.target.value)} 
-                placeholder="1abc123xyz..." 
-                className="h-9 text-sm font-mono" 
-              />
-              <p className="text-xs text-muted-foreground">
-                The long string in your sheet URL between /d/ and /edit. Example: In https://docs.google.com/spreadsheets/d/1abc123xyz/edit, the ID is 1abc123xyz
-              </p>
+          {/* Method 1: Manual Server-Side Setup Guide */}
+          <div className="border border-primary/20 rounded-lg p-6 space-y-6 bg-primary/5">
+            <div>
+              <h4 className="text-base font-semibold mb-2">Google Sheets Connection Setup</h4>
+              <p className="text-sm text-muted-foreground">Follow these steps to securely connect your Google Sheet. This is a one-time setup.</p>
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={testSupabaseConnection}
-                disabled={testingConnection || !googleServiceAccountKey.trim() || !googleSheetId.trim()}
-              >
-                {testingConnection ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                    Testing...
-                  </>
-                ) : (
-                  <>
-                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                    Test Connection
-                  </>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground self-center">
-                Test your credentials before saving to ensure they work correctly.
+            {/* Section 0: How This Works */}
+            <div className="space-y-3 border-l-2 border-blue-500 pl-4">
+              <h5 className="text-sm font-semibold">How the Google Sheets connection works</h5>
+              <p className="text-sm text-muted-foreground">
+                This app already includes a pre-built server configuration that knows how to connect to Google Sheets. 
+                <strong> You do NOT create code, and you do NOT edit any files.</strong>
               </p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>The connection lives in a secure server file called an "Edge Function"</li>
+                <li>This file already exists in the app at <code className="text-xs bg-muted px-1 py-0.5 rounded">supabase/functions/google-sheets</code></li>
+                <li>Activating it simply turns the connection ON</li>
+                <li>You never open or change this file</li>
+              </ul>
+              <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
+                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">💡 Think of this like turning on a feature that is already installed.</p>
+              </div>
+            </div>
+
+            {/* Step 1: Create Service Account */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-semibold">Create a Google Service Account</h5>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Create a Google Service Account so the app can securely access your Google Sheet.
+                  </p>
+                </div>
+              </div>
+              <div className="ml-8 space-y-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open('https://console.cloud.google.com/iam-admin/serviceaccounts', '_blank')}
+                >
+                  <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                  Open Google Cloud Console
+                </Button>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Click "Create Service Account"</li>
+                  <li>Name it anything (example: <code className="text-xs bg-muted px-1 py-0.5 rounded">sheets-access</code>)</li>
+                  <li>Skip role assignment (click "Continue" then "Done")</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Step 2: Download Key */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-semibold">Create & Download the Key File</h5>
+                  <p className="text-sm text-muted-foreground mt-1">Download a secure key file.</p>
+                </div>
+              </div>
+              <div className="ml-8 space-y-2">
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Click the service account you just created</li>
+                  <li>Go to the "Keys" tab</li>
+                  <li>Click "Add Key" → "Create new key"</li>
+                  <li>Choose "JSON"</li>
+                  <li>Download the file and keep it safe</li>
+                </ul>
+                <div className="rounded-lg border border-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 p-3">
+                  <p className="text-xs font-semibold text-yellow-900 dark:text-yellow-100">⚠️ Do not upload this file anywhere except Supabase. Never email it.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Share Sheet */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-semibold">Share Your Google Sheet</h5>
+                  <p className="text-sm text-muted-foreground mt-1">Give the app permission to access your Google Sheet.</p>
+                </div>
+              </div>
+              <div className="ml-8 space-y-2">
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Open your Google Sheet</li>
+                  <li>Click "Share"</li>
+                  <li>Paste the service account email (looks like <code className="text-xs bg-muted px-1 py-0.5 rounded">name@project.iam.gserviceaccount.com</code> from the JSON file)</li>
+                  <li>Set permission to "Editor"</li>
+                  <li>Click "Send"</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Step 4: Add Secrets */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">4</div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-semibold">Add Secure Secrets in Supabase</h5>
+                  <p className="text-sm text-muted-foreground mt-1">Store the credentials securely on the server.</p>
+                </div>
+              </div>
+              <div className="ml-8 space-y-3">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open('https://supabase.com/dashboard/project/osiueywaplycxspbaadh/settings/functions', '_blank')}
+                >
+                  <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                  Open Supabase Edge Function Secrets
+                </Button>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium mb-2">Add the first secret:</p>
+                    <div className="bg-muted p-3 rounded-lg space-y-2">
+                      <div>
+                        <p className="text-xs font-semibold">Secret Name:</p>
+                        <code className="text-xs bg-background px-2 py-1 rounded border">GOOGLE_SERVICE_ACCOUNT_KEY</code>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold">Secret Value:</p>
+                        <p className="text-xs text-muted-foreground">Paste the ENTIRE contents of the JSON file</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-2">Then add the second secret:</p>
+                    <div className="bg-muted p-3 rounded-lg space-y-2">
+                      <div>
+                        <p className="text-xs font-semibold">Secret Name:</p>
+                        <code className="text-xs bg-background px-2 py-1 rounded border">GOOGLE_SHEET_ID</code>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold">Secret Value:</p>
+                        <p className="text-xs text-muted-foreground">The ID from your Google Sheet URL (the part between /d/ and /edit)</p>
+                        <p className="text-xs text-muted-foreground italic">Example: In https://docs.google.com/spreadsheets/d/1abc123xyz/edit, use <code className="bg-background px-1 rounded">1abc123xyz</code></p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 5: Activate Configuration */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">5</div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-semibold">Activate the Pre-Built Configuration (One Time)</h5>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    This step activates a configuration file that already exists. <strong>You are not creating or editing code.</strong>
+                  </p>
+                </div>
+              </div>
+              <div className="ml-8 space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  There is a server file named <code className="text-xs bg-muted px-1 py-0.5 rounded">google-sheets</code> that already contains everything needed. This step turns it on.
+                </p>
+                <div>
+                  <p className="text-sm font-medium mb-2">Prerequisites:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Access to the Supabase project</li>
+                    <li>A computer with Node.js installed (<a href="https://nodejs.org" target="_blank" rel="noopener noreferrer" className="underline">download here</a>)</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">Commands (run these in order):</p>
+                  <div className="space-y-3">
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-xs font-semibold mb-1">1. Install Supabase CLI (one time):</p>
+                      <code className="text-xs bg-background px-2 py-1 rounded border block">npm install -g supabase</code>
+                    </div>
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-xs font-semibold mb-1">2. Sign in to Supabase:</p>
+                      <code className="text-xs bg-background px-2 py-1 rounded border block">supabase login</code>
+                      <p className="text-xs text-muted-foreground mt-1">This opens your browser to log in, then return to the terminal</p>
+                    </div>
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-xs font-semibold mb-1">3. Link your project:</p>
+                      <code className="text-xs bg-background px-2 py-1 rounded border block">supabase link --project-ref osiueywaplycxspbaadh</code>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Project ref can be found at: <a href="https://supabase.com/dashboard/project/osiueywaplycxspbaadh/settings/general" target="_blank" rel="noopener noreferrer" className="underline">Supabase Settings</a>
+                      </p>
+                    </div>
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-xs font-semibold mb-1">4. Activate the configuration:</p>
+                      <code className="text-xs bg-background px-2 py-1 rounded border block">supabase functions deploy google-sheets</code>
+                      <p className="text-xs text-muted-foreground mt-1">This usually takes less than 30 seconds and only needs to be done once.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 6: Test Connection */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">6</div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-semibold">Verify the Connection</h5>
+                  <p className="text-sm text-muted-foreground mt-1">Test that everything is working correctly.</p>
+                </div>
+              </div>
+              <div className="ml-8 space-y-2">
+                <Button 
+                  type="button" 
+                  variant="default" 
+                  size="sm" 
+                  onClick={testSupabaseConnection}
+                  disabled={testingConnection}
+                >
+                  {testingConnection ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                      Testing Connection...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                      Test Connection
+                    </>
+                  )}
+                </Button>
+                <div className="rounded-lg border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-800 p-3">
+                  <p className="text-xs font-semibold text-green-900 dark:text-green-100">✅ If this test succeeds, no further setup is ever required.</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  The test will show clear error messages if something is not configured correctly (e.g., sheet not shared, missing credentials, or function not activated).
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Method 2: Apps Script Configuration */}
           <div className="border border-border rounded-lg p-4 space-y-3">
-            <h4 className="text-sm font-semibold">Method 2: Google Apps Script (Alternative)</h4>
+            <h4 className="text-sm font-semibold">Advanced / Alternative: Google Apps Script</h4>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Apps Script Web App URL</Label>
               <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
