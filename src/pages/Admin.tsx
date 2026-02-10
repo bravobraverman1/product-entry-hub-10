@@ -284,13 +284,37 @@ const Admin = () => {
 
   // ── Connection Settings ──
   const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'osiueywaplycxspbaadh';
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  const supabaseUrlOverride = getConfigValue("SUPABASE_URL_OVERRIDE", "");
+  const supabaseAnonKeyOverride = getConfigValue("SUPABASE_ANON_KEY_OVERRIDE", "");
+  const supabaseUrl = supabaseUrlOverride || import.meta.env.VITE_SUPABASE_URL || "";
+  const supabaseAnonKey = supabaseAnonKeyOverride || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   const supabaseProjectRef = supabaseUrl.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i)?.[1] || "";
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState(supabaseUrlOverride);
+  const [supabaseAnonKeyInput, setSupabaseAnonKeyInput] = useState(supabaseAnonKeyOverride);
   
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
   const [testingConnection, setTestingConnection] = useState(false);
+
+  const saveSupabaseOverrides = () => {
+    setConfigValue("SUPABASE_URL_OVERRIDE", supabaseUrlInput.trim());
+    setConfigValue("SUPABASE_ANON_KEY_OVERRIDE", supabaseAnonKeyInput.trim());
+    toast({
+      title: "Supabase settings saved",
+      description: "Refresh the page to apply the new Supabase connection."
+    });
+  };
+
+  const resetSupabaseOverrides = () => {
+    setConfigValue("SUPABASE_URL_OVERRIDE", "");
+    setConfigValue("SUPABASE_ANON_KEY_OVERRIDE", "");
+    setSupabaseUrlInput("");
+    setSupabaseAnonKeyInput("");
+    toast({
+      title: "Supabase settings reset",
+      description: "Refresh the page to return to the default connection."
+    });
+  };
 
   const testSupabaseConnection = async () => {
     setTestingConnection(true);
