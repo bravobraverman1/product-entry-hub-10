@@ -110,9 +110,9 @@ async function promptForConfig() {
   console.log('📌 Step 3: Confirm your Project Reference ID');
   console.log(`   (We detected: ${projectRef})\n`);
   
-  const confirmRef = await question(`Is "${projectRef}" correct? (Y/n): `);
+  const confirmRef = (await question(`Is "${projectRef}" correct? (Y/n): `)).trim().toLowerCase();
   
-  if (confirmRef.toLowerCase() === 'n') {
+  if (confirmRef === 'n' || confirmRef === 'no') {
     while (true) {
       projectRef = (await question('Enter Project Reference: ')).trim();
       

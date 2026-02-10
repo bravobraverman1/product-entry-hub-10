@@ -432,7 +432,9 @@ Error: Port 5173 is already in use
    - Select "Cached images and files"
    - Click "Clear data"
 5. **Restart server** - `npm run dev`
-6. **Hard refresh browser** - `Ctrl+F5` (or `Cmd+Shift+R` on Mac)
+6. **Hard refresh browser**:
+   - Chrome/Firefox: `Ctrl+F5` (Windows/Linux) or `Cmd+Shift+R` (Mac)
+   - Safari: `Cmd+Option+R` (Mac)
 
 ---
 
