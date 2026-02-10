@@ -83,11 +83,13 @@ You should see:
 
 ### 3) Set the Function name
 
-In the **"Function name"** field, type EXACTLY:
+In the **"Function name"** field at the bottom right, type EXACTLY (copy this):
 
 ```
 google-sheets
 ```
+
+**⚠️ IMPORTANT:** The name must be exactly `google-sheets` - no spaces, no capital letters, no changes.
 
 ### 4) Replace the template code (IMPORTANT)
 
@@ -404,8 +406,8 @@ Once on the function page, look for the Secrets/Environment Variables tab in the
 #### Step 4.2: Add the first secret: GOOGLE_SERVICE_ACCOUNT_KEY
 
    - Click **"Add secret"** or **"New secret"** button
-   - **Name:** Enter exactly: `GOOGLE_SERVICE_ACCOUNT_KEY` (case-sensitive)
-   - **Value:** Paste the entire JSON file contents from Step 2
+   - **Name (COPY THIS EXACTLY):** `GOOGLE_SERVICE_ACCOUNT_KEY` (case-sensitive)
+   - **Value (YOUR JSON FILE):** Paste the **entire** JSON file contents from Step 2
      - The value should start with `{` and end with `}`
      - Copy everything—don't modify it
      - It should look something like:
@@ -417,15 +419,15 @@ Once on the function page, look for the Secrets/Environment Variables tab in the
 #### Step 4.3: Add the second secret: GOOGLE_SHEET_ID
 
    - Click **"Add secret"** or **"New secret"** button again
-   - **Name:** Enter exactly: `GOOGLE_SHEET_ID` (case-sensitive)
-   - **Value:** Your Google Sheet ID (found in your sheet's URL)
+   - **Name (COPY THIS EXACTLY):** `GOOGLE_SHEET_ID` (case-sensitive)
+   - **Value (YOUR SHEET ID):** Your Google Sheet ID (found in your sheet's URL)
      - Open your Google Sheet
      - Look at the URL: `https://docs.google.com/spreadsheets/d/`**XXXX-YOUR-ID**`/edit`
      - Copy only the ID part (the long string between `/d/` and `/edit`)
      - Example: `1abc2def3ghi4jkl5mno6pqr7stu8vwxyz`
    - Click **"Save"** or **"Add Secret"**
 
-**Copy/Paste Tip:** To avoid typos, copy these secret names directly:
+**Copy/Paste Helper - Secret Names (COPY EXACTLY):**
 ```
 GOOGLE_SERVICE_ACCOUNT_KEY
 GOOGLE_SHEET_ID
