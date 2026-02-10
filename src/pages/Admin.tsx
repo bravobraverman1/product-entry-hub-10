@@ -280,7 +280,6 @@ const Admin = () => {
   // ── Connection Settings ──
   const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'osiueywaplycxspbaadh';
   
-  const [appsScriptUrl, setAppsScriptUrl] = useState(getConfigValue("APPS_SCRIPT_BASE_URL", ""));
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
   const [testingConnection, setTestingConnection] = useState(false);
@@ -332,7 +331,6 @@ const Admin = () => {
 
   const saveConnectionSettings = () => {
     // Save all settings (Google Sheets credentials are now managed server-side)
-    setConfigValue("APPS_SCRIPT_BASE_URL", appsScriptUrl);
     setConfigValue("INSTRUCTIONS_PDF_URL", pdfUrl);
     setConfigValue("DRIVE_CSV_FOLDER_ID", driveFolderId);
     
@@ -363,12 +361,8 @@ const Admin = () => {
           <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-4 space-y-2">
             <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">📚 Need Help Connecting Your Google Sheet?</h4>
             <p className="text-xs text-blue-800 dark:text-blue-200">
-              This application can connect to your Google Sheets in two ways:
+              Follow the step-by-step guide below to securely connect your Google Sheet to this application using Google Service Account.
             </p>
-            <ul className="text-xs text-blue-800 dark:text-blue-200 list-disc list-inside space-y-1 ml-2">
-              <li><strong>Method 1 (Recommended):</strong> Google Service Account via Supabase Edge Function</li>
-              <li><strong>Method 2:</strong> Google Apps Script Web App (configure URL below)</li>
-            </ul>
             <div className="pt-2">
               <Button type="button" variant="outline" size="sm" asChild className="bg-white dark:bg-gray-900">
                 <a href="https://github.com/bravobraverman1/product-entry-hub-10/blob/main/GOOGLE_SHEETS_SETUP.md" target="_blank" rel="noopener noreferrer">
@@ -481,47 +475,68 @@ const Admin = () => {
                 <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">4</div>
                 <div className="flex-1">
                   <h5 className="text-sm font-semibold">Add Secure Secrets in Supabase</h5>
-                  <p className="text-sm text-muted-foreground mt-1">Store the credentials securely on the server.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Store the credentials securely on the server. This requires accessing the Supabase dashboard.</p>
                 </div>
               </div>
               <div className="ml-8 space-y-3">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.open(`https://supabase.com/dashboard/project/${supabaseProjectId}/settings/functions`, '_blank')}
-                >
-                  <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                  Open Supabase Edge Function Secrets
-                </Button>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Step 4a: Go to Supabase Dashboard</p>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.open('https://supabase.com/dashboard', '_blank')}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                    Open Supabase Dashboard
+                  </Button>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Log in with your Supabase account</li>
+                    <li>Select the project you're using for this app</li>
+                    <li>Once in your project dashboard, look for the sidebar on the left</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Step 4b: Navigate to Edge Function Secrets</p>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>In the left sidebar, click <strong>"Functions"</strong></li>
+                    <li>Click <strong>"Edge Functions"</strong> (if not visible, you may need to expand the menu)</li>
+                    <li>In the functions list, find and click on <strong>"google-sheets"</strong></li>
+                    <li>On the google-sheets function page, look for a tab or section called <strong>"Secrets"</strong> or <strong>"Environment"</strong></li>
+                    <li>Click to view/add secrets</li>
+                  </ul>
+                </div>
+
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium mb-2">Add the first secret:</p>
-                    <div className="bg-muted p-3 rounded-lg space-y-2">
-                      <div>
-                        <p className="text-xs font-semibold">Secret Name:</p>
-                        <code className="text-xs bg-background px-2 py-1 rounded border">GOOGLE_SERVICE_ACCOUNT_KEY</code>
+                  <p className="text-sm font-medium">Step 4c: Add the Two Required Secrets</p>
+                  <div className="bg-muted p-3 rounded-lg space-y-2">
+                    <div>
+                      <p className="text-sm font-semibold mb-1">First Secret:</p>
+                      <div className="bg-background p-2 rounded border space-y-1">
+                        <p className="text-xs font-semibold">Name:</p>
+                        <code className="text-xs bg-muted px-1 py-0.5 rounded">GOOGLE_SERVICE_ACCOUNT_KEY</code>
+                        <p className="text-xs font-semibold mt-2">Value:</p>
+                        <p className="text-xs text-muted-foreground">Paste the <strong>ENTIRE contents</strong> of the JSON key file you downloaded in Step 2 (it starts with <code className="bg-background px-1">{"{"}</code> and ends with <code className="bg-background px-1">{"}"}</code>)</p>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold">Secret Value:</p>
-                        <p className="text-xs text-muted-foreground">Paste the ENTIRE contents of the JSON file</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold mb-1">Second Secret:</p>
+                      <div className="bg-background p-2 rounded border space-y-1">
+                        <p className="text-xs font-semibold">Name:</p>
+                        <code className="text-xs bg-muted px-1 py-0.5 rounded">GOOGLE_SHEET_ID</code>
+                        <p className="text-xs font-semibold mt-2">Value:</p>
+                        <p className="text-xs text-muted-foreground">The ID from your Google Sheet URL</p>
+                        <p className="text-xs text-muted-foreground">Look at your sheet URL: <code className="bg-background px-1 rounded">https://docs.google.com/spreadsheets/d/</code><strong>1abc123xyz</strong><code className="bg-background px-1 rounded">/edit</code></p>
+                        <p className="text-xs text-muted-foreground">Copy only the bolded part between <code className="bg-background px-1">/d/</code> and <code className="bg-background px-1">/edit</code></p>
+                        <p className="text-xs text-muted-foreground italic">Example: <code className="bg-background px-1 rounded">1abc123xyz</code></p>
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium mb-2">Then add the second secret:</p>
-                    <div className="bg-muted p-3 rounded-lg space-y-2">
-                      <div>
-                        <p className="text-xs font-semibold">Secret Name:</p>
-                        <code className="text-xs bg-background px-2 py-1 rounded border">GOOGLE_SHEET_ID</code>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold">Secret Value:</p>
-                        <p className="text-xs text-muted-foreground">The ID from your Google Sheet URL (the part between /d/ and /edit)</p>
-                        <p className="text-xs text-muted-foreground italic">Example: In https://docs.google.com/spreadsheets/d/1abc123xyz/edit, use <code className="bg-background px-1 rounded">1abc123xyz</code></p>
-                      </div>
-                    </div>
-                  </div>
+                </div>
+
+                <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
+                  <p className="text-xs text-blue-900 dark:text-blue-100"><strong>ℹ️ Note:</strong> After adding both secrets, click "Save" in the Supabase interface. The secrets are now stored securely on Supabase's server.</p>
                 </div>
               </div>
             </div>
@@ -544,7 +559,7 @@ const Admin = () => {
                 
                 <div>
                   <p className="text-sm font-medium mb-3">One-Time Setup: Add GitHub Secrets</p>
-                  <div className="bg-muted p-4 rounded-lg space-y-3 max-h-48 overflow-y-auto">
+                  <div className="bg-muted p-4 rounded-lg space-y-3">
                     <div>
                       <p className="text-xs font-semibold mb-2">1. Go to your GitHub repository → Settings → Secrets and variables → Actions</p>
                     </div>
@@ -626,17 +641,6 @@ const Admin = () => {
             </div>
           </div>
 
-          {/* Method 2: Apps Script Configuration */}
-          <div className="border border-border rounded-lg p-4 space-y-3">
-            <h4 className="text-sm font-semibold">Advanced / Alternative: Google Apps Script</h4>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Apps Script Web App URL</Label>
-              <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
-              <p className="text-xs text-muted-foreground">
-                Only needed if using Google Apps Script method. Leave empty to use Method 1 (Supabase) or mock data.
-              </p>
-            </div>
-          </div>
           
           <div className="space-y-1.5 max-w-lg">
             <Label className="text-xs font-medium">Product Instructions PDF URL</Label>
