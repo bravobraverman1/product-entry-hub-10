@@ -51,49 +51,71 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-end gap-2">
+        {/* Manual SKU entry */}
         <div className="flex-1 space-y-1.5 max-w-sm">
           <Label className="text-xs font-medium">Reopen SKU</Label>
-          <Input
-            value={sku}
-            onChange={(e) => {
-              setSku(e.target.value);
-              setReopened(false);
-            }}
-            placeholder="Enter SKU to reopen…"
-            className="h-9 text-sm font-mono"
-          />
+          <div className="flex gap-2">
+            <Input
+              value={sku}
+              onChange={(e) => {
+                setSku(e.target.value);
+                setReopened(false);
+              }}
+              placeholder="Enter SKU…"
+              className="h-9 text-sm font-mono"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReopen}
+              disabled={loading || !sku.trim()}
+              className="h-9 shrink-0"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* SKU from Loading Dock dropdown */}
         {dockSkus.length > 0 && (
-          <Select value={sku} onValueChange={(value) => {
-            setSku(value);
-            setReopened(false);
-          }}>
-            <SelectTrigger className="w-48 h-9">
-              <SelectValue placeholder="Or select from dock…" />
-            </SelectTrigger>
-            <SelectContent>
-              {dockSkus.map((skuOption) => (
-                <SelectItem key={skuOption} value={skuOption}>
-                  {skuOption}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex-1 space-y-1.5 max-w-sm">
+            <Label className="text-xs font-medium">Or from Loading Dock</Label>
+            <div className="flex gap-2">
+              <Select value={sku} onValueChange={(value) => {
+                setSku(value);
+                setReopened(false);
+              }}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select SKU…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dockSkus.map((skuOption) => (
+                    <SelectItem key={skuOption} value={skuOption}>
+                      {skuOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleReopen}
+                disabled={loading || !sku.trim()}
+                className="h-9 shrink-0"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
         )}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleReopen}
-          disabled={loading || !sku.trim()}
-          className="h-9"
-        >
-          {loading ? (
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-          ) : (
-            <RotateCcw className="h-4 w-4 mr-1.5" />
-          )}
-          Reopen
-        </Button>
       </div>
 
       {reopened && (

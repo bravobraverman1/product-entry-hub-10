@@ -144,7 +144,7 @@ const LoadingDock = () => {
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(sub.submittedAt).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-center space-x-1">
+                      <TableCell className="text-right space-x-1">
                         <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleComingSoon}>
                           <Pencil className="h-3 w-3 mr-1" /> Edit
                         </Button>
@@ -155,7 +155,7 @@ const LoadingDock = () => {
                           <Eye className="h-3 w-3 mr-1" /> View
                         </Button>
                         <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleComingSoon}>
-                          <Mail className="h-3 w-3 mr-1" /> Email
+                          <Mail className="h-3 w-3 mr-1" /> Compose Email
                         </Button>
                         <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(sub.id)}>
                           <Trash2 className="h-3 w-3" />
