@@ -112,12 +112,9 @@ export const config = {
   },
 
   // ── Supabase Google Sheets Configuration ─────────────────
-  get GOOGLE_SERVICE_ACCOUNT_KEY() {
-    return getConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", "");
-  },
-  get GOOGLE_SHEET_ID() {
-    return getConfigValue("GOOGLE_SHEET_ID", "");
-  },
+  // NOTE: GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID are stored ONLY as Supabase secrets
+  // They are NOT stored in browser localStorage for security reasons
+  // The edge function uses Deno.env to access these secrets server-side
 } as const;
 
 export type AppConfig = typeof config;

@@ -25,9 +25,10 @@ serve(async (req) => {
 
     const { action, serviceAccountKey: requestServiceAccountKey, sheetId: requestSheetId, tabNames } = body;
 
-    // Check for credentials in request body first, then environment
-    const serviceAccountKey = requestServiceAccountKey || Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
-    const sheetId = requestSheetId || Deno.env.get("GOOGLE_SHEET_ID");
+    // SECURITY: Only use server-side secrets from Deno.env, never from request body
+    // This prevents exposing credentials to the client
+    const serviceAccountKey = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+    const sheetId = Deno.env.get("GOOGLE_SHEET_ID");
 
     // If no credentials configured, return flag to use defaults
     if (!serviceAccountKey || !sheetId) {

@@ -49,31 +49,24 @@ function getSheetTabNamesPayload(): SheetTabNamesPayload {
 
 /**
  * Checks if Supabase Google Sheets integration is configured
+ * Returns true if we can call the edge function (credentials are checked server-side)
  */
 export function isSupabaseGoogleSheetsConfigured(): boolean {
-  const key = config.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const sheetId = config.GOOGLE_SHEET_ID;
-  return Boolean(key && key.trim() && sheetId && sheetId.trim());
+  // Always return true - the edge function will check if Deno.env secrets are configured
+  return true;
 }
 
 /**
  * Calls the Supabase Edge Function to read data from Google Sheets
- * Uses server-side Supabase secrets (GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_SHEET_ID)
+ * Uses ONLY server-side Supabase secrets (GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_SHEET_ID)
+ * No credentials are sent from the browser
  */
 export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
   try {
-    // Always call the edge function - it uses server-side env vars
-    // Only send browser creds if they exist, otherwise function uses Deno.env
     const requestBody: any = {
       action: "read",
       tabNames: getSheetTabNamesPayload(),
     };
-    
-    // Include browser credentials if available (optional, for backward compatibility)
-    if (isSupabaseGoogleSheetsConfigured()) {
-      requestBody.serviceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
-      requestBody.sheetId = config.GOOGLE_SHEET_ID;
-    }
 
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,
@@ -98,7 +91,7 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
 
 /**
  * Writes a row to the Google Sheet via Supabase Edge Function
- * Uses server-side Supabase secrets
+ * Uses ONLY server-side Supabase secrets. No credentials are sent from the browser
  */
 export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
   try {
@@ -107,12 +100,6 @@ export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
       rowData,
       tabNames: getSheetTabNamesPayload(),
     };
-    
-    // Include browser credentials if available (optional, for backward compatibility)
-    if (isSupabaseGoogleSheetsConfigured()) {
-      requestBody.serviceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
-      requestBody.sheetId = config.GOOGLE_SHEET_ID;
-    }
 
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,
@@ -131,7 +118,7 @@ export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
 }
 /**
  * Writes category paths to the Google Sheet via Supabase Edge Function
- * Uses server-side Supabase secrets
+ * Uses ONLY server-side Supabase secrets. No credentials are sent from the browser
  */
 export async function writeCategoriesToGoogleSheets(
   categoryPaths: string[]
@@ -142,12 +129,6 @@ export async function writeCategoriesToGoogleSheets(
       categoryPaths,
       tabNames: getSheetTabNamesPayload(),
     };
-    
-    // Include browser credentials if available (optional, for backward compatibility)
-    if (isSupabaseGoogleSheetsConfigured()) {
-      requestBody.serviceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
-      requestBody.sheetId = config.GOOGLE_SHEET_ID;
-    }
 
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,
@@ -160,7 +141,7 @@ export async function writeCategoriesToGoogleSheets(
 
     if (data?.useDefaults) {
       throw new Error(
-        "Edge function cannot read Supabase secrets. Redeploy the edge function after setting GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID."
+        "Google Sheets credentials not configured in Supabase secrets. Add GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID to your Supabase project, then redeploy the edge function."
       );
     }
 
@@ -179,7 +160,7 @@ export async function writeCategoriesToGoogleSheets(
 
 /**
  * Writes brands to the Google Sheet via Supabase Edge Function
- * Uses server-side Supabase secrets
+ * Uses ONLY server-side Supabase secrets. No credentials are sent from the browser
  */
 export async function writeBrandsToGoogleSheets(
   brands: Array<{ brand: string; brandName: string; website: string }>
@@ -190,12 +171,6 @@ export async function writeBrandsToGoogleSheets(
       brands,
       tabNames: getSheetTabNamesPayload(),
     };
-    
-    // Include browser credentials if available (optional, for backward compatibility)
-    if (isSupabaseGoogleSheetsConfigured()) {
-      requestBody.serviceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
-      requestBody.sheetId = config.GOOGLE_SHEET_ID;
-    }
 
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,

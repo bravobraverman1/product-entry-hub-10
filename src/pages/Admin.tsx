@@ -413,9 +413,7 @@ const Admin = () => {
   };
 
   // Check if Google Sheets credentials are configured
-  const googleServiceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const googleSheetId = config.GOOGLE_SHEET_ID;
-  const isGoogleSheetsConfigured = Boolean(googleServiceAccountKey && googleServiceAccountKey.trim() && googleSheetId && googleSheetId.trim());
+  // Note: Credentials are stored ONLY as Supabase secrets, not in browser storage for security
 
   // ── LEGAL Editor ──
   const { data: propData } = useQuery({ queryKey: ["properties"], queryFn: fetchProperties, staleTime: 60_000 });
