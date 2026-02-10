@@ -107,32 +107,37 @@ serve(async (req) => {
       );
     }
 
-    // AUTHENTICATION: Verify Supabase JWT token from Authorization header
+    // AUTHENTICATION: allow either a valid user JWT or a valid anon apikey
     const authHeader = req.headers.get("authorization") || "";
-    if (!authHeader.startsWith("Bearer ")) {
-      console.error("Missing or invalid Authorization header");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized: Missing authentication token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const apiKeyHeader = req.headers.get("apikey") || "";
 
-    const supabaseClient = getSupabaseClient(authHeader);
-    if (!supabaseClient) {
-      console.error("Supabase client not configured on edge function");
-      return new Response(
-        JSON.stringify({ error: "Server misconfiguration" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const hasValidApiKey = !!SUPABASE_ANON_KEY && apiKeyHeader === SUPABASE_ANON_KEY;
+    if (!hasValidApiKey) {
+      if (!authHeader.startsWith("Bearer ")) {
+        console.error("Missing or invalid Authorization header and apikey");
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: Missing authentication token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-    const { data: authData, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !authData?.user) {
-      console.error("Invalid or expired authentication token", authError);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const supabaseClient = getSupabaseClient(authHeader);
+      if (!supabaseClient) {
+        console.error("Supabase client not configured on edge function");
+        return new Response(
+          JSON.stringify({ error: "Server misconfiguration" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: authData, error: authError } = await supabaseClient.auth.getUser();
+      if (authError || !authData?.user) {
+        console.error("Invalid or expired authentication token", authError);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // SECURITY: Only use server-side secrets from Deno.env, never from request body
