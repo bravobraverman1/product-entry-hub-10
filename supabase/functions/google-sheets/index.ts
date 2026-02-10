@@ -271,13 +271,14 @@ async function clearAndWriteCategories(
   categoryPaths: string[]
 ): Promise<void> {
   // Clear existing data in CATEGORIES!A:A (keep header, delete data starting at row 2)
-  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/CATEGORIES!A2:A`;
+  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent("CATEGORIES!A2:A")}:clear`;
   const clearRes = await fetch(clearUrl, {
-    method: "DELETE",
+    method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({}),
   });
 
   if (!clearRes.ok) {
