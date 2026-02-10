@@ -2,38 +2,6 @@
 
 A comprehensive product data entry and management system built with React, TypeScript, and Google Sheets integration.
 
-## ⚠️ IMPORTANT: Supabase Configuration Required
-
-**Before you start, configure your Supabase project:**
-
-### Quick Setup Steps:
-
-1. **Create/Select Your Supabase Project**
-   - Go to https://supabase.com/dashboard
-   - Create a new project or select an existing one
-
-2. **Get Your Credentials**
-   - In your Supabase project: **Settings** → **API**
-   - Copy your **Project URL** (e.g., `https://xxxxx.supabase.co`)
-   - Copy your **Project Reference ID** (the `xxxxx` part)
-   - Copy your **anon/public key** (starts with `eyJ`)
-
-3. **Update Your .env File**
-   ```bash
-   VITE_SUPABASE_PROJECT_ID="your-project-ref"
-   VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
-   VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key-here"
-   ```
-
-4. **Restart Your Dev Server**
-   ```bash
-   npm run dev
-   ```
-
-📖 **Detailed Guide:** [COMPLETE_SETUP.md](./COMPLETE_SETUP.md)
-
----
-
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID

@@ -283,7 +283,7 @@ const Admin = () => {
   };
 
   // ── Connection Settings ──
-  const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || '';
+  const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'osiueywaplycxspbaadh';
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   const supabaseProjectRef = supabaseUrl.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i)?.[1] || "";
@@ -411,41 +411,22 @@ const Admin = () => {
             <p className="text-xs text-muted-foreground">
               Verify your Supabase project configuration before testing the connection.
             </p>
-            
-            {!supabaseUrl || !supabaseAnonKey || !supabaseProjectRef ? (
-              <div className="rounded-lg border border-amber-600 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3 space-y-2">
-                <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">⚠️ Supabase Not Configured</p>
-                <p className="text-xs text-amber-900 dark:text-amber-100">
-                  Your Supabase project is not configured. Follow these steps:
-                </p>
-                <ol className="list-decimal list-inside space-y-1 text-xs text-amber-900 dark:text-amber-100 ml-2">
-                  <li>Create or select your Supabase project at <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline">supabase.com/dashboard</a></li>
-                  <li>Get your project URL and anon key from: Settings → API</li>
-                  <li>Update environment variables in Lovable (Cloud tab) OR your local .env file</li>
-                  <li>Restart your dev server / redeploy your app</li>
-                </ol>
-                <p className="text-xs italic text-amber-800 dark:text-amber-200 mt-2">
-                  See: <strong>LOVABLE_CLOUD_SETUP.md</strong> or <strong>COMPLETE_SETUP.md</strong> for detailed instructions
-                </p>
+            <div className="space-y-2 text-sm font-mono">
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-32 shrink-0">Supabase URL:</span>
+                <span className="text-xs break-all">{supabaseUrl || "Not configured"}</span>
               </div>
-            ) : (
-              <div className="space-y-2 text-sm font-mono">
-                <div className="flex items-start gap-2">
-                  <span className="text-xs text-muted-foreground w-32 shrink-0">Supabase URL:</span>
-                  <span className="text-xs break-all">{supabaseUrl || "Not configured"}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs text-muted-foreground w-32 shrink-0">Project Ref:</span>
-                  <span className="text-xs">{supabaseProjectRef || "Not detected"}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs text-muted-foreground w-32 shrink-0">Publishable Key:</span>
-                  <span className={`text-xs font-semibold ${supabaseAnonKey ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                    {supabaseAnonKey ? "✓ Detected" : "✗ Missing"}
-                  </span>
-                </div>
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-32 shrink-0">Project Ref:</span>
+                <span className="text-xs">{supabaseProjectRef || "Not detected"}</span>
               </div>
-            )}
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-32 shrink-0">Publishable Key:</span>
+                <span className={`text-xs font-semibold ${supabaseAnonKey ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {supabaseAnonKey ? "✓ Detected" : "✗ Missing"}
+                </span>
+              </div>
+            </div>
           </div>
           
           {/* Test Connection Section */}
