@@ -547,8 +547,8 @@ The GitHub Actions workflow in Step 5 will automatically redeploy the function w
 **Option 2: Redeploy via Dashboard**
 1. Go to Supabase Dashboard → Edge Functions
 2. Click on the **"google-sheets"** function
-3. Look for a **"Redeploy"** or **"Deploy"** button (usually in the top right)
-4. Click it to redeploy the function
+3. Open the **Code** tab
+4. Click **Deploy updates** (bottom-right)
 5. Wait for deployment to complete (10-30 seconds)
 6. The function will now have access to your secrets
 
