@@ -279,6 +279,9 @@ const Admin = () => {
 
   // ── Connection Settings ──
   const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'osiueywaplycxspbaadh';
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  const supabaseProjectRef = supabaseUrl.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i)?.[1] || "";
   
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
@@ -395,6 +398,23 @@ const Admin = () => {
               <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
                 <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">💡 Think of this like turning on a feature that is already installed.</p>
               </div>
+            </div>
+
+            {/* Project Check */}
+            <div className="space-y-3 border-l-2 border-amber-500 pl-4">
+              <h5 className="text-sm font-semibold">Project Check (Important)</h5>
+              <p className="text-sm text-muted-foreground">
+                The app must point to the <strong>same Supabase project</strong> where your secrets were added. These values come from your hosting environment.
+              </p>
+              <div className="bg-muted p-3 rounded-lg space-y-1 text-xs">
+                <p><strong>Supabase URL:</strong> <span className="break-all">{supabaseUrl || "Not set"}</span></p>
+                <p><strong>Project Ref:</strong> {supabaseProjectRef || "Not detected"}</p>
+                <p><strong>Publishable Key:</strong> {supabaseAnonKey ? "Detected" : "Missing"}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                If any of these are missing or incorrect, update your hosting environment variables:
+                <strong> VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_PUBLISHABLE_KEY</strong>, then refresh the page.
+              </p>
             </div>
 
             {/* Step 1: Create Service Account */}
