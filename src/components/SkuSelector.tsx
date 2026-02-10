@@ -56,6 +56,16 @@ export function SkuSelector({ products, value, onSelect, error }: SkuSelectorPro
     else setSearch("");
   }, [open]);
 
+  // Auto-expand all brands when search length > 2
+  useEffect(() => {
+    if (search.length > 2) {
+      const allBrands = new Set(grouped.map(([brand]) => brand));
+      setExpandedBrands(allBrands);
+    } else {
+      setExpandedBrands(new Set());
+    }
+  }, [search, grouped]);
+
   return (
     <div className="space-y-1.5">
       <Popover open={open} onOpenChange={setOpen}>
@@ -134,6 +144,7 @@ export function SkuSelector({ products, value, onSelect, error }: SkuSelectorPro
                               )}
                             />
                             <span className="font-mono text-xs">{product.sku}</span>
+                            <span className="text-muted-foreground text-xs">— {product.brand}</span>
                           </button>
                         ))}
                       </div>
