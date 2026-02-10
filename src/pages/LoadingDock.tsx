@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Download, Eye, FileText, Trash2, Send, Loader2 } from "lucide-react";
+import { Upload, Download, Eye, FileText, Trash2, Send, Loader2, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { fetchRecentSubmissions, deleteSubmission, sendAllAndClearDock } from "@/lib/api";
 import { FormSection } from "@/components/FormSection";
@@ -145,6 +145,9 @@ const LoadingDock = () => {
                         {new Date(sub.submittedAt).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
+                        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleComingSoon}>
+                          <Pencil className="h-3 w-3 mr-1" /> Edit
+                        </Button>
                         <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleComingSoon}>
                           <Download className="h-3 w-3 mr-1" /> Download
                         </Button>
