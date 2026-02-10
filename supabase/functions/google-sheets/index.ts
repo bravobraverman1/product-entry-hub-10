@@ -59,6 +59,14 @@ serve(async (req) => {
       });
     }
 
+    if (action === "write-categories") {
+      const { categoryPaths } = body;
+      await clearAndWriteCategories(accessToken, sheetId, categoryPaths);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -255,4 +263,45 @@ function buildCategoryTree(paths: string[]) {
   }
 
   return root;
+}
+
+async function clearAndWriteCategories(
+  token: string,
+  sheetId: string,
+  categoryPaths: string[]
+): Promise<void> {
+  // Clear existing data in CATEGORIES!A:A (keep header, delete data starting at row 2)
+  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/CATEGORIES!A2:A`;
+  const clearRes = await fetch(clearUrl, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!clearRes.ok) {
+    const errText = await clearRes.text();
+    throw new Error(`Failed to clear categories: ${errText}`);
+  }
+
+  // Write new category paths
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent("CATEGORIES!A2")}?valueInputOption=USER_ENTERED`;
+  const writeRes = await fetch(writeUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      values: categoryPaths.map((path) => [path]),
+    }),
+  });
+
+  if (!writeRes.ok) {
+    const errText = await writeRes.text();
+    throw new Error(`Failed to write categories: ${errText}`);
+  }
+
+  console.log(`Successfully wrote ${categoryPaths.length} category paths to CATEGORIES tab`);
 }
