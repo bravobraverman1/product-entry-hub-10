@@ -394,7 +394,7 @@ const Admin = () => {
           <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-4 space-y-2">
             <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">📚 Need Help Connecting Your Google Sheet?</h4>
             <p className="text-xs text-blue-800 dark:text-blue-200">
-              Follow the step-by-step guide below to securely connect your Google Sheet to this application using Google Service Account.
+              Follow the complete step-by-step setup guide to securely connect your Google Sheet using a Google Service Account.
             </p>
             <div className="pt-2">
               <Button type="button" variant="outline" size="sm" asChild className="bg-white dark:bg-gray-900">
@@ -404,357 +404,45 @@ const Admin = () => {
               </Button>
             </div>
           </div>
-
-          {/* Method 1: Manual Server-Side Setup Guide */}
-          <div className="border border-primary/20 rounded-lg p-6 space-y-6 bg-primary/5 max-h-96 overflow-y-auto pr-4">
-            <div>
-              <h4 className="text-base font-semibold mb-2">Google Sheets Connection Setup</h4>
-              <p className="text-sm text-muted-foreground">Follow these steps to securely connect your Google Sheet. This is a one-time setup.</p>
-            </div>
-
-            {/* Section 0: How This Works */}
-            <div className="space-y-3 border-l-2 border-blue-500 pl-4">
-              <h5 className="text-sm font-semibold">How the Google Sheets connection works</h5>
-              <p className="text-sm text-muted-foreground">
-                This app already includes a pre-built server configuration that knows how to connect to Google Sheets. 
-                <strong> You do NOT create code, and you do NOT edit any files.</strong>
-              </p>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>The connection lives in a secure server file called an "Edge Function"</li>
-                <li>This file already exists in the app at <code className="text-xs bg-muted px-1 py-0.5 rounded">supabase/functions/google-sheets</code></li>
-                <li>Activating it simply turns the connection ON</li>
-                <li>You never open or change this file</li>
-              </ul>
-              <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
-                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">💡 Think of this like turning on a feature that is already installed.</p>
-              </div>
+          {/* Test Connection Section */}
+          <div className="space-y-3 border-l-2 border-primary pl-4">
+            <h5 className="text-sm font-semibold">Test Your Connection</h5>
+            <p className="text-sm text-muted-foreground">
+              Once you've completed the setup guide above, test that your Google Sheet is connected correctly.
+            </p>
+            <div className="space-y-2">
+              <Button 
+                type="button" 
+                variant="default" 
+                size="sm" 
+                onClick={testSupabaseConnection}
+                disabled={testingConnection}
+              >
+                {testingConnection ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                    Testing Connection...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                    Test Connection
+                  </>
+                )}
+              </Button>
+              
+              {/* Short Error Explanations */}
               <div className="rounded-lg border border-amber-600 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3">
-                <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
-                  🆕 New Supabase project? It’s normal to see <strong>no functions</strong> at first.
-                  Running the “Deploy Google Sheets Connection” workflow creates and deploys the <strong>google-sheets</strong> function for you.
-                </p>
-              </div>
-            </div>
-
-            {/* Project Check */}
-            <div className="space-y-3 border-l-2 border-amber-500 pl-4">
-              <h5 className="text-sm font-semibold">Project Check (Important)</h5>
-              <p className="text-sm text-muted-foreground">
-                The app must point to the <strong>same Supabase project</strong> where your secrets were added. These values come from your hosting environment.
-              </p>
-              <div className="bg-muted p-3 rounded-lg space-y-1 text-xs">
-                <p><strong>Supabase URL:</strong> <span className="break-all">{supabaseUrl || "Not set"}</span></p>
-                <p><strong>Project Ref:</strong> {supabaseProjectRef || "Not detected"}</p>
-                <p><strong>Publishable Key:</strong> {supabaseAnonKey ? "Detected" : "Missing"}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                If any of these are missing or incorrect, update your hosting environment variables:
-                <strong> VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_PUBLISHABLE_KEY</strong>, then refresh the page.
-              </p>
-            </div>
-
-            {/* Step 1: Create Service Account */}
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</div>
-                <div className="flex-1">
-                  <h5 className="text-sm font-semibold">Create a Google Service Account</h5>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Create a Google Service Account so the app can securely access your Google Sheet.
-                  </p>
-                </div>
-              </div>
-              <div className="ml-8 space-y-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.open('https://console.cloud.google.com/iam-admin/serviceaccounts', '_blank')}
-                >
-                  <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                  Open Google Cloud Console
-                </Button>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Click "Create Service Account"</li>
-                  <li>Name it anything (example: <code className="text-xs bg-muted px-1 py-0.5 rounded">sheets-access</code>)</li>
-                  <li>Skip role assignment (click "Continue" then "Done")</li>
+                <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">Common Test Errors:</p>
+                <ul className="text-xs text-amber-800 dark:text-amber-200 mt-1 space-y-1 list-disc list-inside">
+                  <li><strong>Cannot Read Secrets:</strong> Redeploy the Edge Function after adding secrets in Supabase</li>
+                  <li><strong>Edge Function not found (404):</strong> Function not deployed yet - see setup guide STEP 3</li>
+                  <li><strong>Access denied (403):</strong> Google Sheet not shared with service account - see setup guide STEP 2</li>
                 </ul>
               </div>
-            </div>
-
-            {/* Step 2: Download Key */}
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</div>
-                <div className="flex-1">
-                  <h5 className="text-sm font-semibold">Create & Download the Key File</h5>
-                  <p className="text-sm text-muted-foreground mt-1">Download a secure key file.</p>
-                </div>
-              </div>
-              <div className="ml-8 space-y-2">
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Click the service account you just created</li>
-                  <li>Go to the "Keys" tab</li>
-                  <li>Click "Add Key" → "Create new key"</li>
-                  <li>Choose "JSON"</li>
-                  <li>Download the file and keep it safe</li>
-                </ul>
-                <div className="rounded-lg border border-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 p-3">
-                  <p className="text-xs font-semibold text-yellow-900 dark:text-yellow-100">⚠️ Do not upload this file anywhere except Supabase. Never email it.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 3: Share Sheet */}
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</div>
-                <div className="flex-1">
-                  <h5 className="text-sm font-semibold">Share Your Google Sheet</h5>
-                  <p className="text-sm text-muted-foreground mt-1">Give the app permission to access your Google Sheet.</p>
-                </div>
-              </div>
-              <div className="ml-8 space-y-2">
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Open your Google Sheet</li>
-                  <li>Click "Share"</li>
-                  <li>Paste the service account email (looks like <code className="text-xs bg-muted px-1 py-0.5 rounded">name@project-id.iam.gserviceaccount.com</code> from the JSON file)</li>
-                  <li>Set permission to "Editor"</li>
-                  <li>Click "Send"</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Step 4: Add Secrets */}
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">4</div>
-                <div className="flex-1">
-                  <h5 className="text-sm font-semibold">Add Secure Secrets in Supabase</h5>
-                  <p className="text-sm text-muted-foreground mt-1">Store the credentials securely on the server. This requires accessing the Supabase dashboard.</p>
-                </div>
-              </div>
-              <div className="ml-8 space-y-3">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Step 4a: Go to Supabase Dashboard</p>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => window.open('https://supabase.com/dashboard', '_blank')}
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                    Open Supabase Dashboard
-                  </Button>
-                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                    <li>Log in with your Supabase account</li>
-                    <li>Select the project you're using for this app</li>
-                    <li>Once in your project dashboard, look for the sidebar on the left</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Step 4b: Navigate to Edge Function Secrets</p>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => window.open(`https://supabase.com/dashboard/project/${supabaseProjectRef}/functions/google-sheets`, '_blank')}
-                    disabled={!supabaseProjectRef}
-                    className="mb-2"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                    Open Google Sheets Function Settings
-                  </Button>
-                  {!supabaseProjectRef && (
-                    <p className="text-xs text-yellow-600 dark:text-yellow-400">⚠️ Project Reference not detected. Use manual navigation below.</p>
-                  )}
-                  <p className="text-xs font-semibold mb-1">Manual navigation if button doesn't work:</p>
-                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                    <li>In the left sidebar, click <strong>"Functions"</strong></li>
-                    <li>Click <strong>"Edge Functions"</strong> (if not visible, you may need to expand the menu)</li>
-                    <li>In the functions list, find and click on <strong>"google-sheets"</strong></li>
-                    <li>On the google-sheets function page, look for a tab or section called <strong>"Secrets"</strong> or <strong>"Environment"</strong></li>
-                    <li>Click to view/add secrets</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-3">
-                  <p className="text-sm font-medium">Step 4c: Add the Two Required Secrets</p>
-                  <div className="bg-muted p-3 rounded-lg space-y-2">
-                    <div>
-                      <p className="text-sm font-semibold mb-1">First Secret:</p>
-                      <div className="bg-background p-2 rounded border space-y-1">
-                        <p className="text-xs font-semibold">Name:</p>
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">GOOGLE_SERVICE_ACCOUNT_KEY</code>
-                        <p className="text-xs font-semibold mt-2">Value:</p>
-                        <p className="text-xs text-muted-foreground">Paste the <strong>ENTIRE contents</strong> of the JSON key file you downloaded in Step 2 (it starts with <code className="bg-background px-1">{"{"}</code> and ends with <code className="bg-background px-1">{"}"}</code>)</p>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold mb-1">Second Secret:</p>
-                      <div className="bg-background p-2 rounded border space-y-1">
-                        <p className="text-xs font-semibold">Name:</p>
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">GOOGLE_SHEET_ID</code>
-                        <p className="text-xs font-semibold mt-2">Value:</p>
-                        <p className="text-xs text-muted-foreground">The ID from your Google Sheet URL</p>
-                        <p className="text-xs text-muted-foreground">Look at your sheet URL: <code className="bg-background px-1 rounded">https://docs.google.com/spreadsheets/d/</code><strong>1abc123xyz</strong><code className="bg-background px-1 rounded">/edit</code></p>
-                        <p className="text-xs text-muted-foreground">Copy only the bolded part between <code className="bg-background px-1">/d/</code> and <code className="bg-background px-1">/edit</code></p>
-                        <p className="text-xs text-muted-foreground italic">Example: <code className="bg-background px-1 rounded">1abc123xyz</code></p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
-                  <p className="text-xs text-blue-900 dark:text-blue-100"><strong>ℹ️ Note:</strong> After adding both secrets, click "Save" in the Supabase interface. The secrets are now stored securely on Supabase's server.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 5: Activate Configuration via GitHub Actions */}
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">5</div>
-                <div className="flex-1">
-                  <h5 className="text-sm font-semibold">Activate the Google Sheets Connection (GitHub Actions)</h5>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <strong>No terminal required.</strong> This step activates your connection by clicking a button in GitHub. 
-                  </p>
-                </div>
-              </div>
-              <div className="ml-8 space-y-3 max-h-96 overflow-y-auto pr-2">
-                <div className="rounded-lg border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-800 p-3">
-                  <p className="text-xs font-semibold text-green-900 dark:text-green-100">✓ What this does: Automatically deploys your Edge Function and activates your Google Sheets connection.</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm font-medium mb-3">One-Time Setup: Add GitHub Secrets</p>
-                  <div className="bg-muted p-4 rounded-lg space-y-3">
-                    <div>
-                      <p className="text-xs font-semibold mb-2">1. Open GitHub Secrets Settings</p>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(`${GITHUB_REPO_URL}/settings/secrets/actions`, '_blank')}
-                        className="mb-2"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                        Open GitHub Secrets Settings
-                      </Button>
-                      <p className="text-xs text-muted-foreground">Or navigate: Repository → Settings → Secrets and variables → Actions</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold mb-2">2. Create three GitHub Secrets (click "New repository secret"):</p>
-                      <div className="space-y-2">
-                        <div className="bg-background p-2 rounded border">
-                          <p className="text-xs font-semibold">Secret 1: SUPABASE_ACCESS_TOKEN</p>
-                          <p className="text-xs text-muted-foreground mb-1">Used to authenticate with Supabase from GitHub Actions</p>
-                          <Button 
-                            type="button" 
-                            variant="link" 
-                            size="sm"
-                            className="h-auto p-0 text-xs"
-                            onClick={() => window.open('https://supabase.com/dashboard/account/tokens', '_blank')}
-                          >
-                            Get token from Supabase Dashboard →
-                          </Button>
-                        </div>
-                        <div className="bg-background p-2 rounded border">
-                          <p className="text-xs font-semibold">Secret 2: SUPABASE_PROJECT_REF</p>
-                          <p className="text-xs text-muted-foreground">Your project Reference ID: <code className="bg-muted px-1 rounded">{supabaseProjectRef || "Not detected"}</code></p>
-                          <p className="text-xs text-muted-foreground">Find in: Supabase Dashboard → Settings → General</p>
-                        </div>
-                        <div className="bg-background p-2 rounded border">
-                          <p className="text-xs font-semibold">Secret 3: SUPABASE_DB_PASSWORD</p>
-                          <p className="text-xs text-muted-foreground">Your database password (set when you created the Supabase project)</p>
-                          <p className="text-xs text-muted-foreground italic">If forgotten, reset in: Supabase Dashboard → Settings → Database</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium mb-3">Then: Run the Workflow</p>
-                  <Button 
-                    type="button" 
-                    variant="default" 
-                    size="sm"
-                    onClick={() => window.open(`${GITHUB_REPO_URL}/actions/workflows/deploy-google-sheets.yml`, '_blank')}
-                    className="mb-3"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                    Open "Deploy Google Sheets Connection" Workflow
-                  </Button>
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold">Steps to run the workflow:</p>
-                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                      <li>Click the button above (or go to: Repository → Actions tab)</li>
-                      <li>Select <strong>"Deploy Google Sheets Connection"</strong> from the left sidebar</li>
-                      <li>Click <strong>"Run workflow"</strong> button (top right)</li>
-                      <li>Select <strong>"production"</strong> environment</li>
-                      <li>Click the green confirmation <strong>"Run workflow"</strong> button to start</li>
-                      <li>Wait for completion (green checkmark ✓) — takes 2-3 minutes</li>
-                    </ol>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
-                  <p className="text-xs text-blue-900 dark:text-blue-100"><strong>ℹ️ This only needs to be done once.</strong> After completion, your Google Sheets connection is active!</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 6: Test Connection */}
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">6</div>
-                <div className="flex-1">
-                  <h5 className="text-sm font-semibold">Verify the Connection</h5>
-                  <p className="text-sm text-muted-foreground mt-1">Test that everything is working correctly.</p>
-                </div>
-              </div>
-              <div className="ml-8 space-y-2">
-                <Button 
-                  type="button" 
-                  variant="default" 
-                  size="sm" 
-                  onClick={testSupabaseConnection}
-                  disabled={testingConnection}
-                >
-                  {testingConnection ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                      Testing Connection...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="h-3.5 w-3.5 mr-2" />
-                      Test Connection
-                    </>
-                  )}
-                </Button>
-                <div className="rounded-lg border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-800 p-3">
-                  <p className="text-xs font-semibold text-green-900 dark:text-green-100">✅ If this test succeeds, no further setup is ever required.</p>
-                  <p className="text-xs text-green-800 dark:text-green-200 mt-1">A successful test shows: "Connected ✅" with your product and category counts.</p>
-                </div>
-                <div className="rounded-lg border border-amber-600 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3">
-                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">Common Test Errors & Fixes:</p>
-                  <ul className="text-xs text-amber-800 dark:text-amber-200 mt-1 space-y-1 list-disc list-inside">
-                    <li><strong>Cannot Read Secrets:</strong> If secrets exist in Supabase, redeploy the Edge Function (Step 4.4), then retry</li>
-                    <li><strong>Edge Function not found (404):</strong> Deploy the function first (Step 3) or run GitHub Actions (Step 5)</li>
-                    <li><strong>Access denied (403):</strong> Share your Google Sheet with the service account email (Step 2)</li>
-                  </ul>
-                </div>
-                <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
-                  <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">⚠️ After adding secrets:</p>
-                  <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">You MUST redeploy the Edge Function for secrets to take effect. Edge Functions don't auto-refresh environment variables.</p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  The test will show clear error messages. Most "Cannot Read Secrets" errors mean the function needs redeployment after adding secrets.
-                </p>
+              
+              <div className="rounded-lg border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-800 p-3">
+                <p className="text-xs font-semibold text-green-900 dark:text-green-100">✅ Successful test shows: "Connected" with your product and category counts.</p>
               </div>
             </div>
           </div>
