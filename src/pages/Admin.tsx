@@ -280,11 +280,15 @@ const Admin = () => {
   const [appsScriptUrl, setAppsScriptUrl] = useState(getConfigValue("APPS_SCRIPT_BASE_URL", ""));
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
+  const [googleServiceAccountKey, setGoogleServiceAccountKey] = useState(getConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", ""));
+  const [googleSheetId, setGoogleSheetId] = useState(getConfigValue("GOOGLE_SHEET_ID", ""));
 
   const saveConnectionSettings = () => {
     setConfigValue("APPS_SCRIPT_BASE_URL", appsScriptUrl);
     setConfigValue("INSTRUCTIONS_PDF_URL", pdfUrl);
     setConfigValue("DRIVE_CSV_FOLDER_ID", driveFolderId);
+    setConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", googleServiceAccountKey);
+    setConfigValue("GOOGLE_SHEET_ID", googleSheetId);
     toast({ title: "Saved", description: "Connection settings updated. Reload to apply." });
   };
 
@@ -324,12 +328,50 @@ const Admin = () => {
             </div>
           </div>
 
-          <div className="space-y-1.5 max-w-lg">
-            <Label className="text-xs font-medium">Apps Script Web App URL (Method 2 Only)</Label>
-            <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
+          {/* Method 1: Supabase Edge Function Configuration */}
+          <div className="border border-primary/20 rounded-lg p-4 space-y-3 bg-primary/5">
+            <h4 className="text-sm font-semibold">Method 1: Google Service Account (Recommended)</h4>
             <p className="text-xs text-muted-foreground">
-              Only needed if using Google Apps Script method. Leave empty to use Supabase Edge Function or mock data.
+              Configure your Google Service Account credentials below. These will be stored in your browser and used to connect via Supabase Edge Function.
             </p>
+            
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Google Service Account Key (JSON)</Label>
+              <Textarea 
+                value={googleServiceAccountKey} 
+                onChange={(e) => setGoogleServiceAccountKey(e.target.value)} 
+                placeholder='Paste the entire JSON key file contents here: {"type": "service_account", "project_id": "...", ...}'
+                className="min-h-32 text-xs font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Follow steps 1-3 in the setup guide to create and download your service account JSON key file. Then paste the entire contents here.
+              </p>
+            </div>
+            
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Google Sheet ID</Label>
+              <Input 
+                value={googleSheetId} 
+                onChange={(e) => setGoogleSheetId(e.target.value)} 
+                placeholder="1abc123xyz..." 
+                className="h-9 text-sm font-mono" 
+              />
+              <p className="text-xs text-muted-foreground">
+                The long string in your sheet URL between /d/ and /edit. Example: In https://docs.google.com/spreadsheets/d/1abc123xyz/edit, the ID is 1abc123xyz
+              </p>
+            </div>
+          </div>
+
+          {/* Method 2: Apps Script Configuration */}
+          <div className="border border-border rounded-lg p-4 space-y-3">
+            <h4 className="text-sm font-semibold">Method 2: Google Apps Script (Alternative)</h4>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Apps Script Web App URL</Label>
+              <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
+              <p className="text-xs text-muted-foreground">
+                Only needed if using Google Apps Script method. Leave empty to use Method 1 (Supabase) or mock data.
+              </p>
+            </div>
           </div>
           
           <div className="space-y-1.5 max-w-lg">
