@@ -10,27 +10,40 @@ A comprehensive product data entry and management system built with React, TypeS
 
 This application connects to Google Sheets to manage product data. To link your Google Sheets file:
 
-### Quick Start
+### Quick Start (5 Steps)
 
-1. **Choose your integration method:**
-   - **Recommended:** Google Service Account (via Supabase Edge Function)
-   - **Alternative:** Google Apps Script Web App
+1. **STEP 1-3:** [Create service account, share your sheet, and configure credentials](./GOOGLE_SHEETS_SETUP.md)
 
-2. **Follow the detailed setup guide:** [GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md)
+2. **STEP 4:** [Deploy the Edge Function](./GOOGLE_SHEETS_SETUP.md#step-4-deploy-the-edge-function) (if using server-side config)
 
-3. **What you'll need:**
-   - A Google Sheet with the required tabs (PRODUCTS, Categories, BRANDS, PROPERTIES, LEGAL, etc.)
-   - For Method 1: Google Cloud Console access and Supabase project credentials
-   - For Method 2: Ability to deploy Google Apps Script
+3. **STEP 5:** [Activate via GitHub Actions](./GOOGLE_SHEETS_SETUP.md#step-5-activate-the-google-sheets-connection-github-actions)
+   - ✓ No terminal required
+   - ✓ Just click a few buttons
+   - ✓ Takes 2-3 minutes
+   - 📖 [Quick Reference Guide](./STEP5_QUICK_REFERENCE.md)
+
+### Documentation
+
+- **[GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md)** - Complete step-by-step guide for all 5 steps
+- **[SETUP_CHECKLIST.md](./SETUP_CHECKLIST.md)** - Checkbox checklist to track your progress
+- **[GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)** - Detailed GitHub Actions and secrets configuration
+- **[STEP5_QUICK_REFERENCE.md](./STEP5_QUICK_REFERENCE.md)** - Quick reference for Step 5 activation
+- **[.github/README.md](./.github/README.md)** - Information about GitHub Actions workflows
+
+### What you'll need
+
+- A Google Sheet with required tabs (PRODUCTS, Categories, BRANDS, PROPERTIES, LEGAL, OUTPUT)
+- Google Cloud Project with Service Account
+- Supabase project (for server-side configuration)
+- GitHub repository with proper secrets configured (for GitHub Actions activation)
 
 ### Configuration
 
-After setup, configure your connection in the **Admin** panel of the application:
-- Set your Apps Script URL (if using Method 2)
-- Configure sheet tab names to match your Google Sheet
-- Manage categories, properties, and dropdown values
-
-📖 **See [GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md) for complete instructions**
+After setup, configure your connection in the **Admin** panel:
+- Set sheet tab names to match your Google Sheet
+- Manage categories and properties
+- Configure dropdown values
+- Test the connection
 
 ## How can I edit this code?
 

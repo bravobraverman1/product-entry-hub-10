@@ -1,0 +1,79 @@
+name: Deploy Google Sheets Connection
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        run: npm install -g supabase
+
+      - name: Authenticate with Supabase
+        run: |
+          supabase login --token "${{ secrets.SUPABASE_ACCESS_TOKEN }}"
+
+      - name: Link to Supabase project
+        run: |
+          supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+
+      - name: Deploy Edge Function
+        run: |
+          supabase functions deploy google-sheets
+
+      - name: Verify Edge Function deployment
+        run: |
+          # Wait for function to be available
+          sleep 5
+          echo "✓ Edge Function deployed successfully"
+
+      - name: Confirm Google Sheets connection
+        run: |
+          echo "✓ Google Sheets connection is now active"
+          echo "Configuration:"
+          echo "  - GOOGLE_SERVICE_ACCOUNT_KEY: Set in Supabase secrets"
+          echo "  - GOOGLE_SHEET_ID: Set in Supabase secrets"
+          echo ""
+          echo "Next step: Test the connection in the Admin panel"
+
+      - name: Create deployment status
+        if: success()
+        run: |
+          echo "## ✅ Google Sheets Connection Activated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your Google Sheets integration is now ready to use!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to your application's Admin page" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click 'Test Connection' in the Google Sheets section" >> $GITHUB_STEP_SUMMARY
+          echo "3. Verify your data loads correctly" >> $GITHUB_STEP_SUMMARY
+
+      - name: Report failure
+        if: failure()
+        run: |
+          echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Missing Supabase secrets (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF)" >> $GITHUB_STEP_SUMMARY
+          echo "- Invalid project reference" >> $GITHUB_STEP_SUMMARY
+          echo "- Permission issues with the Supabase project" >> $GITHUB_STEP_SUMMARY

@@ -2,42 +2,28 @@
 
 This guide explains how to link your Google Sheets file to the Product Entry Hub application. The application supports two integration methods: **Google Service Account (Recommended)** or **Google Apps Script**.
 
-## Quick Start (New!)
+## Overview
 
-**The easiest way to get started is now through the Admin tab!** 
-
-1. Create a Google Service Account (see Method 1, Steps 1-3 below)
-2. Open your app's **Admin** tab
-3. Paste your Service Account JSON key and Sheet ID
-4. Click "Test Connection" → "Save"
-5. Done! Your sheet is now connected.
-
-For detailed instructions, see [Method 1: Google Service Account](#method-1-google-service-account-recommended) below.
+Follow these steps in order:
+1. **STEP 1:** Create a Google Service Account
+2. **STEP 2:** Share your Google Sheet with the service account
+3. **STEP 3:** Configure credentials (Browser or Server)
+4. **STEP 4:** Deploy the Edge Function (Server-side only)
+5. **STEP 5:** Activate the Google Sheets Connection (GitHub Actions)
 
 ## Table of Contents
-1. [Prerequisites](#prerequisites)
-2. [Method 1: Google Service Account (Recommended)](#method-1-google-service-account-recommended)
-3. [Method 2: Google Apps Script (Alternative)](#method-2-google-apps-script-alternative)
-4. [Sheet Structure Requirements](#sheet-structure-requirements)
-5. [Configuration in Admin Panel](#configuration-in-admin-panel)
-6. [Troubleshooting](#troubleshooting)
+1. [STEP 1: Create a Google Service Account](#step-1-create-a-google-service-account)
+2. [STEP 2: Share Your Google Sheet](#step-2-share-your-google-sheet)
+3. [STEP 3: Configure Your Credentials](#step-3-configure-your-credentials)
+4. [STEP 4: Deploy the Edge Function](#step-4-deploy-the-edge-function)
+5. [STEP 5: Activate the Google Sheets Connection (GitHub Actions)](#step-5-activate-the-google-sheets-connection-github-actions)
+6. [Sheet Structure Requirements](#sheet-structure-requirements)
+7. [Configuration in Admin Panel](#configuration-in-admin-panel)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Prerequisites
-
-- A Google Sheets spreadsheet with the required tabs (see [Sheet Structure Requirements](#sheet-structure-requirements))
-- **For Method 1 (Browser-Based):** Just a web browser - no Supabase access required!
-- **For Method 1 (Server-Side):** Access to Supabase project console for advanced configuration
-- **For Method 2:** Ability to deploy Google Apps Script
-
----
-
-## Method 1: Google Service Account (Recommended)
-
-This method uses a Google Service Account to securely access your Google Sheets through the Supabase Edge Function.
-
-### Step 1: Create a Google Service Account
+## STEP 1: Create a Google Service Account
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
@@ -48,16 +34,21 @@ This method uses a Google Service Account to securely access your Google Sheets 
 7. Grant the service account the **Editor** role (or more restrictive if preferred)
 8. Click **Done**
 
-### Step 2: Generate Service Account Key
+---
 
-1. Click on the newly created service account
-2. Go to the **Keys** tab
-3. Click **Add Key** → **Create new key**
-4. Select **JSON** format
-5. Click **Create** - this downloads a JSON file to your computer
-6. **Keep this file secure** - it contains credentials to access your Google account
+## STEP 2: Share Your Google Sheet
 
-### Step 3: Share Your Google Sheet with the Service Account
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Select the project you created in STEP 1
+3. Navigate to **IAM & Admin** → **Service Accounts**
+4. Click on the newly created service account
+5. Go to the **Keys** tab
+6. Click **Add Key** → **Create new key**
+7. Select **JSON** format
+8. Click **Create** - this downloads a JSON file to your computer
+9. **Keep this file secure** - it contains credentials to access your Google account
+
+### Share your sheet with the service account
 
 1. Open the JSON key file you downloaded
 2. Find the `client_email` field (looks like: `your-service-account@your-project.iam.gserviceaccount.com`)
@@ -66,24 +57,15 @@ This method uses a Google Service Account to securely access your Google Sheets 
 5. Add the service account email as an **Editor**
 6. Click **Share**
 
-### Step 4: Configure Your Credentials
+---
+
+## STEP 3: Configure Your Credentials
 
 You have two options for configuring your Google Service Account credentials:
 
 #### **Option A: Browser-Based Configuration (Recommended for Getting Started)**
 
 This is the easiest way to get started. You can configure everything directly in the Admin tab of your application.
-
-1. Open your application and navigate to the **Admin** tab
-2. In the **Google Sheets Connection** section, find **Method 1: Google Service Account**
-3. Paste your Service Account credentials:
-   - **Google Service Account Key (JSON)**: Copy and paste the **entire contents** of the JSON key file you downloaded in Step 2
-   - **Google Sheet ID**: Enter your Google Sheet ID (the long string in your sheet URL between `/d/` and `/edit`)
-     - Example: In `https://docs.google.com/spreadsheets/d/1abc123xyz/edit`, the ID is `1abc123xyz`
-4. Click **Test Connection** to verify your credentials work correctly
-5. Click **Save Connection Settings**
-
-**Note:** Your credentials are stored in your browser's localStorage. Only use this method on trusted devices. For production deployments, consider Option B below.
 
 #### **Option B: Server-Side Configuration (Recommended for Production)**
 
@@ -100,37 +82,73 @@ For production environments or enhanced security, you can configure credentials 
    **Secret Value:** Your Google Sheet ID (the long string in your sheet URL between `/d/` and `/edit`)
 
 4. Save both secrets
-5. Deploy the Edge Function (see Step 5 below)
+5. Proceed to STEP 4 below to deploy the Edge Function
 
-### Step 5: Deploy the Edge Function (Option B Only)
+---
 
-**Note:** If you're using Option A (Browser-Based Configuration), the Edge Function is already deployed and you can skip this step.
+## STEP 4: Deploy the Edge Function
 
-If you're using Option B (Server-Side Configuration), deploy the Edge Function:
+**Skip this step if you're using Option A (Browser-Based Configuration above).**
+
+The Edge Function in your repository at `supabase/functions/google-sheets/index.ts` handles the server-side connection to Google Sheets.
 
 The Edge Function is already in your repository at `supabase/functions/google-sheets/index.ts`.
 
-```bash
-# Install Supabase CLI if you haven't already
-npm install -g supabase
+**This step will be activated via GitHub Actions in STEP 5 below.** No CLI commands are needed.
 
-# Login to Supabase
-supabase login
+---
 
-# Link your project
-supabase link --project-ref YOUR_PROJECT_ID
+## STEP 5: Activate the Google Sheets Connection (GitHub Actions)
 
-# Deploy the function
-supabase functions deploy google-sheets
-```
+### What this step does
 
-### Step 6: Verify the Connection
+This step activates your pre-built Google Sheets connection configuration. You are not creating or editing any code—this is done by clicking a button in GitHub to run an automated workflow.
 
-1. Navigate to the main page of your application
-2. Click on the **SKU Selector** dropdown
-3. If you see your actual SKU data (not mock data starting with "LED-"), the connection is working!
-4. Try selecting a SKU and filling out a product form to verify full functionality
-5. Check your OUTPUT sheet tab to confirm data is being written correctly
+The workflow will:
+- Automatically deploy your Edge Function to Supabase
+- Securely activate your Google Sheets connection
+- No software installation required
+- No terminal access needed
+
+### One-time setup (already done for you)
+
+The project already includes an activation workflow in your GitHub repository. This workflow safely handles:
+- Automatic Edge Function deployment
+- Secure credential handling
+- Connection verification
+
+No credentials are exposed during this process.
+
+### How to activate (click-only steps)
+
+**Step 1:** Open your GitHub repository
+- Click the button below or navigate to: `https://github.com/{{OWNER}}/{{REPO}}`
+
+<div style="margin: 20px 0;">
+  <a href="https://github.com/{{OWNER}}/{{REPO}}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #0969da; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+    Open GitHub Repository
+  </a>
+</div>
+
+**Step 2:** Click the "**Actions**" tab in the top navigation
+
+**Step 3:** In the left sidebar, select "**Deploy Google Sheets Connection**"
+
+**Step 4:** Click the "**Run workflow**" button
+
+**Step 5:** Wait until the workflow completes (you'll see a green checkmark ✓ when done)
+
+A typical run takes 2-3 minutes. Your Google Sheets connection is now active!
+
+### How to confirm
+
+Return to this application and click "**Test Connection**" in the Admin panel to verify your setup is complete.
+
+1. Navigate to the **Admin** page in your application
+2. Scroll to the **Google Sheets Connection** section
+3. Click "**Test Connection**" button
+4. If successful, you'll see a confirmation message
+5. If you see actual SKU data (not mock data), the connection is working!
 
 ---
 
