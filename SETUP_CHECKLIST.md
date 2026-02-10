@@ -36,7 +36,7 @@ Choose **one** of these options:
 
 **Skip if using Option A above.**
 
-- [ ] Confirmed Edge Function is deployed to Supabase (visible in Dashboard → Edge Functions)
+- [ ] Confirmed Edge Function exists at `supabase/functions/google-sheets/index.ts`
 - [ ] Set up GitHub Secrets (see STEP 5 below)
 
 ## ✅ STEP 5: Activate Google Sheets Connection (GitHub Actions)
