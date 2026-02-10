@@ -206,7 +206,7 @@ export function ProductEntryForm() {
       </FormSection>
 
       {/* Specifications */}
-      <FormSection title="Specifications" defaultOpen={false}>
+      <FormSection title="Fields" defaultOpen={false}>
         <DynamicSpecifications
           properties={properties}
           legalValues={legalValues}
