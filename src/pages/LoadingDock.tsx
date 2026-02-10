@@ -134,7 +134,7 @@ const LoadingDock = () => {
                   <TableRow>
                     <TableHead className="text-xs">SKU</TableHead>
                     <TableHead className="text-xs">Date / Time</TableHead>
-                    <TableHead className="text-xs text-center">Actions</TableHead>
+                    <TableHead className="text-xs text-right pr-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -144,7 +144,7 @@ const LoadingDock = () => {
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(sub.submittedAt).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-center space-x-1">
+                      <TableCell className="text-right space-x-1 pr-24">
                         <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleComingSoon}>
                           <Pencil className="h-3 w-3 mr-1" /> Edit
                         </Button>
