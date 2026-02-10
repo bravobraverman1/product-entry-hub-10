@@ -373,7 +373,7 @@ const Admin = () => {
           </div>
 
           {/* Method 1: Manual Server-Side Setup Guide */}
-          <div className="border border-primary/20 rounded-lg p-6 space-y-6 bg-primary/5">
+          <div className="border border-primary/20 rounded-lg p-6 space-y-6 bg-primary/5 max-h-96 overflow-y-auto pr-4">
             <div>
               <h4 className="text-base font-semibold mb-2">Google Sheets Connection Setup</h4>
               <p className="text-sm text-muted-foreground">Follow these steps to securely connect your Google Sheet. This is a one-time setup.</p>
