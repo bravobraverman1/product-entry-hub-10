@@ -27,14 +27,9 @@ function getSupabaseClient(authHeader: string) {
 }
 
 function getCorsHeaders(origin?: string) {
-  const hasAllowlist = ALLOWED_ORIGINS.length > 0;
-  const isAllowed = origin ? ALLOWED_ORIGINS.includes(origin) : false;
-
-  // If no allowlist is configured, reflect the request origin (or fall back to '*')
-  // This avoids CORS failures for production domains when ALLOWED_ORIGIN is not set.
-  const allowOrigin = hasAllowlist
-    ? (isAllowed ? origin : ALLOWED_ORIGINS[0])
-    : (origin || "*");
+  // Always reflect the request origin to avoid browser CORS blocks.
+  // If no origin is provided, fall back to '*'.
+  const allowOrigin = origin || "*";
 
   return {
     "Access-Control-Allow-Origin": allowOrigin,
