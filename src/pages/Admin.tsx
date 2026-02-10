@@ -304,21 +304,47 @@ const Admin = () => {
   return (
     <div className="space-y-6">
       {/* Connection Settings */}
-      <FormSection title="Connection Settings" defaultOpen={false}>
+      <FormSection title="Google Sheets Connection" defaultOpen={true}>
         <div className="space-y-4">
-          <div className="space-y-1.5 max-w-lg">
-            <Label className="text-xs font-medium">Apps Script Web App URL</Label>
-            <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
-            <p className="text-xs text-muted-foreground">Leave empty to use mock/default data.</p>
+          <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-4 space-y-2">
+            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">📚 Need Help Connecting Your Google Sheet?</h4>
+            <p className="text-xs text-blue-800 dark:text-blue-200">
+              This application can connect to your Google Sheets in two ways:
+            </p>
+            <ul className="text-xs text-blue-800 dark:text-blue-200 list-disc list-inside space-y-1 ml-2">
+              <li><strong>Method 1 (Recommended):</strong> Google Service Account via Supabase Edge Function</li>
+              <li><strong>Method 2:</strong> Google Apps Script Web App (configure URL below)</li>
+            </ul>
+            <div className="pt-2">
+              <Button type="button" variant="outline" size="sm" asChild className="bg-white dark:bg-gray-900">
+                <a href="https://github.com/bravobraverman1/product-entry-hub-10/blob/main/GOOGLE_SHEETS_SETUP.md" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" /> View Complete Setup Guide
+                </a>
+              </Button>
+            </div>
           </div>
+
+          <div className="space-y-1.5 max-w-lg">
+            <Label className="text-xs font-medium">Apps Script Web App URL (Method 2 Only)</Label>
+            <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
+            <p className="text-xs text-muted-foreground">
+              Only needed if using Google Apps Script method. Leave empty to use Supabase Edge Function or mock data.
+            </p>
+          </div>
+          
           <div className="space-y-1.5 max-w-lg">
             <Label className="text-xs font-medium">Product Instructions PDF URL</Label>
             <Input value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="/chatgpt-product-instructions.pdf" className="h-9 text-sm" />
           </div>
+          
           <div className="space-y-1.5 max-w-lg">
             <Label className="text-xs font-medium">Google Drive CSV Folder ID</Label>
             <Input value={driveFolderId} onChange={(e) => setDriveFolderId(e.target.value)} placeholder="1abc..." className="h-9 text-sm font-mono" />
+            <p className="text-xs text-muted-foreground">
+              Optional: The Google Drive folder ID where CSV exports should be saved.
+            </p>
           </div>
+          
           <Button type="button" size="sm" onClick={saveConnectionSettings}><Save className="h-3.5 w-3.5 mr-1" /> Save Connection Settings</Button>
         </div>
       </FormSection>
