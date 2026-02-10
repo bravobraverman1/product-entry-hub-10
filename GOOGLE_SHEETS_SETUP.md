@@ -7,19 +7,22 @@ This guide explains how to link your Google Sheets file to the Product Entry Hub
 Follow these steps in order:
 1. **STEP 1:** Create a Google Service Account
 2. **STEP 2:** Share your Google Sheet with the service account
-3. **STEP 3:** Add credentials to Supabase (server-side security)
-4. **STEP 4:** Activate the Google Sheets Connection (GitHub Actions)
-5. **STEP 5:** Test your connection
+3. **STEP 3:** Create and Deploy the Edge Function (Required for new projects)
+4. **STEP 4:** Add credentials to Supabase (server-side security)
+5. **STEP 5:** Activate the Google Sheets Connection (GitHub Actions)
+6. **STEP 6:** Test your connection
 
 ## Table of Contents
 1. [STEP 1: Create a Google Service Account](#step-1-create-a-google-service-account)
 2. [STEP 2: Share Your Google Sheet](#step-2-share-your-google-sheet)
-3. [STEP 3: Add Credentials to Supabase](#step-3-add-credentials-to-supabase)
-4. [STEP 4: Activate the Google Sheets Connection (GitHub Actions)](#step-4-activate-the-google-sheets-connection-github-actions)
-5. [STEP 5: Test Your Connection](#step-5-test-your-connection)
-6. [Sheet Structure Requirements](#sheet-structure-requirements)
-7. [Configuration in Admin Panel](#configuration-in-admin-panel)
-8. [Troubleshooting](#troubleshooting)
+3. [STEP 3: Create and Deploy the Edge Function](#step-3-create-and-deploy-the-edge-function)
+4. [STEP 4: Add Credentials to Supabase](#step-4-add-credentials-to-supabase)
+5. [STEP 5: Activate the Google Sheets Connection (GitHub Actions)](#step-5-activate-the-google-sheets-connection-github-actions)
+6. [STEP 6: Test Your Connection](#step-6-test-your-connection)
+7. [New Project Checklist](#new-project-checklist)
+8. [Sheet Structure Requirements](#sheet-structure-requirements)
+9. [Configuration in Admin Panel](#configuration-in-admin-panel)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -59,7 +62,82 @@ Follow these steps in order:
 
 ---
 
-## STEP 3: Add Credentials to Supabase
+## STEP 3: Create and Deploy the Edge Function
+
+**Important:** Before you can add secrets to your Edge Function in the next step, the `google-sheets` function must first be deployed to your Supabase project. If you haven't deployed the function yet, you won't see it in the Functions list, and you won't be able to add secrets to it.
+
+### Why this step is necessary
+
+On a brand-new Supabase project, the Edge Functions page will only show templates and sample functions. The `google-sheets` function doesn't exist until you create and deploy it. This step ensures the function is ready to receive your secrets in Step 4.
+
+### Choose one deployment method:
+
+#### **Option 1: Deploy via Supabase Dashboard (Recommended for beginners)**
+
+1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) and log in
+2. Select your project
+3. In the left sidebar, click **"Edge Functions"**
+4. Click the **"Deploy a new function"** button (or **"Open Editor"** if you see that instead)
+5. When prompted for a function name, enter exactly: `google-sheets`
+6. Paste the Edge Function code:
+   - The code is located in your repository at: `supabase/functions/google-sheets/index.ts`
+   - Copy the entire contents of that file
+   - Paste it into the function editor in the Supabase dashboard
+7. Click **"Deploy"** or **"Save and Deploy"**
+8. Wait for the deployment to complete (usually takes 10-30 seconds)
+9. Confirm the function appears in your Edge Functions list
+
+**Copy/Paste Helper:** You can find the Edge Function code in your repository at:
+```
+supabase/functions/google-sheets/index.ts
+```
+Or view it on GitHub (replace YOUR_USERNAME and YOUR_REPO with your actual repository details):
+```
+https://github.com/YOUR_USERNAME/YOUR_REPO/blob/main/supabase/functions/google-sheets/index.ts
+```
+
+#### **Option 2: Deploy via Supabase CLI (For advanced users)**
+
+If you're comfortable using the command line:
+
+1. Install the Supabase CLI (if not already installed):
+   ```bash
+   npm install -g supabase
+   ```
+
+2. Log in to Supabase:
+   ```bash
+   supabase login
+   ```
+
+3. Link to your project:
+   ```bash
+   supabase link --project-ref YOUR_PROJECT_REF
+   ```
+   
+   **Where to find PROJECT_REF:**
+   - Go to Supabase Dashboard → Your Project → Settings → General
+   - Copy the **Reference ID** (looks like: `abcdefghijklmnop`)
+
+4. Deploy the function:
+   ```bash
+   supabase functions deploy google-sheets
+   ```
+   
+5. Confirm deployment:
+   - Check your Supabase Dashboard → Edge Functions
+   - You should now see `google-sheets` in the list
+
+### Verify the function is deployed
+
+Before moving to Step 4, confirm:
+- ✅ You can see `google-sheets` listed in Supabase Dashboard → Edge Functions
+- ✅ The function status shows as "Active" or "Deployed"
+- ✅ You can click on the function name to open its details
+
+---
+
+## STEP 4: Add Credentials to Supabase
 
 Your credentials will be stored securely on Supabase's server, which is more secure than keeping them in your browser.
 
@@ -67,49 +145,121 @@ Your credentials will be stored securely on Supabase's server, which is more sec
 
 Supabase is a secure backend service that hosts your application's server-side functionality. When you add secrets to Supabase, they are encrypted and stored on Supabase's servers—never exposed to the browser or to the public.
 
+**Security Best Practice:** For production environments, consider rotating your service account keys periodically (every 90-180 days) to maintain security. When rotating, create a new key, update the secret in Supabase, and then delete the old key from Google Cloud Console.
+
 ### How to add your credentials to Supabase
+
+**Prerequisites:** You must have completed Step 3 and deployed the `google-sheets` Edge Function first.
+
+#### Step 4.1: Navigate to Edge Function Secrets
 
 1. **Open Supabase Dashboard**
    - Go to [supabase.com/dashboard](https://supabase.com/dashboard)
    - Log in with your account
    - Select the project you're using for this application
 
-2. **Navigate to the Edge Function Secrets**
-   - In the left sidebar, find and click **"Functions"**
-   - Click **"Edge Functions"** (may be under the Functions section)
-   - Click on the **"google-sheets"** function in the list
-   - Look for a tab or button labeled **"Secrets"** or **"Environment"**
+2. **Navigate to the Edge Functions page**
+   - In the left sidebar, click **"Edge Functions"**
+   - You should see a list of deployed functions
 
-3. **Add the first secret: GOOGLE_SERVICE_ACCOUNT_KEY**
-   - Click **"Add secret"** or **"New secret"**
-   - **Name:** `GOOGLE_SERVICE_ACCOUNT_KEY`
-   - **Value:** Paste the entire JSON file contents (from Step 2)
+3. **Open the google-sheets function**
+   - In the functions list, find and click on **"google-sheets"**
+   - This opens the function details page
+
+4. **Open the Secrets section**
+   - Look for a tab or section labeled one of the following:
+     - **"Secrets"**
+     - **"Environment Variables"**
+     - **"Settings"** (may contain a Secrets subsection)
+   - Click on it to open the secrets/environment configuration
+
+**Workaround / Manual Navigation:**
+If buttons or links aren't working, manually navigate using this URL pattern:
+```
+https://supabase.com/dashboard/project/YOUR_PROJECT_REF/functions/google-sheets
+```
+Replace `YOUR_PROJECT_REF` with your actual project reference ID (found in Settings → General).
+
+Once on the function page, look for the Secrets/Environment Variables tab in the navigation.
+
+**Important Note:** Secrets are stored per-project and per-function. The secrets you add to the `google-sheets` function are only accessible to that specific function in that specific project.
+
+#### Step 4.2: Add the first secret: GOOGLE_SERVICE_ACCOUNT_KEY
+
+   - Click **"Add secret"** or **"New secret"** button
+   - **Name:** Enter exactly: `GOOGLE_SERVICE_ACCOUNT_KEY` (case-sensitive)
+   - **Value:** Paste the entire JSON file contents from Step 2
      - The value should start with `{` and end with `}`
      - Copy everything—don't modify it
-   - Click **Save**
+     - It should look something like:
+       ```json
+       {"type":"service_account","project_id":"your-project",...}
+       ```
+   - Click **"Save"** or **"Add Secret"**
 
-4. **Add the second secret: GOOGLE_SHEET_ID**
-   - Click **"Add secret"** again
-   - **Name:** `GOOGLE_SHEET_ID`
+#### Step 4.3: Add the second secret: GOOGLE_SHEET_ID
+
+   - Click **"Add secret"** or **"New secret"** button again
+   - **Name:** Enter exactly: `GOOGLE_SHEET_ID` (case-sensitive)
    - **Value:** Your Google Sheet ID (found in your sheet's URL)
      - Open your Google Sheet
      - Look at the URL: `https://docs.google.com/spreadsheets/d/`**XXXX-YOUR-ID**`/edit`
-     - Copy only the ID part (between `/d/` and `/edit`)
+     - Copy only the ID part (the long string between `/d/` and `/edit`)
      - Example: `1abc2def3ghi4jkl5mno6pqr7stu8vwxyz`
-   - Click **Save**
+   - Click **"Save"** or **"Add Secret"**
+
+**Copy/Paste Tip:** To avoid typos, copy these secret names directly:
+```
+GOOGLE_SERVICE_ACCOUNT_KEY
+GOOGLE_SHEET_ID
+```
 
 ### Verify both secrets are saved
 
 - You should see both `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` listed in the Secrets section
 - Both should show a green checkmark indicating they're saved
 
+#### Step 4.4: Redeploy the Edge Function (REQUIRED)
+
+**⚠️ CRITICAL STEP:** After adding or changing secrets, you MUST redeploy the Edge Function. Supabase Edge Functions do not automatically refresh their environment variables when secrets are added or updated.
+
+**Why this is necessary:**
+- Edge Functions load environment variables at deployment time
+- Adding secrets to an already-deployed function does not make them available
+- The function will continue to report missing secrets until redeployed
+
+**Choose one redeployment method:**
+
+**Option 1: Redeploy via Dashboard**
+1. Go to Supabase Dashboard → Edge Functions
+2. Click on the **"google-sheets"** function
+3. Look for a **"Redeploy"** or **"Deploy"** button (usually in the top right)
+4. Click it to redeploy the function
+5. Wait for deployment to complete (10-30 seconds)
+6. The function will now have access to your secrets
+
+**Option 2: Redeploy via CLI**
+If you're using the Supabase CLI:
+```bash
+supabase functions deploy google-sheets
+```
+
+**Option 3: Use GitHub Actions (Recommended)**
+The GitHub Actions workflow in Step 5 will automatically redeploy the function with your secrets. If you plan to use GitHub Actions, you can skip manual redeployment here and proceed directly to Step 5.
+
+**Verify redeployment:**
+- After redeploying, the Edge Function's deployment timestamp should be updated
+- You can verify this in the Functions dashboard
+
 ---
 
-## STEP 4: Activate the Google Sheets Connection (GitHub Actions)
+## STEP 5: Activate the Google Sheets Connection (GitHub Actions)
 
 ### What this step does
 
 This step deploys your Edge Function to Supabase and activates the connection. You are **not creating or editing any code**—this is done by running a pre-built automated workflow in GitHub.
+
+**Note:** This step assumes you've completed Step 3 and the `google-sheets` function is already deployed. This GitHub Actions workflow will redeploy the function with your configured secrets.
 
 The workflow will:
 - Deploy the Edge Function (the server file that connects to Google Sheets)
@@ -157,7 +307,7 @@ Before running the workflow, you need to add three GitHub secrets. These allow t
 
 ---
 
-## STEP 5: Test Your Connection
+## STEP 6: Test Your Connection
 
 ### Verify everything is working
 
@@ -172,6 +322,39 @@ Before running the workflow, you need to add three GitHub secrets. These allow t
   - This means your Google Sheet is connected and data is being read correctly
 - **Error:** You'll see an error message
   - See the **Troubleshooting** section below for solutions
+
+---
+
+## New Project Checklist
+
+Setting up Google Sheets integration on a brand-new Supabase project? Follow this checklist to ensure everything is configured correctly:
+
+### ✅ Pre-Deployment Checklist
+- [ ] Google Service Account created (Step 1)
+- [ ] Service Account JSON key downloaded and saved securely
+- [ ] Google Sheet shared with service account email as Editor (Step 2)
+- [ ] Google Sheets API enabled in Google Cloud Console
+
+### ✅ Deployment Checklist
+- [ ] Edge Function `google-sheets` created and deployed to Supabase (Step 3)
+- [ ] Function visible in Supabase Dashboard → Edge Functions list
+- [ ] Function status shows "Active" or "Deployed"
+
+### ✅ Configuration Checklist
+- [ ] Secret `GOOGLE_SERVICE_ACCOUNT_KEY` added to the function (Step 4)
+- [ ] Secret `GOOGLE_SHEET_ID` added to the function (Step 4)
+- [ ] Both secrets show green checkmark or "Saved" status
+- [ ] **Edge Function redeployed after adding secrets** (Step 4.4 - REQUIRED)
+- [ ] GitHub secrets configured: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` (Step 5)
+
+### ✅ Activation & Testing Checklist
+- [ ] GitHub Actions workflow "Deploy Google Sheets Connection" run successfully (Step 5)
+- [ ] Workflow shows green checkmark ✓ in Actions tab
+- [ ] Connection test passed in Admin panel (Step 6)
+- [ ] SKU Selector shows actual products (not mock data)
+
+### 🔍 Quick Troubleshooting
+If any step fails, refer to the [Troubleshooting](#troubleshooting) section below for detailed solutions.
 
 ---
 
@@ -281,6 +464,90 @@ Manage dropdown options for your custom properties/fields.
 ---
 
 ## Troubleshooting
+
+### I don't see `google-sheets` in the Functions list
+
+**Symptom:** When I go to Supabase Dashboard → Edge Functions, I don't see the `google-sheets` function listed.
+
+**Solution:**
+- You haven't deployed the function yet
+- Go back to [Step 3: Create and Deploy the Edge Function](#step-3-create-and-deploy-the-edge-function)
+- Follow either the Dashboard method (Option 1) or CLI method (Option 2) to deploy the function
+- After deployment, refresh your browser and check the Functions list again
+- The function should appear within 30 seconds after successful deployment
+
+### I can't find the Secrets tab
+
+**Symptom:** I opened the `google-sheets` function, but I can't find where to add secrets.
+
+**Solution:**
+- Make sure you've clicked on the function name to open its detail page (not just viewing the list)
+- Look for these possible tab/section names:
+  - **"Secrets"**
+  - **"Environment Variables"**
+  - **"Environment"**
+  - **"Settings"** (with a Secrets subsection)
+- The UI label varies by Supabase version
+- Try using the manual URL navigation: `https://supabase.com/dashboard/project/YOUR_PROJECT_REF/functions/google-sheets`
+- If still not visible, ensure your Supabase plan supports Edge Functions (it's available on the free tier)
+
+### The Edge Function cannot read the required secrets
+
+**Symptom:** Test Connection fails with an error about secrets, but when you check Supabase Dashboard → Edge Functions → google-sheets → Secrets, BOTH secrets (`GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`) clearly exist.
+
+**This error does NOT always mean secrets are missing.** It can occur for several reasons:
+
+**Common Causes:**
+1. **Secrets were added AFTER the Edge Function was deployed** (most common)
+2. **The Edge Function was not redeployed after adding secrets**
+3. **Environment variable names don't match exactly**
+4. **Function is deployed to a different environment** (preview vs production)
+5. **Frontend is calling a stale or wrong endpoint**
+
+**Diagnostic Checklist:**
+
+Follow this checklist in order to identify and fix the issue:
+
+☐ **Step 1: Verify secrets exist**
+   - Go to Supabase Dashboard → Edge Functions → google-sheets → Secrets
+   - Confirm both `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` are listed
+   - Both should show a green checkmark or "Saved" status
+
+☐ **Step 2: Verify secret names match exactly**
+   - Secret names are case-sensitive
+   - Must be EXACTLY: `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`
+   - No extra spaces, underscores, or typos
+   - Check for invisible characters copied from documentation
+
+☐ **Step 3: Redeploy the Edge Function** (REQUIRED)
+   - Go to Supabase Dashboard → Edge Functions → google-sheets
+   - Click **"Redeploy"** or **"Deploy"** button
+   - Wait for deployment to complete (10-30 seconds)
+   - **Why:** Edge Functions load environment variables at deployment time and do NOT auto-refresh when secrets are added
+
+☐ **Step 4: Verify production deployment**
+   - Ensure the function is deployed to production (not preview)
+   - Check the deployment environment in the Functions dashboard
+   - If using multiple environments, secrets must be added to each
+
+☐ **Step 5: Re-run the connection test**
+   - Go to Admin tab in the application
+   - Click "Test Connection" button
+   - Wait for the test to complete
+
+☐ **Step 6: Verify JSON key format** (if still failing)
+   - The `GOOGLE_SERVICE_ACCOUNT_KEY` value should be valid JSON
+   - Should start with `{` and end with `}`
+   - Copy the entire contents of your downloaded JSON key file
+   - No extra quotes or escape characters
+
+☐ **Step 7: Check function logs** (advanced)
+   - Go to Supabase Dashboard → Edge Functions → google-sheets → Logs
+   - Look for error messages that indicate the specific issue
+   - Common errors: "Invalid JSON", "Authentication failed", "Sheet not found"
+
+**Quick Fix (95% of cases):**
+If secrets exist in Supabase but the test fails, the issue is almost always that the function needs to be redeployed. Follow diagnostic Step 3 in the checklist above to redeploy the function.
 
 ### Data Not Loading
 

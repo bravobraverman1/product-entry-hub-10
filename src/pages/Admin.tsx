@@ -327,8 +327,8 @@ const Admin = () => {
       if (data?.useDefaults) {
         toast({ 
           variant: "destructive", 
-          title: "Secrets Not Configured", 
-          description: "GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID are not set in Supabase. Please complete Step 4 (Add Secrets to Supabase)." 
+          title: "Cannot Read Secrets", 
+          description: "The Edge Function cannot currently read the required secrets. If secrets exist in Supabase: 1) Verify secret names match exactly, 2) Redeploy the Edge Function (required after adding secrets), 3) Re-run this test. See Admin panel instructions for details." 
         });
       } else {
         const productCount = data?.products?.length ?? 0;
@@ -741,15 +741,19 @@ const Admin = () => {
                   <p className="text-xs text-green-800 dark:text-green-200 mt-1">A successful test shows: "Connected ✅" with your product and category counts.</p>
                 </div>
                 <div className="rounded-lg border border-amber-600 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3">
-                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">Common Test Errors:</p>
+                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">Common Test Errors & Fixes:</p>
                   <ul className="text-xs text-amber-800 dark:text-amber-200 mt-1 space-y-1 list-disc list-inside">
-                    <li><strong>Edge Function not deployed:</strong> Run GitHub Actions workflow (Step 5)</li>
-                    <li><strong>Secrets not configured:</strong> Add GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID in Supabase (Step 4)</li>
-                    <li><strong>Access denied (403):</strong> Share your sheet with the service account email (Step 3)</li>
+                    <li><strong>Cannot Read Secrets:</strong> If secrets exist in Supabase, redeploy the Edge Function (Step 4.4), then retry</li>
+                    <li><strong>Edge Function not found (404):</strong> Deploy the function first (Step 3) or run GitHub Actions (Step 5)</li>
+                    <li><strong>Access denied (403):</strong> Share your Google Sheet with the service account email (Step 2)</li>
                   </ul>
                 </div>
+                <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
+                  <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">⚠️ After adding secrets:</p>
+                  <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">You MUST redeploy the Edge Function for secrets to take effect. Edge Functions don't auto-refresh environment variables.</p>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  The test will show clear error messages if something is not configured correctly (e.g., sheet not shared, missing credentials, or function not activated).
+                  The test will show clear error messages. Most "Cannot Read Secrets" errors mean the function needs redeployment after adding secrets.
                 </p>
               </div>
             </div>
