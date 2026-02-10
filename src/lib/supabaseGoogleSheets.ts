@@ -33,23 +33,24 @@ export function isSupabaseGoogleSheetsConfigured(): boolean {
 
 /**
  * Calls the Supabase Edge Function to read data from Google Sheets
- * Sends credentials in the request body for browser-based configuration
+ * Uses server-side Supabase secrets (GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_SHEET_ID)
  */
 export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
-  if (!isSupabaseGoogleSheetsConfigured()) {
-    console.log("Google Sheets credentials not configured in browser");
-    return { useDefaults: true };
-  }
-
   try {
-    // Send credentials from browser config in request body
-    // The edge function also supports server-side env vars as fallback
+    // Always call the edge function - it uses server-side env vars
+    // Only send browser creds if they exist, otherwise function uses Deno.env
+    const requestBody: any = {
+      action: "read",
+    };
+    
+    // Include browser credentials if available (optional, for backward compatibility)
+    if (isSupabaseGoogleSheetsConfigured()) {
+      requestBody.serviceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
+      requestBody.sheetId = config.GOOGLE_SHEET_ID;
+    }
+
     const { data, error } = await supabase.functions.invoke("google-sheets", {
-      body: {
-        action: "read",
-        serviceAccountKey: config.GOOGLE_SERVICE_ACCOUNT_KEY,
-        sheetId: config.GOOGLE_SHEET_ID,
-      },
+      body: requestBody,
     });
 
     if (error) {
@@ -58,7 +59,7 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
     }
 
     if (data?.useDefaults) {
-      console.log("Edge function returned useDefaults flag");
+      console.log("Edge function returned useDefaults - credentials not in Supabase secrets");
       return { useDefaults: true };
     }
 
@@ -71,21 +72,23 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
 
 /**
  * Writes a row to the Google Sheet via Supabase Edge Function
+ * Uses server-side Supabase secrets
  */
 export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
-  if (!isSupabaseGoogleSheetsConfigured()) {
-    console.log("Google Sheets credentials not configured, skipping write");
-    return false;
-  }
-
   try {
+    const requestBody: any = {
+      action: "write",
+      rowData,
+    };
+    
+    // Include browser credentials if available (optional, for backward compatibility)
+    if (isSupabaseGoogleSheetsConfigured()) {
+      requestBody.serviceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
+      requestBody.sheetId = config.GOOGLE_SHEET_ID;
+    }
+
     const { data, error } = await supabase.functions.invoke("google-sheets", {
-      body: {
-        action: "write",
-        rowData,
-        serviceAccountKey: config.GOOGLE_SERVICE_ACCOUNT_KEY,
-        sheetId: config.GOOGLE_SHEET_ID,
-      },
+      body: requestBody,
     });
 
     if (error) {
