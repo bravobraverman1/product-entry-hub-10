@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, Search, Check, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ export function SkuSelector({ products, value, onSelect, error }: SkuSelectorPro
     );
   }, [products, search]);
 
-  // Group filtered products by brand
+  // Group filtered products by brand - only recalculate when filtered changes
   const grouped = useMemo(() => {
     const groups: Record<string, SkuEntry[]> = {};
     filtered.forEach((product) => {
@@ -38,18 +38,22 @@ export function SkuSelector({ products, value, onSelect, error }: SkuSelectorPro
       }
       groups[product.brand].push(product);
     });
-    return Object.entries(groups).sort(([brandA], [brandB]) => brandA.localeCompare(brandB));
+    return Object.entries(groups)
+      .sort(([brandA], [brandB]) => brandA.localeCompare(brandB))
+      .map(([brand, skus]) => ({ brand, skus, count: skus.length }));
   }, [filtered]);
 
-  const toggleBrand = (brand: string) => {
-    const newExpanded = new Set(expandedBrands);
-    if (newExpanded.has(brand)) {
-      newExpanded.delete(brand);
-    } else {
-      newExpanded.add(brand);
-    }
-    setExpandedBrands(newExpanded);
-  };
+  const toggleBrand = useCallback((brand: string) => {
+    setExpandedBrands((prev) => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(brand)) {
+        newExpanded.delete(brand);
+      } else {
+        newExpanded.add(brand);
+      }
+      return newExpanded;
+    });
+  }, []);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
@@ -59,12 +63,12 @@ export function SkuSelector({ products, value, onSelect, error }: SkuSelectorPro
   // Auto-expand all brands when search length > 2
   useEffect(() => {
     if (search.length > 2) {
-      const allBrands = new Set(grouped.map(([brand]) => brand));
+      const allBrands = new Set(grouped.map(({ brand }) => brand));
       setExpandedBrands(allBrands);
     } else {
       setExpandedBrands(new Set());
     }
-  }, [search, grouped]);
+  }, [search.length, grouped]);
 
   return (
     <div className="space-y-1.5">
@@ -104,7 +108,7 @@ export function SkuSelector({ products, value, onSelect, error }: SkuSelectorPro
               <p className="text-sm text-muted-foreground text-center py-3">No SKUs found</p>
             ) : (
               <div className="p-1">
-                {grouped.map(([brand, skus]) => (
+                {grouped.map(({ brand, skus }) => (
                   <div key={brand}>
                     {/* Brand header (collapsible) */}
                     <button
