@@ -4,36 +4,55 @@ A comprehensive product data entry and management system built with React, TypeS
 
 ## 🚀 Quick Setup (Start Here!)
 
-**New to this project?** Follow these simple steps - **no code editing required!**
+**New to this project?** We've made setup incredibly easy - **no code editing required!**
 
-### 1️⃣ Initial Setup (5 minutes)
+### ⚡ Fast Track (15 minutes total)
 
-Run the automated setup script to configure your Supabase project:
+Follow the **[QUICK_START.md](./QUICK_START.md)** guide for the complete setup process.
+
+**Or follow these quick steps:**
+
+#### 1️⃣ Install & Configure (5 minutes)
 
 ```bash
+# Clone and setup
+git clone https://github.com/bravobraverman1/product-entry-hub-10.git
+cd product-entry-hub-10
 npm install
+
+# Automated configuration (no manual editing!)
 npm run setup
 ```
 
-The script will ask for your Supabase credentials and set everything up automatically!
+The `npm run setup` script will:
+- ✓ Ask for your Supabase URL and API key
+- ✓ Automatically create your `.env` file
+- ✓ Update all configuration files
+- ✓ Validate everything works
 
-**Need detailed instructions?** See **[SETUP.md](./SETUP.md)** for step-by-step guide with screenshots.
-
-### 2️⃣ Start Development Server
+#### 2️⃣ Start the App
 
 ```bash
 npm run dev
 ```
 
-Open http://localhost:5173/ in your browser.
+Open http://localhost:5173/ → Go to **Admin** tab → Verify your project info ✓
 
-### 3️⃣ Verify Configuration
+#### 3️⃣ Optional: Add Google Sheets (10 minutes)
 
-1. Go to the **Admin** tab
-2. Check the **"Project Check"** section
-3. Confirm your Supabase URL and Project Ref are correct ✓
+See **[GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md)** for step-by-step instructions.
 
-**Still showing wrong project info?** See [SETUP.md Troubleshooting](./SETUP.md#-troubleshooting)
+---
+
+## 📖 Documentation
+
+| Guide | What It Covers |
+|-------|----------------|
+| **[QUICK_START.md](./QUICK_START.md)** | Complete setup in 15 minutes |
+| **[SETUP.md](./SETUP.md)** | Detailed Supabase configuration |
+| **[GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md)** | Google Sheets integration |
+| **[EDGE_FUNCTIONS_SETUP.md](./EDGE_FUNCTIONS_SETUP.md)** | Edge Functions deployment |
+| **[SETUP_CHECKLIST.md](./SETUP_CHECKLIST.md)** | Track your progress |
 
 ---
 
