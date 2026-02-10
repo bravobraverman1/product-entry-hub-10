@@ -404,6 +404,31 @@ const Admin = () => {
               </Button>
             </div>
           </div>
+          
+          {/* Project Check Section */}
+          <div className="space-y-3 rounded-lg border border-muted bg-muted/50 p-4">
+            <h5 className="text-sm font-semibold">Project Check (Important)</h5>
+            <p className="text-xs text-muted-foreground">
+              Verify your Supabase project configuration before testing the connection.
+            </p>
+            <div className="space-y-2 text-sm font-mono">
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-32 shrink-0">Supabase URL:</span>
+                <span className="text-xs break-all">{supabaseUrl || "Not configured"}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-32 shrink-0">Project Ref:</span>
+                <span className="text-xs">{supabaseProjectRef || "Not detected"}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-32 shrink-0">Publishable Key:</span>
+                <span className={`text-xs font-semibold ${supabaseAnonKey ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {supabaseAnonKey ? "✓ Detected" : "✗ Missing"}
+                </span>
+              </div>
+            </div>
+          </div>
+          
           {/* Test Connection Section */}
           <div className="space-y-3 border-l-2 border-primary pl-4">
             <h5 className="text-sm font-semibold">Test Your Connection</h5>
