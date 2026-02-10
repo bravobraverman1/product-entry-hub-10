@@ -2,6 +2,102 @@
 
 A comprehensive product data entry and management system built with React, TypeScript, and Google Sheets integration.
 
+---
+
+## 🚀 ZERO-CODE CLOUD SETUP
+
+**✨ Get your app running in 20 minutes - no installations, no coding**
+
+### 👉 [START HERE: COMPLETE_CLOUD_SETUP.md](COMPLETE_CLOUD_SETUP.md)
+
+**This complete guide shows you:**
+- ✅ **No installations** - Everything through your web browser
+- ✅ **No coding** - Just click buttons and paste values
+- ✅ **Free hosting** - App runs on GitHub Pages
+- ✅ **Live URL** - Access from anywhere, share with anyone
+- ✅ **Automatic updates** - Push changes and they deploy automatically
+
+**Perfect for:**
+- 🎯 Quick client deployments
+- 🎯 Non-technical users
+- 🎯 No local setup needed
+- 🎯 Production-ready in minutes
+
+---
+
+## 📋 What You'll Set Up
+
+**3 Simple Steps:**
+
+### 1️⃣ Supabase (5 min)
+Connect your database
+- **Guide:** [GITHUB_SETUP.md](GITHUB_SETUP.md)
+
+### 2️⃣ Deploy App (5 min)
+Get your live URL
+- **Guide:** Built into [GITHUB_SETUP.md](GITHUB_SETUP.md)
+
+### 3️⃣ Google Sheets (10 min)
+Connect your data source
+- **Guide:** [GOOGLE_SHEETS_COMPLETE.md](GOOGLE_SHEETS_COMPLETE.md)
+
+**Total: ~20 minutes** ⏱️
+
+---
+
+## 🎯 End Result
+
+After setup you'll have:
+- ✅ A live web application with your own URL
+- ✅ Connected to your Supabase database
+- ✅ Syncing with your Google Sheets
+- ✅ Accessible from any device
+- ✅ Shareable with your team
+
+**Example URL:**
+```
+https://your-username.github.io/product-entry-hub-10/
+```
+
+---
+
+## 🔄 Alternative: Local Development
+
+<details>
+<summary>Click here if you need to run locally (requires Node.js installation)</summary>
+
+### Prerequisites
+- Node.js 18+ installed
+- Git installed
+- Terminal access
+
+### Quick Start
+
+1. **Clone and install:**
+   ```bash
+   git clone https://github.com/your-username/product-entry-hub-10.git
+   cd product-entry-hub-10
+   npm install
+   ```
+
+2. **Configure:**
+   - Get Supabase credentials: [GITHUB_SETUP.md - Step 1](GITHUB_SETUP.md#-step-1-get-your-supabase-credentials-2-minutes)
+   - Run setup: `./setup-supabase.sh` (Mac/Linux) or `setup-supabase.bat` (Windows)
+   - Or manually edit `.env` file
+
+3. **Start:**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open:** http://localhost:8080
+
+**Detailed local setup:** [START_HERE.md](START_HERE.md)
+
+</details>
+
+---
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
