@@ -1,11 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Get allowed origin from environment or default to localhost for development
+// Get allowed origins from environment (comma-separated) or default to localhost for development
+const ENV_ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const ALLOWED_ORIGINS = [
+  ...ENV_ALLOWED_ORIGINS,
+  Deno.env.get("ALLOWED_ORIGIN") || "",
   "http://localhost:5173",
   "http://localhost:3000",
-  Deno.env.get("ALLOWED_ORIGIN") || "",
 ].filter(Boolean);
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -27,9 +33,9 @@ function getSupabaseClient(authHeader: string) {
 }
 
 function getCorsHeaders(origin?: string) {
-  // Always reflect the request origin to avoid browser CORS blocks.
-  // If no origin is provided, fall back to '*'.
-  const allowOrigin = origin || "*";
+  const allowAll = ALLOWED_ORIGINS.includes("*");
+  const isAllowed = !!origin && ALLOWED_ORIGINS.includes(origin);
+  const allowOrigin = allowAll ? "*" : (isAllowed ? origin : (ALLOWED_ORIGINS[0] || origin || "*"));
 
   return {
     "Access-Control-Allow-Origin": allowOrigin,
