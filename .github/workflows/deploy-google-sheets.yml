@@ -40,9 +40,9 @@ jobs:
       - name: Set Edge Function Secrets
         run: |
           echo "Setting GOOGLE_SERVICE_ACCOUNT_KEY secret..."
-          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}" | supabase secrets set GOOGLE_SERVICE_ACCOUNT_KEY
+          supabase secrets set GOOGLE_SERVICE_ACCOUNT_KEY="${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}"
           echo "Setting GOOGLE_SHEET_ID secret..."
-          echo "${{ secrets.GOOGLE_SHEET_ID }}" | supabase secrets set GOOGLE_SHEET_ID
+          supabase secrets set GOOGLE_SHEET_ID="${{ secrets.GOOGLE_SHEET_ID }}"
           echo "✓ Secrets configured successfully"
 
       - name: Deploy Edge Function
