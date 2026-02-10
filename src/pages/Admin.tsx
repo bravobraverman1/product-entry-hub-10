@@ -49,6 +49,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 
+// GitHub repository configuration
+const GITHUB_REPO_OWNER = "bravobraverman1";
+const GITHUB_REPO_NAME = "product-entry-hub-10";
+const GITHUB_REPO_URL = `https://github.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`;
+
 // ── Helpers ─────────────────────────────────────────────────
 
 function treeToPaths(tree: CategoryLevel[], prefix: string[] = []): string[] {
@@ -626,7 +631,7 @@ const Admin = () => {
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => window.open('https://github.com/bravobraverman1/product-entry-hub-10/settings/secrets/actions', '_blank')}
+                        onClick={() => window.open(`${GITHUB_REPO_URL}/settings/secrets/actions`, '_blank')}
                         className="mb-2"
                       >
                         <ExternalLink className="h-3.5 w-3.5 mr-2" />
@@ -671,7 +676,7 @@ const Admin = () => {
                     type="button" 
                     variant="default" 
                     size="sm"
-                    onClick={() => window.open('https://github.com/bravobraverman1/product-entry-hub-10/actions/workflows/deploy-google-sheets.yml', '_blank')}
+                    onClick={() => window.open(`${GITHUB_REPO_URL}/actions/workflows/deploy-google-sheets.yml`, '_blank')}
                     className="mb-3"
                   >
                     <ExternalLink className="h-3.5 w-3.5 mr-2" />
@@ -684,7 +689,7 @@ const Admin = () => {
                       <li>Select <strong>"Deploy Google Sheets Connection"</strong> from the left sidebar</li>
                       <li>Click <strong>"Run workflow"</strong> button (top right)</li>
                       <li>Select <strong>"production"</strong> environment</li>
-                      <li>Click green <strong>"Run workflow"</strong> to start</li>
+                      <li>Click the green confirmation <strong>"Run workflow"</strong> button to start</li>
                       <li>Wait for completion (green checkmark ✓) — takes 2-3 minutes</li>
                     </ol>
                   </div>
