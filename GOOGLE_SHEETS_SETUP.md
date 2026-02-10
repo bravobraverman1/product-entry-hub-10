@@ -2,6 +2,18 @@
 
 This guide explains how to link your Google Sheets file to the Product Entry Hub application. The application supports two integration methods: **Google Service Account (Recommended)** or **Google Apps Script**.
 
+## Quick Start (New!)
+
+**The easiest way to get started is now through the Admin tab!** 
+
+1. Create a Google Service Account (see Method 1, Steps 1-3 below)
+2. Open your app's **Admin** tab
+3. Paste your Service Account JSON key and Sheet ID
+4. Click "Test Connection" → "Save"
+5. Done! Your sheet is now connected.
+
+For detailed instructions, see [Method 1: Google Service Account](#method-1-google-service-account-recommended) below.
+
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
 2. [Method 1: Google Service Account (Recommended)](#method-1-google-service-account-recommended)
@@ -15,8 +27,9 @@ This guide explains how to link your Google Sheets file to the Product Entry Hub
 ## Prerequisites
 
 - A Google Sheets spreadsheet with the required tabs (see [Sheet Structure Requirements](#sheet-structure-requirements))
-- Access to Supabase project console (for Method 1)
-- OR ability to deploy Google Apps Script (for Method 2)
+- **For Method 1 (Browser-Based):** Just a web browser - no Supabase access required!
+- **For Method 1 (Server-Side):** Access to Supabase project console for advanced configuration
+- **For Method 2:** Ability to deploy Google Apps Script
 
 ---
 
@@ -53,7 +66,28 @@ This method uses a Google Service Account to securely access your Google Sheets 
 5. Add the service account email as an **Editor**
 6. Click **Share**
 
-### Step 4: Configure Supabase Environment Variables
+### Step 4: Configure Your Credentials
+
+You have two options for configuring your Google Service Account credentials:
+
+#### **Option A: Browser-Based Configuration (Recommended for Getting Started)**
+
+This is the easiest way to get started. You can configure everything directly in the Admin tab of your application.
+
+1. Open your application and navigate to the **Admin** tab
+2. In the **Google Sheets Connection** section, find **Method 1: Google Service Account**
+3. Paste your Service Account credentials:
+   - **Google Service Account Key (JSON)**: Copy and paste the **entire contents** of the JSON key file you downloaded in Step 2
+   - **Google Sheet ID**: Enter your Google Sheet ID (the long string in your sheet URL between `/d/` and `/edit`)
+     - Example: In `https://docs.google.com/spreadsheets/d/1abc123xyz/edit`, the ID is `1abc123xyz`
+4. Click **Test Connection** to verify your credentials work correctly
+5. Click **Save Connection Settings**
+
+**Note:** Your credentials are stored in your browser's localStorage. Only use this method on trusted devices. For production deployments, consider Option B below.
+
+#### **Option B: Server-Side Configuration (Recommended for Production)**
+
+For production environments or enhanced security, you can configure credentials server-side through Supabase:
 
 1. Open your Supabase project dashboard
 2. Navigate to **Project Settings** → **Edge Functions** → **Secrets**
@@ -64,16 +98,17 @@ This method uses a Google Service Account to securely access your Google Sheets 
 
    **Secret Name:** `GOOGLE_SHEET_ID`  
    **Secret Value:** Your Google Sheet ID (the long string in your sheet URL between `/d/` and `/edit`)
-   
-   Example: In `https://docs.google.com/spreadsheets/d/1abc123xyz/edit`, the ID is `1abc123xyz`
 
 4. Save both secrets
+5. Deploy the Edge Function (see Step 5 below)
 
-### Step 5: Deploy the Edge Function
+### Step 5: Deploy the Edge Function (Option B Only)
+
+**Note:** If you're using Option A (Browser-Based Configuration), the Edge Function is already deployed and you can skip this step.
+
+If you're using Option B (Server-Side Configuration), deploy the Edge Function:
 
 The Edge Function is already in your repository at `supabase/functions/google-sheets/index.ts`.
-
-To deploy it:
 
 ```bash
 # Install Supabase CLI if you haven't already
@@ -91,9 +126,11 @@ supabase functions deploy google-sheets
 
 ### Step 6: Verify the Connection
 
-1. Restart your application
-2. The app should now automatically connect to your Google Sheets
-3. You can verify by checking if your actual data loads instead of mock data
+1. Navigate to the main page of your application
+2. Click on the **SKU Selector** dropdown
+3. If you see your actual SKU data (not mock data starting with "LED-"), the connection is working!
+4. Try selecting a SKU and filling out a product form to verify full functionality
+5. Check your OUTPUT sheet tab to confirm data is being written correctly
 
 ---
 
@@ -224,13 +261,36 @@ Optional: Defines which fields are visible/required for specific categories.
 
 ## Configuration in Admin Panel
 
-After setting up your Google Sheets connection, configure the application in the Admin panel:
+The Admin panel provides several configuration options for your application:
 
-1. Navigate to **Admin** page in the application
-2. **Connection Settings**: Set your Apps Script URL (if using Method 2)
-3. **Sheet Tab Names**: Configure the exact tab names in your Google Sheet
-4. **Categories Editor**: Manage your product categories
-5. **LEGAL Values Editor**: Manage dropdown options
+### Google Sheets Connection
+
+**Method 1: Google Service Account** (Browser-Based)
+- Paste your Service Account JSON key directly in the browser
+- Enter your Google Sheet ID
+- Test the connection before saving
+- Credentials stored in browser localStorage
+
+**Method 2: Google Apps Script** (Alternative)
+- Configure your Apps Script Web App URL
+- Useful if you prefer not to use Supabase Edge Functions
+
+### Sheet Tab Names
+
+Configure the exact tab names in your Google Sheet to match your spreadsheet structure.
+
+### Categories Editor
+
+Manage your product category hierarchy in a visual tree editor.
+
+### LEGAL Values Editor
+
+Manage dropdown options for your custom properties/fields.
+
+### Other Settings
+
+- Product Instructions PDF URL
+- Google Drive CSV Folder ID for exports
 
 ---
 
@@ -241,10 +301,20 @@ After setting up your Google Sheets connection, configure the application in the
 **Symptom:** Application shows mock data instead of your Google Sheets data
 
 **Solutions:**
-- Verify service account email is shared with Editor access on your sheet
-- Check that `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` are correctly set in Supabase
-- Confirm the Edge Function is deployed: check Supabase Functions dashboard
-- Look for errors in Supabase Function logs
+- **For Browser-Based Configuration:**
+  - Navigate to Admin tab and verify your credentials are saved
+  - Click "Test Connection" to check if credentials are valid
+  - Check browser console for error messages (press F12)
+  - Verify the JSON key is complete (starts with `{` and ends with `}`)
+  - Ensure the Sheet ID is correct (no extra spaces or characters)
+- **For Server-Side Configuration:**
+  - Verify service account email is shared with Editor access on your sheet
+  - Check that `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` are correctly set in Supabase dashboard
+  - Confirm the Edge Function is deployed: check Supabase Functions dashboard
+  - Look for errors in Supabase Function logs
+- **For Both:**
+  - Verify service account email has Editor access to your Google Sheet
+  - Check that Google Sheets API is enabled in your Google Cloud project
 
 ### Permission Errors
 
@@ -279,9 +349,14 @@ After setting up your Google Sheets connection, configure the application in the
 **Symptom:** Changes in Admin panel don't persist
 
 **Solutions:**
-- Configuration is stored in browser localStorage
-- Clearing browser data will reset configuration
-- You may need to reload the page after saving settings
+- **Browser-Based Configuration:** Credentials are stored in browser localStorage
+  - Clearing browser data will reset your saved credentials
+  - Try using the same browser consistently
+  - Configuration should take effect immediately without page reload
+  - Check browser console (F12) for any error messages
+- **Server-Side Configuration:** Changes to Supabase secrets require Edge Function redeployment
+  - Redeploy the Edge Function after changing secrets
+  - Check Supabase dashboard to confirm secrets are saved
 
 ---
 
@@ -298,17 +373,29 @@ After setting up your Google Sheets connection, configure the application in the
 ## Security Notes
 
 - **Never commit** your service account JSON key to version control
-- Store credentials only in Supabase secrets (Method 1) or as Apps Script properties
-- Limit service account permissions to only what's needed
-- Regularly rotate service account keys
-- Use Google Workspace organization restrictions if available
+- **Browser-Based Configuration:** 
+  - Credentials stored in browser localStorage are accessible to any script running on the page
+  - Only use on trusted devices
+  - Consider server-side configuration for production environments
+  - Clear credentials from localStorage when done using shared computers
+- **Server-Side Configuration:**
+  - Store credentials only in Supabase secrets or as Apps Script properties
+  - Credentials never exposed to the browser
+  - Recommended for production deployments
+- **General Best Practices:**
+  - Limit service account permissions to only what's needed (Google Sheets access only)
+  - Regularly rotate service account keys
+  - Use Google Workspace organization restrictions if available
+  - Monitor service account usage in Google Cloud Console
 
 ---
 
 ## Need Help?
 
 If you're still having issues:
-1. Check the browser console for JavaScript errors
-2. Review Supabase Edge Function logs in the Supabase dashboard
-3. Verify all sheet tab names match your configuration
-4. Ensure your Google Sheet structure matches the requirements above
+1. Use the "Test Connection" button in the Admin tab to diagnose issues
+2. Check the browser console (F12) for JavaScript errors
+3. Review Supabase Edge Function logs in the Supabase dashboard (if using server-side config)
+4. Verify all sheet tab names match your configuration
+5. Ensure your Google Sheet structure matches the requirements above
+6. Confirm the service account has Editor access to your sheet
