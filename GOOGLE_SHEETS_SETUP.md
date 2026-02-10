@@ -219,6 +219,38 @@ GOOGLE_SHEET_ID
 - You should see both `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` listed in the Secrets section
 - Both should show a green checkmark indicating they're saved
 
+#### Step 4.4: Redeploy the Edge Function (REQUIRED)
+
+**⚠️ CRITICAL STEP:** After adding or changing secrets, you MUST redeploy the Edge Function. Supabase Edge Functions do not automatically refresh their environment variables when secrets are added or updated.
+
+**Why this is necessary:**
+- Edge Functions load environment variables at deployment time
+- Adding secrets to an already-deployed function does not make them available
+- The function will continue to report missing secrets until redeployed
+
+**Choose one redeployment method:**
+
+**Option 1: Redeploy via Dashboard**
+1. Go to Supabase Dashboard → Edge Functions
+2. Click on the **"google-sheets"** function
+3. Look for a **"Redeploy"** or **"Deploy"** button (usually in the top right)
+4. Click it to redeploy the function
+5. Wait for deployment to complete (10-30 seconds)
+6. The function will now have access to your secrets
+
+**Option 2: Redeploy via CLI**
+If you're using the Supabase CLI:
+```bash
+supabase functions deploy google-sheets
+```
+
+**Option 3: Use GitHub Actions (Recommended)**
+The GitHub Actions workflow in Step 5 will automatically redeploy the function with your secrets. If you plan to use GitHub Actions, you can skip manual redeployment here and proceed directly to Step 5.
+
+**Verify redeployment:**
+- After redeploying, the Edge Function's deployment timestamp should be updated
+- You can verify this in the Functions dashboard
+
 ---
 
 ## STEP 5: Activate the Google Sheets Connection (GitHub Actions)
@@ -312,6 +344,7 @@ Setting up Google Sheets integration on a brand-new Supabase project? Follow thi
 - [ ] Secret `GOOGLE_SERVICE_ACCOUNT_KEY` added to the function (Step 4)
 - [ ] Secret `GOOGLE_SHEET_ID` added to the function (Step 4)
 - [ ] Both secrets show green checkmark or "Saved" status
+- [ ] **Edge Function redeployed after adding secrets** (Step 4.4 - REQUIRED)
 - [ ] GitHub secrets configured: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` (Step 5)
 
 ### ✅ Activation & Testing Checklist
@@ -458,34 +491,63 @@ Manage dropdown options for your custom properties/fields.
 - Try using the manual URL navigation: `https://supabase.com/dashboard/project/YOUR_PROJECT_REF/functions/google-sheets`
 - If still not visible, ensure your Supabase plan supports Edge Functions (it's available on the free tier)
 
-### After adding secrets, function still uses defaults
+### The Edge Function cannot read the required secrets
 
-**Symptom:** I added the secrets, but the connection test still fails or uses mock data.
+**Symptom:** Test Connection fails with an error about secrets, but when you check Supabase Dashboard → Edge Functions → google-sheets → Secrets, BOTH secrets (`GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`) clearly exist.
 
-**Solutions:**
-1. **Verify secrets are saved:**
-   - Go back to the Secrets section of the `google-sheets` function
+**This error does NOT always mean secrets are missing.** It can occur for several reasons:
+
+**Common Causes:**
+1. **Secrets were added AFTER the Edge Function was deployed** (most common)
+2. **The Edge Function was not redeployed after adding secrets**
+3. **Environment variable names don't match exactly**
+4. **Function is deployed to a different environment** (preview vs production)
+5. **Frontend is calling a stale or wrong endpoint**
+
+**Diagnostic Checklist:**
+
+Follow this checklist in order to identify and fix the issue:
+
+☐ **Step 1: Verify secrets exist**
+   - Go to Supabase Dashboard → Edge Functions → google-sheets → Secrets
    - Confirm both `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` are listed
    - Both should show a green checkmark or "Saved" status
 
-2. **Check secret names are exact:**
+☐ **Step 2: Verify secret names match exactly**
    - Secret names are case-sensitive
-   - Must be exactly: `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`
-   - No extra spaces or typos
+   - Must be EXACTLY: `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`
+   - No extra spaces, underscores, or typos
+   - Check for invisible characters copied from documentation
 
-3. **Verify JSON key format:**
+☐ **Step 3: Redeploy the Edge Function** (REQUIRED)
+   - Go to Supabase Dashboard → Edge Functions → google-sheets
+   - Click **"Redeploy"** or **"Deploy"** button
+   - Wait for deployment to complete (10-30 seconds)
+   - **Why:** Edge Functions load environment variables at deployment time and do NOT auto-refresh when secrets are added
+
+☐ **Step 4: Verify production deployment**
+   - Ensure the function is deployed to production (not preview)
+   - Check the deployment environment in the Functions dashboard
+   - If using multiple environments, secrets must be added to each
+
+☐ **Step 5: Re-run the connection test**
+   - Go to Admin tab in the application
+   - Click "Test Connection" button
+   - Wait for the test to complete
+
+☐ **Step 6: Verify JSON key format** (if still failing)
    - The `GOOGLE_SERVICE_ACCOUNT_KEY` value should be valid JSON
    - Should start with `{` and end with `}`
    - Copy the entire contents of your downloaded JSON key file
+   - No extra quotes or escape characters
 
-4. **Redeploy if needed (rare):**
-   - In most cases, secrets are applied immediately
-   - If problems persist after 5 minutes, try redeploying the function via GitHub Actions (Step 5)
-
-5. **Check function logs:**
+☐ **Step 7: Check function logs** (advanced)
    - Go to Supabase Dashboard → Edge Functions → google-sheets → Logs
-   - Look for error messages that might indicate the issue
+   - Look for error messages that indicate the specific issue
    - Common errors: "Invalid JSON", "Authentication failed", "Sheet not found"
+
+**Quick Fix (95% of cases):**
+If secrets exist in Supabase but the test fails, the issue is almost always that the function needs to be redeployed. Go to Step 3 above and redeploy the function.
 
 ### Data Not Loading
 
