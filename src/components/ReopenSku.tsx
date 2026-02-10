@@ -21,6 +21,7 @@ interface ReopenSkuProps {
 export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
   const { toast } = useToast();
   const [sku, setSku] = useState("");
+  const [dockSku, setDockSku] = useState("");
   const [loading, setLoading] = useState(false);
   const [reopened, setReopened] = useState(false);
 
@@ -48,11 +49,34 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
     }
   }, [sku, toast, onReopened]);
 
+  const handleDockSkuReopen = useCallback(async () => {
+    if (!dockSku) {
+      toast({ variant: "destructive", title: "SKU Required", description: "Select a SKU from the dock." });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await reopenSku(dockSku);
+      setReopened(true);
+      onReopened(data);
+      toast({ title: "SKU Reopened", description: `${dockSku} has been reopened for editing.` });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Reopen Failed",
+        description: err instanceof Error ? err.message : "Could not reopen SKU.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [dockSku, toast, onReopened]);
+
   return (
     <div className="space-y-3">
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-4">
         {/* Manual SKU entry */}
-        <div className="flex-1 space-y-1.5 max-w-sm">
+        <div className="flex-1 space-y-1.5">
           <Label className="text-xs font-medium">Reopen SKU</Label>
           <div className="flex gap-2">
             <Input
@@ -62,7 +86,7 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
                 setReopened(false);
               }}
               placeholder="Enter SKU…"
-              className="h-9 text-sm font-mono"
+              className="h-9 text-sm font-mono flex-1"
             />
             <Button
               type="button"
@@ -82,14 +106,14 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
 
         {/* SKU from Loading Dock dropdown */}
         {dockSkus.length > 0 && (
-          <div className="flex-1 space-y-1.5 max-w-sm">
-            <Label className="text-xs font-medium">Or from Loading Dock</Label>
+          <div className="flex-1 space-y-1.5">
+            <Label className="text-xs font-medium">SKU from Loading Dock</Label>
             <div className="flex gap-2">
-              <Select value={sku} onValueChange={(value) => {
-                setSku(value);
+              <Select value={dockSku} onValueChange={(value) => {
+                setDockSku(value);
                 setReopened(false);
               }}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9 flex-1">
                   <SelectValue placeholder="Select SKU…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -103,8 +127,8 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleReopen}
-                disabled={loading || !sku.trim()}
+                onClick={handleDockSkuReopen}
+                disabled={loading || !dockSku}
                 className="h-9 shrink-0"
               >
                 {loading ? (
