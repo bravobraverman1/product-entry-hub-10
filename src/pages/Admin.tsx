@@ -192,29 +192,16 @@ const Admin = () => {
   const queryClient = useQueryClient();
 
   // ── Categories ──
-  const { data: loadedTree = [], error: categoriesError, isLoading: categoriesLoading } = useQuery({
+  const { data: loadedTree = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
     staleTime: 60_000,
-    retry: false,
   });
 
   const [tree, setTree] = useState<CategoryLevel[]>([]);
   const [dirty, setDirty] = useState(false);
   const [addingRoot, setAddingRoot] = useState(false);
   const [newRootName, setNewRootName] = useState("");
-
-  // Show error if categories failed to load
-  useEffect(() => {
-    if (categoriesError) {
-      console.error("Failed to load categories:", categoriesError);
-      toast({
-        variant: "destructive",
-        title: "Failed to Load Categories",
-        description: categoriesError instanceof Error ? categoriesError.message : "Could not load categories from Google Sheet",
-      });
-    }
-  }, [categoriesError, toast]);
 
   useEffect(() => {
     if (loadedTree.length > 0 && !dirty) setTree(loadedTree);
@@ -391,11 +378,6 @@ const Admin = () => {
     });
   };
 
-  // Check if Google Sheets credentials are configured
-  const googleServiceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const googleSheetId = config.GOOGLE_SHEET_ID;
-  const isGoogleSheetsConfigured = Boolean(googleServiceAccountKey && googleServiceAccountKey.trim() && googleSheetId && googleSheetId.trim());
-
   // ── LEGAL Editor ──
   const { data: propData } = useQuery({ queryKey: ["properties"], queryFn: fetchProperties, staleTime: 60_000 });
   const properties = propData?.properties ?? [];
@@ -454,37 +436,6 @@ const Admin = () => {
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* Google Sheets Credentials Status */}
-          <div className="space-y-3 rounded-lg border border-muted bg-muted/50 p-4">
-            <h5 className="text-sm font-semibold">Google Sheets Credentials Status</h5>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-40 shrink-0">Service Account Key:</span>
-                <span className={`font-semibold ${googleServiceAccountKey ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {googleServiceAccountKey ? `✓ Configured (${googleServiceAccountKey.length} chars)` : "❌ NOT SET"}
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-40 shrink-0">Google Sheet ID:</span>
-                <span className={`font-semibold ${googleSheetId ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {googleSheetId ? `✓ Configured (${googleSheetId})` : "❌ NOT SET"}
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-40 shrink-0">Status:</span>
-                <span className={`font-semibold ${isGoogleSheetsConfigured ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {isGoogleSheetsConfigured ? "✓ READY" : "❌ NOT READY"}
-                </span>
-              </div>
-            </div>
-            {!isGoogleSheetsConfigured && (
-              <div className="mt-3 text-xs bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100 p-2 rounded border border-red-300 dark:border-red-700">
-                <p className="font-semibold mb-1">⚠️ Why categories won't load:</p>
-                <p>Google Sheets credentials are not set in localStorage. The app is looking for <code className="bg-red-200 dark:bg-red-800 px-1">GOOGLE_SERVICE_ACCOUNT_KEY</code> and <code className="bg-red-200 dark:bg-red-800 px-1">GOOGLE_SHEET_ID</code> in browser storage.</p>
-              </div>
-            )}
           </div>
           
           {/* Configuration Help Alert - Show when environment variables are not configured */}
@@ -621,17 +572,6 @@ const Admin = () => {
       {/* Category Editor */}
       <FormSection title="Categories Editor" defaultOpen>
         <div className="space-y-3">
-          {categoriesError && (
-            <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950 p-3">
-              <p className="text-xs font-semibold text-red-900 dark:text-red-100">❌ Error Loading Categories</p>
-              <p className="text-xs text-red-800 dark:text-red-200 mt-1">{categoriesError instanceof Error ? categoriesError.message : "Unknown error"}</p>
-            </div>
-          )}
-          {categoriesLoading && (
-            <div className="rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-950 p-3">
-              <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">⏳ Loading categories from Google Sheet...</p>
-            </div>
-          )}
           <div className="border border-border rounded-lg p-2 max-h-[500px] overflow-y-auto">
             {tree.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No categories loaded.</p>
