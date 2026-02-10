@@ -27,29 +27,52 @@ If using **Option B (Server-Side)**, you also need to set up GitHub Secrets (one
 ### Gather Information from Supabase
 
 1. **Access Token:**
-   - Go to https://supabase.com/dashboard/account/tokens
-   - Click "Generate new token"
-   - Copy the token (starts with `sbp_`)
+### Get Supabase Access Token
 
-2. **Project Reference:**
-   - Go to https://supabase.com/dashboard
-   - Select your project
-   - Click Settings → General
-   - Copy the **Reference ID** (e.g., `abcdefghijklmnop`)
+1. Visit https://supabase.com/dashboard
+2. Click your profile icon (top-right)
+3. Click **"Account Settings"** → **"Access Tokens"** (in left sidebar)
+4. Click **"Generate new token"**
+5. Name it: "Product Entry Hub"
+6. Click **"Generate"**
+7. Copy the token (starts with `sbp_`)
 
-3. **Database Password:**
-   - Your password from when you created the Supabase project
-   - Or reset it: Settings → Database → Reset password
+### Get Project Reference
+
+1. Visit https://supabase.com/dashboard
+2. Click your project
+3. Click **"Project Settings"** (or gear icon)
+4. Go to **"General"** tab
+5. Find **"Reference ID"** (e.g., `abcdefghijklmnop`)
+6. Copy it
+
+### Get Database Password
+
+1. Visit https://supabase.com/dashboard
+2. Click your project
+3. Click **"Project Settings"**
+4. Go to **"Database"** in left sidebar
+5. Click **"Reset password"**
+6. Copy the new password
 
 ### Add Secrets to GitHub
 
-1. Go to your GitHub repository
-2. Click **Settings** (top navigation)
-3. Click **Secrets and variables** → **Actions** (left sidebar)
-4. Click **New repository secret** and add:
-   - Name: `SUPABASE_ACCESS_TOKEN` | Value: (your token from above)
-   - Name: `SUPABASE_PROJECT_REF` | Value: (your project ID)
-   - Name: `SUPABASE_DB_PASSWORD` | Value: (your database password)
+1. Visit GitHub: https://github.com/YOUR_USERNAME/product-entry-hub-10
+2. Click **Settings** tab (top-right area)
+3. Click **"Secrets and variables"** → **"Actions"** (left sidebar)
+4. Click **"New repository secret"** and add each:
+   - **Secret 1:**
+     - Name: `SUPABASE_ACCESS_TOKEN`
+     - Value: (your token from above)
+     - Click **"Add secret"**
+   - **Secret 2:**
+     - Name: `SUPABASE_PROJECT_REF`
+     - Value: (your project ID)
+     - Click **"Add secret"**
+   - **Secret 3:**
+     - Name: `SUPABASE_DB_PASSWORD`
+     - Value: (your database password)
+     - Click **"Add secret"**
 
 ✓ **Done with setup!**
 
@@ -59,21 +82,27 @@ If using **Option B (Server-Side)**, you also need to set up GitHub Secrets (one
 
 ### Click-Only Steps
 
-1. **Open GitHub**
-   - Go to your GitHub repository
-   - Click the **Actions** tab
+1. **Open GitHub Repository**
+   - Visit: https://github.com/YOUR_USERNAME/product-entry-hub-10
+   - You'll see the main repository page
 
-2. **Select the Workflow**
+2. **Go to Actions Tab**
+   - Click the **"Actions"** tab at the top
+   - You'll see the list of workflows on the left
+
+3. **Select the Workflow**
    - In the left sidebar, click **"Deploy Google Sheets Connection"**
+   - You'll see the workflow details
 
-3. **Run the Workflow**
-   - Click **"Run workflow"** button on the right
-   - Select **production** (or staging)
+4. **Run the Workflow**
+   - On the right side, click **"Run workflow"** button
+   - Select **"production"** from the dropdown
    - Click **"Run workflow"** to confirm
 
-4. **Wait for Completion**
-   - Watch the workflow run
-   - Look for a green checkmark ✓
+5. **Wait for Completion**
+   - Watch the workflow in the list
+   - Yellow circle = running (🟡)
+   - Green checkmark = done (✓)
    - Takes 2-3 minutes
 
 ---

@@ -1,6 +1,6 @@
 # Google Sheets Integration Setup Guide
 
-This guide explains how to link your Google Sheets file to the Product Entry Hub application. The application supports two integration methods: **Google Service Account (Recommended)** or **Google Apps Script**.
+This guide explains how to link your Google Sheets file to the Product Entry Hub application using the **Google Service Account** method with Supabase Edge Functions.
 
 ## Overview
 
@@ -25,37 +25,64 @@ Follow these steps in order:
 
 ## STEP 1: Create a Google Service Account
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Navigate to **IAM & Admin** → **Service Accounts**
-4. Click **Create Service Account**
-5. Enter a name (e.g., "product-entry-hub-sheets-access")
-6. Click **Create and Continue**
-7. Grant the service account the **Editor** role (or more restrictive if preferred)
-8. Click **Done**
+### Navigate to Google Cloud Console
+
+1. Visit https://console.cloud.google.com/
+2. At the top, you'll see a dropdown showing your current project
+3. Click that dropdown and select **"Select a Project"**
+4. Click **"NEW PROJECT"** button
+5. Enter a project name (e.g., "Product Entry Hub")
+6. Click **"CREATE"**
+7. Wait for the project to be created (usually takes 10-20 seconds)
+8. Once created, the new project will be selected automatically
+
+### Create a Service Account
+
+1. On the left sidebar, look for the menu icon (☰)
+2. Click it to expand the menu if needed
+3. Look for **"IAM & Admin"** → click it
+4. Click on **"Service Accounts"** in the submenu
+5. Click **"+ CREATE SERVICE ACCOUNT"** button at the top
+6. Fill in:
+   - **Service account name:** `product-entry-hub-sheets`
+   - Leave other fields as default
+7. Click **"CREATE AND CONTINUE"** button
+8. On the permissions screen, click **"CONTINUE"** (skip the role for now)
+9. On the final screen, click **"DONE"**
+
+### Download the Key File
+
+1. You should now see your service account listed
+2. Click on the service account name you just created
+3. Go to the **"Keys"** tab at the top
+4. Click **"ADD KEY"** → **"Create new key"**
+5. A dialog will appear - select **"JSON"** format
+6. Click **"CREATE"**
+7. A JSON file will automatically download to your computer
+8. **⚠️ Keep this file secure - never share it or commit it to version control**
 
 ---
 
 ## STEP 2: Share Your Google Sheet
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select the project you created in STEP 1
-3. Navigate to **IAM & Admin** → **Service Accounts**
-4. Click on the newly created service account
-5. Go to the **Keys** tab
-6. Click **Add Key** → **Create new key**
-7. Select **JSON** format
-8. Click **Create** - this downloads a JSON file to your computer
-9. **Keep this file secure** - it contains credentials to access your Google account
+### Get the Service Account Email
 
-### Share your sheet with the service account
+1. Open the JSON file you downloaded in a text editor
+2. Look for the line that says `"client_email": "`
+3. Copy the email address (looks like: `your-service@your-project.iam.gserviceaccount.com`)
+4. Keep this copied
 
-1. Open the JSON key file you downloaded
-2. Find the `client_email` field (looks like: `your-service-account@your-project.iam.gserviceaccount.com`)
-3. Open your Google Sheet
-4. Click **Share** button
-5. Add the service account email as an **Editor**
-6. Click **Share**
+### Share Your Google Sheet
+
+1. Open your Google Sheet in your browser
+2. Click the **"Share"** button in the top-right corner
+3. A dialog will appear
+4. Paste the service account email you copied into the text field
+5. Make sure the permission is set to **"Editor"**
+6. Uncheck **"Notify people"** (optional)
+7. Click **"Share"**
+
+You've now given the service account permission to access your sheet!
 
 ---
 
@@ -71,18 +98,36 @@ This is the easiest way to get started. You can configure everything directly in
 
 For production environments or enhanced security, you can configure credentials server-side through Supabase:
 
-1. Open your Supabase project dashboard
-2. Navigate to **Project Settings** → **Edge Functions** → **Secrets**
-3. Add two secrets:
+### Navigate to Supabase Secrets
 
-   **Secret Name:** `GOOGLE_SERVICE_ACCOUNT_KEY`  
-   **Secret Value:** Copy the entire contents of the JSON key file you downloaded
+1. Visit https://supabase.com/dashboard
+2. Click on your project name in the list
+3. You'll see the project dashboard
+4. On the left sidebar, click the menu icon (☰) if collapsed
+5. Scroll down and find **"Edge Functions"** in the sidebar
+6. Click **"Edge Functions"**
+7. You'll see the **"google-sheets"** function listed
+8. Click on it to open it
+9. At the top, click the **"Secrets"** tab
+10. Click **"New secret"** button
 
-   **Secret Name:** `GOOGLE_SHEET_ID`  
-   **Secret Value:** Your Google Sheet ID (the long string in your sheet URL between `/d/` and `/edit`)
+### Add the Secrets
 
-4. Save both secrets
-5. Proceed to STEP 4 below to deploy the Edge Function
+You'll now add two secrets in order:
+
+**Secret 1: GOOGLE_SERVICE_ACCOUNT_KEY**
+1. In the "Name" field, type: `GOOGLE_SERVICE_ACCOUNT_KEY`
+2. In the "Value" field, paste the **entire contents** of the JSON file you downloaded
+3. Click **"Add secret"**
+
+**Secret 2: GOOGLE_SHEET_ID**
+1. Click **"New secret"** again
+2. In the "Name" field, type: `GOOGLE_SHEET_ID`
+3. In the "Value" field, paste your Google Sheet ID
+   - To find it: Open your Google Sheet URL
+   - Look for the part between `/d/` and `/edit`
+   - Example: In `https://docs.google.com/spreadsheets/d/1abc123xyz/edit`, the ID is `1abc123xyz`
+4. Click **"Add secret"**
 
 ---
 
@@ -121,24 +166,35 @@ No credentials are exposed during this process.
 
 ### How to activate (click-only steps)
 
-**Step 1:** Open your GitHub repository
-- Click the button below or navigate to: `https://github.com/{{OWNER}}/{{REPO}}`
+#### **Step 1: Open GitHub Repository**
 
-<div style="margin: 20px 0;">
-  <a href="https://github.com/{{OWNER}}/{{REPO}}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #0969da; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
-    Open GitHub Repository
-  </a>
-</div>
+1. Visit: `https://github.com/{{OWNER}}/{{REPO}}`
+2. You should now see the repository main page
+3. Look at the top navigation - you'll see several tabs: **Code**, **Issues**, **Pull requests**, etc.
 
-**Step 2:** Click the "**Actions**" tab in the top navigation
+#### **Step 2: Go to Actions Tab**
 
-**Step 3:** In the left sidebar, select "**Deploy Google Sheets Connection**"
+1. Click the **"Actions"** tab in the top navigation
+2. You'll see a list of available workflows on the left side
 
-**Step 4:** Click the "**Run workflow**" button
+#### **Step 3: Select the Deployment Workflow**
 
-**Step 5:** Wait until the workflow completes (you'll see a green checkmark ✓ when done)
+1. In the left sidebar, find and click **"Deploy Google Sheets Connection"**
+2. This shows the workflow details
 
-A typical run takes 2-3 minutes. Your Google Sheets connection is now active!
+#### **Step 4: Run the Workflow**
+
+1. On the right side, click the **"Run workflow"** button
+2. A dropdown will appear
+3. Leave the settings as default (or select "production" from the environment dropdown)
+4. Click **"Run workflow"** to confirm
+
+#### **Step 5: Wait for Completion**
+
+1. The workflow will start running
+2. You'll see it in the list with a yellow circle (🟡 running)
+3. Wait 2-3 minutes for it to complete
+4. When done, you'll see a green checkmark (✓) - this means success!
 
 ### How to confirm
 
@@ -149,56 +205,6 @@ Return to this application and click "**Test Connection**" in the Admin panel to
 3. Click "**Test Connection**" button
 4. If successful, you'll see a confirmation message
 5. If you see actual SKU data (not mock data), the connection is working!
-
----
-
-## Method 2: Google Apps Script (Alternative)
-
-If you prefer not to use Supabase Edge Functions, you can create a Google Apps Script Web App instead.
-
-### Step 1: Create Apps Script Project
-
-1. Open your Google Sheet
-2. Click **Extensions** → **Apps Script**
-3. Delete any existing code in the editor
-4. Copy the Apps Script code from your project documentation or create endpoints that match the API structure
-5. Save the project with a name like "Product Entry Hub API"
-
-### Step 2: Deploy as Web App
-
-1. In the Apps Script editor, click **Deploy** → **New deployment**
-2. Click the gear icon next to "Select type" and choose **Web app**
-3. Configure:
-   - **Description:** Product Entry Hub API
-   - **Execute as:** Me
-   - **Who has access:** Anyone (or your organization if using Google Workspace)
-4. Click **Deploy**
-5. Copy the **Web app URL** (it will look like: `https://script.google.com/macros/s/ABC123.../exec`)
-
-### Step 3: Configure in Admin Panel
-
-1. Open your Product Entry Hub application
-2. Navigate to the **Admin** page
-3. Find the **Connection Settings** section
-4. Paste your Web App URL into the **Apps Script Web App URL** field
-5. Click **Save Connection Settings**
-6. **Reload the page** for changes to take effect
-
-### Step 4: Implement Required Endpoints
-
-Your Apps Script needs to handle these endpoints:
-
-- `GET /skus?status=READY` - Returns list of products
-- `GET /brand?sku=XXX` - Returns brand for a SKU
-- `GET /categories` - Returns category tree
-- `POST /categories/update` - Updates categories
-- `GET /properties` - Returns property definitions and legal values
-- `POST /legal/add` - Adds a new legal value
-- `POST /submitProduct` - Submits a completed product
-- `GET /recentSubmissions` - Returns recent submissions
-- `GET /brands` - Returns brand list
-- `POST /brands/update` - Updates brands
-- `GET /filters` - Returns filter rules
 
 ---
 
@@ -277,21 +283,9 @@ Optional: Defines which fields are visible/required for specific categories.
 
 ---
 
-## Configuration in Admin Panel
+### Configuration in Admin Panel
 
-The Admin panel provides several configuration options for your application:
-
-### Google Sheets Connection
-
-**Method 1: Google Service Account** (Browser-Based)
-- Paste your Service Account JSON key directly in the browser
-- Enter your Google Sheet ID
-- Test the connection before saving
-- Credentials stored in browser localStorage
-
-**Method 2: Google Apps Script** (Alternative)
-- Configure your Apps Script Web App URL
-- Useful if you prefer not to use Supabase Edge Functions
+The Admin panel provides configuration options for your application:
 
 ### Sheet Tab Names
 
@@ -359,9 +353,6 @@ Manage dropdown options for your custom properties/fields.
 **Solutions:**
 - Verify the Web App is deployed with "Execute as: Me" 
 - Check access is set correctly (Anyone or your organization)
-- Test the Web App URL directly in a browser
-- Review Apps Script execution logs for errors
-
 ### Configuration Not Saving
 
 **Symptom:** Changes in Admin panel don't persist
