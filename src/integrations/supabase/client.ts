@@ -7,11 +7,12 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Validate that both URL and key are provided
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  console.error('Supabase configuration missing: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY must be set in environment variables');
+  console.warn('⚠️ Supabase NOT CONFIGURED: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY must be set in environment variables. The application will load but Supabase features will not work until configured.');
 }
 
-// Create client with dummy values if not configured to prevent runtime errors
-// The application will handle missing configuration gracefully in the UI
+// Create client with placeholder values if not configured to allow the app to load
+// The Admin page will show "NOT CONFIGURED" status and disable connection tests
+// Any attempted Supabase API calls will fail gracefully
 const url = SUPABASE_URL || 'https://placeholder.supabase.co';
 const key = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
 

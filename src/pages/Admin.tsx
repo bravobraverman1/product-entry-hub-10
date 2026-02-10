@@ -287,6 +287,9 @@ const Admin = () => {
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   const supabaseProjectRef = supabaseUrl.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i)?.[1] || "";
   
+  // Validate if URL is a proper Supabase URL
+  const isValidSupabaseUrl = /https:\/\/[a-z0-9-]+\.supabase\.co/i.test(supabaseUrl);
+  
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
   const [testingConnection, setTestingConnection] = useState(false);
@@ -413,7 +416,7 @@ const Admin = () => {
             <div className="space-y-2 text-sm font-mono">
               <div className="flex items-start gap-2">
                 <span className="text-xs text-muted-foreground w-32 shrink-0">Supabase URL:</span>
-                <span className={`text-xs break-all ${supabaseUrl && supabaseUrl.startsWith('https://') ? "text-foreground" : "text-red-600 dark:text-red-400"}`}>
+                <span className={`text-xs break-all ${isValidSupabaseUrl ? "text-foreground" : "text-red-600 dark:text-red-400"}`}>
                   {supabaseUrl || "NOT CONFIGURED"}
                 </span>
               </div>
@@ -444,7 +447,7 @@ const Admin = () => {
                 variant="default" 
                 size="sm" 
                 onClick={testSupabaseConnection}
-                disabled={testingConnection || !supabaseUrl || !supabaseAnonKey}
+                disabled={testingConnection || !isValidSupabaseUrl || !supabaseAnonKey}
               >
                 {testingConnection ? (
                   <>
