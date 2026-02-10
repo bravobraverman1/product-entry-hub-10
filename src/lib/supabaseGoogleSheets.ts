@@ -22,6 +22,24 @@ interface GoogleSheetsReadResponse {
   categoryPathCount?: number;
 }
 
+interface SheetTabNamesPayload {
+  PRODUCTS: string;
+  CATEGORIES: string;
+  PROPERTIES: string;
+  LEGAL: string;
+  RESPONSES: string;
+}
+
+function getSheetTabNamesPayload(): SheetTabNamesPayload {
+  return {
+    PRODUCTS: config.SHEET_PRODUCTS,
+    CATEGORIES: config.SHEET_CATEGORIES,
+    PROPERTIES: config.SHEET_PROPERTIES,
+    LEGAL: config.SHEET_LEGAL,
+    RESPONSES: config.SHEET_OUTPUT,
+  };
+}
+
 /**
  * Checks if Supabase Google Sheets integration is configured
  */
@@ -41,6 +59,7 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
     // Only send browser creds if they exist, otherwise function uses Deno.env
     const requestBody: any = {
       action: "read",
+      tabNames: getSheetTabNamesPayload(),
     };
     
     // Include browser credentials if available (optional, for backward compatibility)
@@ -79,6 +98,7 @@ export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
     const requestBody: any = {
       action: "write",
       rowData,
+      tabNames: getSheetTabNamesPayload(),
     };
     
     // Include browser credentials if available (optional, for backward compatibility)
@@ -113,6 +133,7 @@ export async function writeCategoriesToGoogleSheets(
     const requestBody: any = {
       action: "write-categories",
       categoryPaths,
+      tabNames: getSheetTabNamesPayload(),
     };
     
     // Include browser credentials if available (optional, for backward compatibility)

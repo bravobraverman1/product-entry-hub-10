@@ -23,7 +23,7 @@ serve(async (req) => {
       );
     }
 
-    const { action, serviceAccountKey: requestServiceAccountKey, sheetId: requestSheetId } = body;
+    const { action, serviceAccountKey: requestServiceAccountKey, sheetId: requestSheetId, tabNames } = body;
 
     // Check for credentials in request body first, then environment
     const serviceAccountKey = requestServiceAccountKey || Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
@@ -45,7 +45,7 @@ serve(async (req) => {
     const accessToken = await getAccessToken(keyData);
 
     if (action === "read") {
-      const result = await readAllSheets(accessToken, sheetId);
+      const result = await readAllSheets(accessToken, sheetId, tabNames);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -53,7 +53,7 @@ serve(async (req) => {
 
     if (action === "write") {
       const { rowData } = body;
-      await appendRow(accessToken, sheetId, "RESPONSES", rowData);
+      await appendRow(accessToken, sheetId, resolveTabName(tabNames, "RESPONSES", "RESPONSES"), rowData);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -61,7 +61,12 @@ serve(async (req) => {
 
     if (action === "write-categories") {
       const { categoryPaths } = body;
-      await clearAndWriteCategories(accessToken, sheetId, categoryPaths);
+      await clearAndWriteCategories(
+        accessToken,
+        sheetId,
+        categoryPaths,
+        resolveTabName(tabNames, "CATEGORIES", "CATEGORIES")
+      );
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -145,6 +150,15 @@ async function sign(key: CryptoKey, data: string): Promise<string> {
 
 // --- Sheets API helpers ---
 
+function resolveTabName(
+  tabNames: Record<string, string> | undefined,
+  key: string,
+  fallback: string
+): string {
+  const value = tabNames?.[key];
+  return value && typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
 async function getSheetValues(token: string, sheetId: string, range: string): Promise<string[][]> {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`;
   const res = await fetch(url, {
@@ -180,13 +194,21 @@ async function appendRow(token: string, sheetId: string, sheet: string, rowData:
   console.log("Row appended successfully");
 }
 
-async function readAllSheets(token: string, sheetId: string) {
+async function readAllSheets(
+  token: string,
+  sheetId: string,
+  tabNames?: Record<string, string>
+) {
   // Read all tabs in parallel
+  const productsTab = resolveTabName(tabNames, "PRODUCTS", "PRODUCTS");
+  const categoriesTab = resolveTabName(tabNames, "CATEGORIES", "CATEGORIES");
+  const propertiesTab = resolveTabName(tabNames, "PROPERTIES", "PROPERTIES");
+  const legalTab = resolveTabName(tabNames, "LEGAL", "LEGAL");
   const [productsRaw, categoriesRaw, propertiesRaw, legalRaw] = await Promise.all([
-    getSheetValues(token, sheetId, "PRODUCTS!A:C"),
-    getSheetValues(token, sheetId, "CATEGORIES!A:A"),
-    getSheetValues(token, sheetId, "PROPERTIES!A:D"),
-    getSheetValues(token, sheetId, "LEGAL!A:B"),
+    getSheetValues(token, sheetId, `${productsTab}!A:C`),
+    getSheetValues(token, sheetId, `${categoriesTab}!A:A`),
+    getSheetValues(token, sheetId, `${propertiesTab}!A:D`),
+    getSheetValues(token, sheetId, `${legalTab}!A:B`),
   ]);
 
   // Parse PRODUCTS: SKU, Brand, ExampleTitle (skip header row)
@@ -268,10 +290,11 @@ function buildCategoryTree(paths: string[]) {
 async function clearAndWriteCategories(
   token: string,
   sheetId: string,
-  categoryPaths: string[]
+  categoryPaths: string[],
+  categoriesTab: string
 ): Promise<void> {
   // Clear existing data in CATEGORIES!A:A (keep header, delete data starting at row 2)
-  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent("CATEGORIES!A2:A")}:clear`;
+  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${categoriesTab}!A2:A`)}:clear`;
   const clearRes = await fetch(clearUrl, {
     method: "POST",
     headers: {
@@ -287,7 +310,7 @@ async function clearAndWriteCategories(
   }
 
   // Write new category paths
-  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent("CATEGORIES!A2")}?valueInputOption=USER_ENTERED`;
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${categoriesTab}!A2`)}?valueInputOption=USER_ENTERED`;
   const writeRes = await fetch(writeUrl, {
     method: "PUT",
     headers: {
@@ -304,5 +327,5 @@ async function clearAndWriteCategories(
     throw new Error(`Failed to write categories: ${errText}`);
   }
 
-  console.log(`Successfully wrote ${categoryPaths.length} category paths to CATEGORIES tab`);
+  console.log(`Successfully wrote ${categoryPaths.length} category paths to ${categoriesTab} tab`);
 }

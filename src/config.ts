@@ -14,16 +14,17 @@ export interface SheetTabConfig {
 // Default sheet tab names — all configurable in Admin
 export const DEFAULT_SHEET_TABS: SheetTabConfig[] = [
   { key: "SHEET_OUTPUT", label: "OUTPUT", value: "OUTPUT" },
-  { key: "SHEET_PRODUCTS", label: "Products", value: "Products" },
+  { key: "SHEET_PRODUCTS", label: "PRODUCTS", value: "PRODUCTS" },
   { key: "SHEET_PRODUCTS_TODO", label: "PRODUCTS TO DO", value: "PRODUCTS TO DO" },
   { key: "SHEET_TEMP", label: "TEMP", value: "TEMP" },
   { key: "SHEET_BRANDS", label: "Brands", value: "BRANDS" },
   { key: "SHEET_FILTER", label: "FILTER", value: "FILTER" },
   { key: "SHEET_LEGAL", label: "LEGAL", value: "LEGAL" },
+  { key: "SHEET_PROPERTIES", label: "PROPERTIES", value: "PROPERTIES" },
   { key: "SHEET_EXISTING_PRODS", label: "ExistingProds", value: "ExistingProds" },
   { key: "SHEET_NEW_NAMES", label: "NewNames", value: "NewNames" },
   { key: "SHEET_UPLOAD", label: "UPLOAD", value: "UPLOAD" },
-  { key: "SHEET_CATEGORIES", label: "Categories", value: "Categories" },
+  { key: "SHEET_CATEGORIES", label: "CATEGORIES", value: "CATEGORIES" },
 ];
 
 // Stored config — persisted in localStorage for now, can be moved to backend
@@ -73,6 +74,7 @@ export const config = {
   get SHEET_BRANDS() { return getSheetTabName("SHEET_BRANDS"); },
   get SHEET_FILTER() { return getSheetTabName("SHEET_FILTER"); },
   get SHEET_LEGAL() { return getSheetTabName("SHEET_LEGAL"); },
+  get SHEET_PROPERTIES() { return getSheetTabName("SHEET_PROPERTIES"); },
   get SHEET_TEMP() { return getSheetTabName("SHEET_TEMP"); },
   get SHEET_PRODUCTS() { return getSheetTabName("SHEET_PRODUCTS"); },
   get SHEET_EXISTING_PRODS() { return getSheetTabName("SHEET_EXISTING_PRODS"); },
