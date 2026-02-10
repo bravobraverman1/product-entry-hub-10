@@ -127,27 +127,33 @@ export async function fetchBrand(sku: string): Promise<string> {
 // ── Categories ──────────────────────────────────────────────
 
 export async function fetchCategories(): Promise<CategoryLevel[]> {
-  // STRICT: Read ONLY from Supabase Google Sheets if configured
-  // No fallbacks to defaults or other sources
-  if (isSupabaseGoogleSheetsConfigured()) {
-    try {
-      const data = await readGoogleSheets();
-      if (data.useDefaults) {
-        throw new Error("Google Sheets credentials not found. Cannot fetch categories from sheet.");
-      }
-      if (!data.categories || data.categories.length === 0) {
-        throw new Error("CATEGORIES tab is empty or could not be parsed. Add category paths to the CATEGORIES sheet.");
-      }
+  // Always try the edge function - it uses server-side Supabase secrets
+  try {
+    const data = await readGoogleSheets();
+    if (!data.useDefaults && data.categories && data.categories.length > 0) {
+      console.log("✓ Categories loaded from Google Sheets");
       return data.categories;
-    } catch (error) {
-      // Log the error and re-throw - don't silently fall back
-      console.error("FATAL: Error fetching categories from Google Sheets:", error);
-      throw new Error(`Failed to load categories from Google Sheet: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
+    if (!data.useDefaults && (!data.categories || data.categories.length === 0)) {
+      throw new Error("CATEGORIES tab is empty. Add category paths to the CATEGORIES sheet, starting at row 2.");
+    }
+  } catch (error) {
+    console.error("Error fetching from Google Sheets:", error);
+    // Fall through to fallback
   }
 
-  // If Google Sheets is not configured, we cannot proceed - no fallback
-  throw new Error("Google Sheets integration is not configured. Cannot load categories.");
+  // Fallback to Apps Script or defaults
+  if (!isConfigured()) {
+    console.log("No Apps Script URL configured, using default category tree");
+    return categoryTree;
+  }
+  
+  try {
+    return await apiFetch<CategoryLevel[]>("/categories");
+  } catch (error) {
+    console.warn("Apps Script also failed, using defaults:", error);
+    return categoryTree;
+  }
 }
 
 export async function updateCategories(
