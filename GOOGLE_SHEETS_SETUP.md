@@ -2,17 +2,6 @@
 
 This guide explains how to link your Google Sheets file to the Product Entry Hub application using a secure Google Service Account connected through Supabase Edge Functions.
 
-## ⚠️ IMPORTANT: Most Common Mistake
-
-**If you get a "Cannot Read Secrets" error when testing:**
-- **Problem:** You added secrets to Supabase AFTER deploying the Edge Function
-- **Solution:** Run the GitHub Actions workflow "Deploy Google Sheets Connection" (STEP 5)
-- **Why:** Edge Functions only load secrets at deployment time - they need to be redeployed after adding secrets
-
-👉 **Quick Fix:** Go to GitHub → Actions → "Deploy Google Sheets Connection" → Run workflow
-
----
-
 ## Overview
 
 Follow these steps in order:
@@ -20,7 +9,7 @@ Follow these steps in order:
 2. **STEP 2:** Share your Google Sheet with the service account
 3. **STEP 3:** Create and Deploy the Edge Function (Required for new projects)
 4. **STEP 4:** Add credentials to Supabase (server-side security)
-5. **STEP 5:** Activate the Google Sheets Connection (GitHub Actions) **← REQUIRED after adding secrets**
+5. **STEP 5:** Activate the Google Sheets Connection (GitHub Actions)
 6. **STEP 6:** Test your connection
 
 ## Table of Contents
@@ -451,24 +440,16 @@ GOOGLE_SHEET_ID
 
 #### Step 4.4: Redeploy the Edge Function (REQUIRED)
 
-**🚨 CRITICAL STEP - DO NOT SKIP 🚨**
-
-**After adding or changing secrets, you MUST redeploy the Edge Function.**
-
-This is the **#1 most common mistake** that causes "Cannot Read Secrets" errors. If you skip this step, the test connection will fail even though your secrets are correctly configured in Supabase.
+**⚠️ CRITICAL STEP:** After adding or changing secrets, you MUST redeploy the Edge Function. Supabase Edge Functions do not automatically refresh their environment variables when secrets are added or updated.
 
 **Why this is necessary:**
 - Edge Functions load environment variables at deployment time
 - Adding secrets to an already-deployed function does not make them available
 - The function will continue to report missing secrets until redeployed
-- **Your secrets exist in Supabase, but the running function can't see them until you redeploy**
 
 **Choose one redeployment method:**
 
-**Option 1: Use GitHub Actions (Recommended - Easiest)**
-The GitHub Actions workflow in Step 5 will automatically redeploy the function with your secrets. If you plan to use GitHub Actions, you can skip manual redeployment here and **proceed directly to Step 5**. This is the easiest and most reliable method.
-
-**Option 2: Redeploy via Dashboard**
+**Option 1: Redeploy via Dashboard**
 1. Go to Supabase Dashboard → Edge Functions
 2. Click on the **"google-sheets"** function
 3. Look for a **"Redeploy"** or **"Deploy"** button (usually in the top right)
@@ -476,11 +457,14 @@ The GitHub Actions workflow in Step 5 will automatically redeploy the function w
 5. Wait for deployment to complete (10-30 seconds)
 6. The function will now have access to your secrets
 
-**Option 3: Redeploy via CLI**
+**Option 2: Redeploy via CLI**
 If you're using the Supabase CLI:
 ```bash
 supabase functions deploy google-sheets
 ```
+
+**Option 3: Use GitHub Actions (Recommended)**
+The GitHub Actions workflow in Step 5 will automatically redeploy the function with your secrets. If you plan to use GitHub Actions, you can skip manual redeployment here and proceed directly to Step 5.
 
 **Verify redeployment:**
 - After redeploying, the Edge Function's deployment timestamp should be updated
@@ -728,30 +712,12 @@ Manage dropdown options for your custom properties/fields.
 
 ### The Edge Function cannot read the required secrets
 
-**Symptom:** Test Connection fails with "Cannot Read Secrets" error, but when you check Supabase Dashboard → Edge Functions → google-sheets → Secrets, BOTH secrets (`GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`) clearly exist.
-
-**🎯 QUICK FIX (Works 95% of the time):**
-
-**The problem:** You added secrets AFTER deploying the Edge Function.
-
-**The solution:** Redeploy the Edge Function using GitHub Actions:
-
-1. Go to your GitHub repository → **Actions** tab
-2. Click **"Deploy Google Sheets Connection"** in the left sidebar
-3. Click **"Run workflow"** dropdown → select "production" → click **"Run workflow"** button
-4. Wait 2-3 minutes for completion
-5. Go back to the Admin panel and click **"Test Connection"** again
-
-**Why this works:** Edge Functions load environment variables at deployment time only. Adding secrets to an already-running function requires redeployment to make them available.
-
----
-
-**Still not working?** Follow the detailed diagnostic checklist below:
+**Symptom:** Test Connection fails with an error about secrets, but when you check Supabase Dashboard → Edge Functions → google-sheets → Secrets, BOTH secrets (`GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`) clearly exist.
 
 **This error does NOT always mean secrets are missing.** It can occur for several reasons:
 
 **Common Causes:**
-1. **Secrets were added AFTER the Edge Function was deployed** (most common - 95% of cases)
+1. **Secrets were added AFTER the Edge Function was deployed** (most common)
 2. **The Edge Function was not redeployed after adding secrets**
 3. **Environment variable names don't match exactly**
 4. **Function is deployed to a different environment** (preview vs production)
@@ -772,10 +738,10 @@ Follow this checklist in order to identify and fix the issue:
    - No extra spaces, underscores, or typos
    - Check for invisible characters copied from documentation
 
-☐ **Step 3: Redeploy the Edge Function** (REQUIRED - THIS IS THE FIX)
-   - **Method A (Recommended):** Use GitHub Actions workflow as described in Quick Fix above
-   - **Method B:** Go to Supabase Dashboard → Edge Functions → google-sheets → Click **"Redeploy"** button → Wait 10-30 seconds
-   - **Method C:** Use Supabase CLI: `supabase functions deploy google-sheets`
+☐ **Step 3: Redeploy the Edge Function** (REQUIRED)
+   - Go to Supabase Dashboard → Edge Functions → google-sheets
+   - Click **"Redeploy"** or **"Deploy"** button
+   - Wait for deployment to complete (10-30 seconds)
    - **Why:** Edge Functions load environment variables at deployment time and do NOT auto-refresh when secrets are added
 
 ☐ **Step 4: Verify production deployment**
@@ -798,6 +764,9 @@ Follow this checklist in order to identify and fix the issue:
    - Go to Supabase Dashboard → Edge Functions → google-sheets → Logs
    - Look for error messages that indicate the specific issue
    - Common errors: "Invalid JSON", "Authentication failed", "Sheet not found"
+
+**Quick Fix (95% of cases):**
+If secrets exist in Supabase but the test fails, the issue is almost always that the function needs to be redeployed. Follow diagnostic Step 3 in the checklist above to redeploy the function.
 
 ### Data Not Loading
 
