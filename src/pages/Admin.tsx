@@ -428,6 +428,12 @@ const Admin = () => {
               <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
                 <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">💡 Think of this like turning on a feature that is already installed.</p>
               </div>
+              <div className="rounded-lg border border-amber-600 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3">
+                <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+                  🆕 New Supabase project? It’s normal to see <strong>no functions</strong> at first.
+                  Running the “Deploy Google Sheets Connection” workflow creates and deploys the <strong>google-sheets</strong> function for you.
+                </p>
+              </div>
             </div>
 
             {/* Project Check */}
