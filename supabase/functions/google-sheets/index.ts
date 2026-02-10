@@ -1,12 +1,38 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Get allowed origin from environment or default to localhost for development
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  Deno.env.get("ALLOWED_ORIGIN") || "",
+].filter(Boolean);
+
+function getCorsHeaders(origin?: string) {
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin || "") ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+// Validate action parameter
+function isValidAction(action: unknown): action is "read" | "write" | "write-categories" | "write-brands" {
+  return ["read", "write", "write-categories", "write-brands"].includes(action as string);
+}
+
+// Validate tabNames parameter
+function isValidTabNames(tabNames: unknown): boolean {
+  if (!tabNames || typeof tabNames !== "object") return true; // Optional
+  const obj = tabNames as Record<string, unknown>;
+  return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
+}
 
 serve(async (req) => {
+  const origin = req.headers.get("origin") || "";
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -23,7 +49,35 @@ serve(async (req) => {
       );
     }
 
-    const { action, serviceAccountKey: requestServiceAccountKey, sheetId: requestSheetId, tabNames } = body;
+    // INPUT VALIDATION: Validate action parameter
+    const { action } = body;
+    if (!isValidAction(action)) {
+      console.error("Invalid action:", action);
+      return new Response(
+        JSON.stringify({ error: "Invalid action parameter" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // INPUT VALIDATION: Validate tabNames parameter
+    const { tabNames } = body;
+    if (!isValidTabNames(tabNames)) {
+      console.error("Invalid tabNames:", tabNames);
+      return new Response(
+        JSON.stringify({ error: "Invalid tabNames parameter" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // AUTHENTICATION: Verify Supabase JWT token from Authorization header
+    const authHeader = req.headers.get("authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      console.error("Missing or invalid Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Missing authentication token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // SECURITY: Only use server-side secrets from Deno.env, never from request body
     // This prevents exposing credentials to the client
@@ -53,7 +107,15 @@ serve(async (req) => {
     }
 
     if (action === "write") {
+      // INPUT VALIDATION: Validate rowData
       const { rowData } = body;
+      if (!Array.isArray(rowData) || !rowData.every((cell) => typeof cell === "string" && cell.length < 10000)) {
+        console.error("Invalid rowData:", rowData);
+        return new Response(
+          JSON.stringify({ error: "Invalid rowData parameter" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       await appendRow(accessToken, sheetId, resolveTabName(tabNames, "RESPONSES", "RESPONSES"), rowData);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -61,7 +123,15 @@ serve(async (req) => {
     }
 
     if (action === "write-categories") {
+      // INPUT VALIDATION: Validate categoryPaths
       const { categoryPaths } = body;
+      if (!Array.isArray(categoryPaths) || !categoryPaths.every((p) => typeof p === "string" && p.length > 0 && p.length < 1000)) {
+        console.error("Invalid categoryPaths:", categoryPaths);
+        return new Response(
+          JSON.stringify({ error: "Invalid categoryPaths parameter" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       await clearAndWriteCategories(
         accessToken,
         sheetId,
@@ -74,7 +144,28 @@ serve(async (req) => {
     }
 
     if (action === "write-brands") {
+      // INPUT VALIDATION: Validate brands
       const { brands } = body;
+      if (
+        !Array.isArray(brands) ||
+        !brands.every(
+          (b) =>
+            typeof b === "object" &&
+            typeof b.brand === "string" &&
+            b.brand.length > 0 &&
+            b.brand.length < 255 &&
+            typeof b.brandName === "string" &&
+            b.brandName.length < 255 &&
+            typeof b.website === "string" &&
+            b.website.length < 2000
+        )
+      ) {
+        console.error("Invalid brands:", brands);
+        return new Response(
+          JSON.stringify({ error: "Invalid brands parameter" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       await clearAndWriteBrands(
         accessToken,
         sheetId,
