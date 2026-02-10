@@ -103,9 +103,9 @@ const Brands = () => {
           {isLoading ? (
             <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>
           ) : (
-            <div className="border border-border rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden max-h-[70vh] overflow-y-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
                     <TableHead className="text-xs">Brand</TableHead>
                     <TableHead className="text-xs">Brand Name</TableHead>
