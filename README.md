@@ -4,25 +4,33 @@ A comprehensive product data entry and management system built with React, TypeS
 
 ## ⚠️ IMPORTANT: Supabase Configuration Required
 
-**You're seeing the wrong Supabase project because of environment configuration.**
+**Before you start, configure your Supabase project:**
 
-### 🌩️ Using Lovable Cloud?
+### Quick Setup Steps:
 
-**If you see a "Cloud" tab in Lovable**, you need to configure environment variables there:
+1. **Create/Select Your Supabase Project**
+   - Go to https://supabase.com/dashboard
+   - Create a new project or select an existing one
 
-📖 **Follow: [LOVABLE_CLOUD_SETUP.md](./LOVABLE_CLOUD_SETUP.md)**
+2. **Get Your Credentials**
+   - In your Supabase project: **Settings** → **API**
+   - Copy your **Project URL** (e.g., `https://xxxxx.supabase.co`)
+   - Copy your **Project Reference ID** (the `xxxxx` part)
+   - Copy your **anon/public key** (starts with `eyJ`)
 
-This guide shows you how to:
-1. Update Lovable's cloud environment variables
-2. Configure your local development environment
-3. Get your Supabase publishable key
-4. Verify both environments are using the correct project
+3. **Update Your .env File**
+   ```bash
+   VITE_SUPABASE_PROJECT_ID="your-project-ref"
+   VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
+   VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key-here"
+   ```
 
-### 💻 Not Using Lovable?
+4. **Restart Your Dev Server**
+   ```bash
+   npm run dev
+   ```
 
-📖 **Follow: [COMPLETE_SETUP.md](./COMPLETE_SETUP.md)**
-
-**Current Project:** `oqaodtatfzcibpfmhejl` (was incorrectly showing `osiueywaplycxspbaadh`)
+📖 **Detailed Guide:** [COMPLETE_SETUP.md](./COMPLETE_SETUP.md)
 
 ---
 
