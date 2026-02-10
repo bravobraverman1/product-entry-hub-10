@@ -547,7 +547,7 @@ Follow this checklist in order to identify and fix the issue:
    - Common errors: "Invalid JSON", "Authentication failed", "Sheet not found"
 
 **Quick Fix (95% of cases):**
-If secrets exist in Supabase but the test fails, the issue is almost always that the function needs to be redeployed. Go to Step 3 above and redeploy the function.
+If secrets exist in Supabase but the test fails, the issue is almost always that the function needs to be redeployed. Follow diagnostic Step 3 in the checklist above to redeploy the function.
 
 ### Data Not Loading
 
