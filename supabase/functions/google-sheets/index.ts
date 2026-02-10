@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Get allowed origin from environment or default to localhost for development
 const ALLOWED_ORIGINS = [
@@ -6,6 +7,24 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
   Deno.env.get("ALLOWED_ORIGIN") || "",
 ].filter(Boolean);
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+
+function getSupabaseClient(authHeader: string) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: {
+        Authorization: authHeader,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
 
 function getCorsHeaders(origin?: string) {
   const allowOrigin = ALLOWED_ORIGINS.includes(origin || "") ? origin : ALLOWED_ORIGINS[0];
@@ -75,6 +94,24 @@ serve(async (req) => {
       console.error("Missing or invalid Authorization header");
       return new Response(
         JSON.stringify({ error: "Unauthorized: Missing authentication token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseClient = getSupabaseClient(authHeader);
+    if (!supabaseClient) {
+      console.error("Supabase client not configured on edge function");
+      return new Response(
+        JSON.stringify({ error: "Server misconfiguration" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: authData, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !authData?.user) {
+      console.error("Invalid or expired authentication token", authError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

@@ -1,7 +1,7 @@
 // ============================================================
 // Supabase Google Sheets Integration
 // Calls the Supabase Edge Function to interact with Google Sheets
-// using the Service Account credentials stored in the browser.
+// using server-side Supabase secrets (never stored in the browser).
 // ============================================================
 
 import { supabase } from "@/integrations/supabase/client";
