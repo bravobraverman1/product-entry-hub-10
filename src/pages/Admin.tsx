@@ -317,7 +317,7 @@ const Admin = () => {
             </ul>
             <div className="pt-2">
               <Button type="button" variant="outline" size="sm" asChild className="bg-white dark:bg-gray-900">
-                <a href="/GOOGLE_SHEETS_SETUP.md" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/bravobraverman1/product-entry-hub-10/blob/main/GOOGLE_SHEETS_SETUP.md" target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-3.5 w-3.5 mr-1" /> View Complete Setup Guide
                 </a>
               </Button>
