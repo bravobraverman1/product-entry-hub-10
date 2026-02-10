@@ -135,7 +135,10 @@ This step connects your website to Supabase. The exact steps vary slightly depen
      **Value:** Paste your Supabase Project URL from Step 1.2
    - **Name:** `VITE_SUPABASE_PUBLISHABLE_KEY`
      **Value:** Paste your Supabase anon public key from Step 1.2
-5. Click **Save** or **Publish**
+5. Click **Save**
+6. **CRITICAL STEP:** Click **Share** → **Publish** to redeploy your site with the new environment variables
+
+**⚠️ WHY THIS MATTERS:** Environment variables are embedded into your app during the build process. Simply saving them is not enough - you must republish/redeploy for the variables to be included in your live site.
 
 ### If You're Using Vercel:
 
@@ -164,6 +167,26 @@ This step connects your website to Supabase. The exact steps vary slightly depen
 6. Trigger a new deploy (Deploys → Trigger deploy → Deploy site)
 
 **⚠️ IMPORTANT:** After adding these variables, you MUST redeploy your site for the changes to take effect!
+
+### If You're Running the App Locally (Development):
+
+If you're running the app on your computer using `npm run dev`, you also need to configure the local `.env` file:
+
+1. Open the file `.env` in the root of your project (create it if it doesn't exist)
+2. Add these two lines:
+   ```
+   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-public-key-here
+   ```
+3. Replace the values with your actual Supabase URL and key from Step 1.2
+4. Save the file
+5. **Restart your dev server** (stop it with Ctrl+C and run `npm run dev` again)
+
+💡 **Tip:** You can use `.env.example` as a template - copy it to `.env` and fill in your values.
+
+**✅ After this step:** 
+- The "Project Check" section in the Admin panel should show ✓ for Supabase URL and Publishable Key
+- The "Test Connection" button should become enabled (no longer greyed out)
 
 ---
 
@@ -526,9 +549,23 @@ Now let's make sure it all works:
 ### Problem: "NOT CONFIGURED" showing in Project Check
 
 **Solution:**
-- Go back to Part 3 and make sure you added the environment variables to your hosting platform
-- Make sure you **redeployed** your site after adding the variables
-- Wait 2-3 minutes after redeployment, then refresh your browser
+- The Admin page shows "NOT CONFIGURED" when environment variables are missing from your deployed app
+- **This happens even if you added the variables to your hosting platform** if you didn't redeploy
+
+**Step-by-step fix:**
+1. Go to your hosting platform (Lovable/Vercel/Netlify)
+2. Check Settings → Environment Variables
+3. Verify both variables exist with real values (not placeholder text):
+   - `VITE_SUPABASE_URL` = `https://xxxxx.supabase.co` (your actual URL)
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = `eyJ...` (your actual key)
+4. If they're missing or wrong, add/fix them and click Save
+5. **CRITICAL:** Redeploy your site:
+   - **Lovable:** Click Share → Publish  
+   - **Vercel:** Settings → Deployments → ⋯ menu → Redeploy
+   - **Netlify:** Deploys → Trigger deploy → Deploy site
+6. Wait 2-3 minutes for deployment to complete
+7. **Hard refresh your browser** (Ctrl+Shift+R or Cmd+Shift+R) to clear cache
+8. Check the Admin page Project Check section again
 
 ### Problem: "Cannot Read Secrets" error when testing
 
@@ -540,9 +577,26 @@ Now let's make sure it all works:
 ### Problem: Test Connection button is grayed out
 
 **Solution:**
-- This means your environment variables aren't set correctly
-- Check Part 3 again - make sure both `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are set
-- Redeploy your site after fixing
+- This means your environment variables aren't configured or weren't embedded in your deployed app
+- **MOST COMMON CAUSE:** You added environment variables but didn't redeploy your site
+  
+**Step-by-step fix:**
+1. Verify your environment variables are set in your hosting platform (Lovable/Vercel/Netlify)
+   - Go to Settings → Environment Variables
+   - Check that both `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` exist with correct values
+2. **REDEPLOY your site:**
+   - **Lovable:** Click Share → Publish
+   - **Vercel:** Go to Deployments → click ⋯ menu → Redeploy
+   - **Netlify:** Go to Deploys → Trigger deploy → Deploy site
+3. Wait 2-3 minutes for the deployment to complete
+4. **Hard refresh your browser** (Ctrl+Shift+R on Windows/Linux, Cmd+Shift+R on Mac) or open in incognito mode
+5. Go to the Admin page and check the "Project Check" section - it should now show green checkmarks
+
+**Why is this necessary?** 
+- Vite (the build tool) embeds environment variables into your JavaScript code at **build time**
+- Adding environment variables to your hosting platform only saves them - they're not in your app yet
+- You must rebuild/redeploy for the variables to be included in the live application
+- Your browser may also be caching the old version, so a hard refresh is important
 
 ### Problem: "Edge Function not found (404)"
 

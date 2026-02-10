@@ -438,6 +438,35 @@ const Admin = () => {
             </div>
           </div>
           
+          {/* Configuration Help Alert - Show when environment variables are not configured */}
+          {(!isValidSupabaseUrl || !supabaseAnonKey) && (
+            <div className="rounded-lg border-2 border-red-500 bg-red-50 dark:bg-red-950 dark:border-red-800 p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <span className="text-red-600 dark:text-red-400 text-xl">⚠️</span>
+                <div className="space-y-2 flex-1">
+                  <h5 className="text-sm font-bold text-red-900 dark:text-red-100">
+                    Environment Variables Not Configured
+                  </h5>
+                  <p className="text-xs text-red-800 dark:text-red-200">
+                    Your Supabase credentials are not set up yet. This is why the Test Connection button is disabled.
+                  </p>
+                  <div className="text-xs text-red-900 dark:text-red-100 space-y-2 bg-white/50 dark:bg-black/20 p-3 rounded border border-red-300 dark:border-red-700">
+                    <p className="font-semibold">Quick Fix (Most Common Issue):</p>
+                    <ol className="list-decimal list-inside space-y-1 ml-1">
+                      <li>Go to your hosting platform (Lovable/Vercel/Netlify)</li>
+                      <li>Add environment variables: <code className="bg-red-100 dark:bg-red-900 px-1 py-0.5 rounded">VITE_SUPABASE_URL</code> and <code className="bg-red-100 dark:bg-red-900 px-1 py-0.5 rounded">VITE_SUPABASE_PUBLISHABLE_KEY</code></li>
+                      <li><strong>CRITICAL: Redeploy/Republish your site</strong> (environment variables are embedded at build time)</li>
+                      <li>Wait 2-3 minutes, then <strong>hard refresh</strong> this page (Ctrl+Shift+R)</li>
+                    </ol>
+                    <p className="text-xs italic pt-1">
+                      ℹ️ Simply adding environment variables isn't enough - you must rebuild your app for them to take effect!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Test Connection Section */}
           <div className="space-y-3 border-l-2 border-primary pl-4">
             <h5 className="text-sm font-semibold">Test Your Connection</h5>
