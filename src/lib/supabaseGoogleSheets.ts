@@ -33,22 +33,19 @@ export function isSupabaseGoogleSheetsConfigured(): boolean {
 
 /**
  * Calls the Supabase Edge Function to read data from Google Sheets
- * Sends credentials in the request body for browser-based configuration
+ * Works with browser-stored credentials OR server-side environment variables
  */
 export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
-  if (!isSupabaseGoogleSheetsConfigured()) {
-    console.log("Google Sheets credentials not configured in browser");
-    return { useDefaults: true };
-  }
-
   try {
-    // Send credentials from browser config in request body
-    // The edge function also supports server-side env vars as fallback
+    // Always try the edge function - it will use server-side env vars if browser creds aren't set
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: {
         action: "read",
-        serviceAccountKey: config.GOOGLE_SERVICE_ACCOUNT_KEY,
-        sheetId: config.GOOGLE_SHEET_ID,
+        // Send browser creds if available, otherwise edge function uses Deno.env
+        ...(isSupabaseGoogleSheetsConfigured() && {
+          serviceAccountKey: config.GOOGLE_SERVICE_ACCOUNT_KEY,
+          sheetId: config.GOOGLE_SHEET_ID,
+        }),
       },
     });
 
@@ -58,7 +55,7 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
     }
 
     if (data?.useDefaults) {
-      console.log("Edge function returned useDefaults flag");
+      console.log("Edge function returned useDefaults flag - Google Sheets not configured");
       return { useDefaults: true };
     }
 
@@ -73,18 +70,16 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
  * Writes a row to the Google Sheet via Supabase Edge Function
  */
 export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
-  if (!isSupabaseGoogleSheetsConfigured()) {
-    console.log("Google Sheets credentials not configured, skipping write");
-    return false;
-  }
-
   try {
+    // Try with browser creds if available, otherwise edge function uses Deno.env
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: {
         action: "write",
         rowData,
-        serviceAccountKey: config.GOOGLE_SERVICE_ACCOUNT_KEY,
-        sheetId: config.GOOGLE_SHEET_ID,
+        ...(isSupabaseGoogleSheetsConfigured() && {
+          serviceAccountKey: config.GOOGLE_SERVICE_ACCOUNT_KEY,
+          sheetId: config.GOOGLE_SHEET_ID,
+        }),
       },
     });
 
@@ -99,3 +94,32 @@ export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Writes category paths to the Google Sheet via Supabase Edge Function
+ * Works with browser-stored credentials OR server-side environment variables
+ */
+export async function writeCategoriesToGoogleSheets(
+  categoryPaths: string[]
+): Promise<boolean> {
+  try {
+    // Try with browser creds if available, otherwise edge function uses Deno.env
+    const { data, error } = await supabase.functions.invoke("google-sheets", {
+      body: {
+        action: "write-categories",
+        categoryPaths,
+        ...(isSupabaseGoogleSheetsConfigured() && {
+          serviceAccountKey: config.GOOGLE_SERVICE_ACCOUNT_KEY,
+          sheetId: config.GOOGLE_SHEET_ID,
+        }),
+      },
+    });
+
+    if (error) {
+      console.error("Error writing categories to google-sheets function:", error);
+      return false;
+    }
+
+    return data?.success ?? false;
+  } catch (error) {
+    console.error("Exception writing categories to google-sheets function:", error);
