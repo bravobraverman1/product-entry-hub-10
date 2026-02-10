@@ -282,14 +282,96 @@ const Admin = () => {
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
   const [googleServiceAccountKey, setGoogleServiceAccountKey] = useState(getConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", ""));
   const [googleSheetId, setGoogleSheetId] = useState(getConfigValue("GOOGLE_SHEET_ID", ""));
+  const [testingConnection, setTestingConnection] = useState(false);
+
+  const testSupabaseConnection = async () => {
+    if (!googleServiceAccountKey.trim() || !googleSheetId.trim()) {
+      toast({ 
+        variant: "destructive", 
+        title: "Missing Configuration", 
+        description: "Please provide both Service Account Key and Sheet ID before testing." 
+      });
+      return;
+    }
+
+    setTestingConnection(true);
+    try {
+      // Temporarily save to test
+      setConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", googleServiceAccountKey);
+      setConfigValue("GOOGLE_SHEET_ID", googleSheetId);
+      
+      const { readGoogleSheets } = await import("@/lib/supabaseGoogleSheets");
+      const result = await readGoogleSheets();
+      
+      if (result.useDefaults) {
+        toast({ 
+          variant: "destructive", 
+          title: "Connection Failed", 
+          description: "Could not connect to Google Sheets. Check your credentials and Sheet ID." 
+        });
+      } else {
+        const productCount = result.products?.length ?? 0;
+        const categoryCount = result.categories?.length ?? 0;
+        toast({ 
+          title: "Connection Successful! ✓", 
+          description: `Connected to your sheet. Found ${productCount} products and ${categoryCount} categories.` 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        variant: "destructive", 
+        title: "Connection Error", 
+        description: error instanceof Error ? error.message : "An unexpected error occurred." 
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   const saveConnectionSettings = () => {
+    // Validate Google Service Account Key if provided
+    if (googleServiceAccountKey.trim()) {
+      try {
+        const parsed = JSON.parse(googleServiceAccountKey);
+        if (!parsed.type || !parsed.project_id || !parsed.private_key || !parsed.client_email) {
+          toast({ 
+            variant: "destructive", 
+            title: "Invalid JSON Key", 
+            description: "The Google Service Account Key is missing required fields. Please check the JSON structure." 
+          });
+          return;
+        }
+      } catch (error) {
+        toast({ 
+          variant: "destructive", 
+          title: "Invalid JSON", 
+          description: "The Google Service Account Key must be valid JSON. Please check the format." 
+        });
+        return;
+      }
+    }
+
+    // Validate Google Sheet ID format if provided
+    if (googleSheetId.trim() && !/^[a-zA-Z0-9_-]{20,}$/.test(googleSheetId.trim())) {
+      toast({ 
+        variant: "destructive", 
+        title: "Invalid Sheet ID", 
+        description: "The Google Sheet ID format appears incorrect. It should be a long alphanumeric string." 
+      });
+      return;
+    }
+
+    // Save all settings
     setConfigValue("APPS_SCRIPT_BASE_URL", appsScriptUrl);
     setConfigValue("INSTRUCTIONS_PDF_URL", pdfUrl);
     setConfigValue("DRIVE_CSV_FOLDER_ID", driveFolderId);
     setConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", googleServiceAccountKey);
     setConfigValue("GOOGLE_SHEET_ID", googleSheetId);
-    toast({ title: "Saved", description: "Connection settings updated. Reload to apply." });
+    
+    toast({ 
+      title: "Saved", 
+      description: "Connection settings saved successfully. Reload the page to apply changes." 
+    });
   };
 
   // ── LEGAL Editor ──
@@ -358,6 +440,31 @@ const Admin = () => {
               />
               <p className="text-xs text-muted-foreground">
                 The long string in your sheet URL between /d/ and /edit. Example: In https://docs.google.com/spreadsheets/d/1abc123xyz/edit, the ID is 1abc123xyz
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={testSupabaseConnection}
+                disabled={testingConnection || !googleServiceAccountKey.trim() || !googleSheetId.trim()}
+              >
+                {testingConnection ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                    Test Connection
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground self-center">
+                Test your credentials before saving to ensure they work correctly.
               </p>
             </div>
           </div>
