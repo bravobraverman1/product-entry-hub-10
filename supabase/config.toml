@@ -1,4 +1,6 @@
-project_id = "osiueywaplycxspbaadh"
+# Supabase local development configuration
+# The project_id should be set via supabase link or environment variables
+# Do not hardcode project IDs here
 
 [functions.google-sheets]
 verify_jwt = false

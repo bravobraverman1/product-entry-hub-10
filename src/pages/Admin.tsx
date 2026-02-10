@@ -283,7 +283,6 @@ const Admin = () => {
   };
 
   // ── Connection Settings ──
-  const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'osiueywaplycxspbaadh';
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   const supabaseProjectRef = supabaseUrl.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i)?.[1] || "";
@@ -414,16 +413,20 @@ const Admin = () => {
             <div className="space-y-2 text-sm font-mono">
               <div className="flex items-start gap-2">
                 <span className="text-xs text-muted-foreground w-32 shrink-0">Supabase URL:</span>
-                <span className="text-xs break-all">{supabaseUrl || "Not configured"}</span>
+                <span className={`text-xs break-all ${supabaseUrl && supabaseUrl.startsWith('https://') ? "text-foreground" : "text-red-600 dark:text-red-400"}`}>
+                  {supabaseUrl || "NOT CONFIGURED"}
+                </span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-xs text-muted-foreground w-32 shrink-0">Project Ref:</span>
-                <span className="text-xs">{supabaseProjectRef || "Not detected"}</span>
+                <span className={`text-xs ${supabaseProjectRef ? "text-green-600 dark:text-green-400 font-semibold" : "text-red-600 dark:text-red-400"}`}>
+                  {supabaseProjectRef ? `✓ Detected: ${supabaseProjectRef}` : "NOT CONFIGURED"}
+                </span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-xs text-muted-foreground w-32 shrink-0">Publishable Key:</span>
                 <span className={`text-xs font-semibold ${supabaseAnonKey ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {supabaseAnonKey ? "✓ Detected" : "✗ Missing"}
+                  {supabaseAnonKey ? "✓ Detected" : "NOT CONFIGURED"}
                 </span>
               </div>
             </div>
@@ -441,7 +444,7 @@ const Admin = () => {
                 variant="default" 
                 size="sm" 
                 onClick={testSupabaseConnection}
-                disabled={testingConnection}
+                disabled={testingConnection || !supabaseUrl || !supabaseAnonKey}
               >
                 {testingConnection ? (
                   <>

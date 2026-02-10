@@ -2,13 +2,23 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://osiueywaplycxspbaadh.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaXVleXdhcGx5Y3hzcGJhYWRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1NzgxNzEsImV4cCI6MjA4NjE1NDE3MX0.bpLFAwMtutI8wnnnlNmewjVn8IKkqngRnnHTpXthuZU';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Validate that both URL and key are provided
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error('Supabase configuration missing: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY must be set in environment variables');
+}
+
+// Create client with dummy values if not configured to prevent runtime errors
+// The application will handle missing configuration gracefully in the UI
+const url = SUPABASE_URL || 'https://placeholder.supabase.co';
+const key = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(url, key, {
   auth: {
     storage: localStorage,
     persistSession: true,
