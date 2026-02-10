@@ -299,10 +299,22 @@ const Admin = () => {
       });
 
       if (error) {
+        // Provide specific error messages based on error type
+        let errorMessage = error.message || 'Unknown error';
+        
+        // Check for common error scenarios
+        if (error.message?.includes('404') || error.message?.includes('not found')) {
+          errorMessage = "Edge Function not deployed. Please run the 'Deploy Google Sheets Connection' workflow in GitHub Actions (Step 5).";
+        } else if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          errorMessage = "Access denied. Make sure your Google Sheet is shared with the service account email (found in your JSON key file).";
+        } else if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+          errorMessage = "Authentication failed. Check that GOOGLE_SERVICE_ACCOUNT_KEY is correctly set in Supabase secrets.";
+        }
+        
         toast({ 
           variant: "destructive", 
           title: "Connection Error", 
-          description: `Failed to connect: ${error.message || 'Unknown error'}`
+          description: errorMessage
         });
         return;
       }
@@ -310,22 +322,35 @@ const Admin = () => {
       if (data?.useDefaults) {
         toast({ 
           variant: "destructive", 
-          title: "Configuration Missing", 
-          description: "Google Sheets credentials not found in Supabase. Please ensure you've completed Step 4 (Add Secrets) and Step 5 (Deploy Function)." 
+          title: "Secrets Not Configured", 
+          description: "GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID are not set in Supabase. Please complete Step 4 (Add Secrets to Supabase)." 
         });
       } else {
         const productCount = data?.products?.length ?? 0;
         const categoryCount = data?.categories?.length ?? 0;
         toast({ 
-          title: "Connection Successful! ✓", 
-          description: `Connected to your sheet. Found ${productCount} products and ${categoryCount} categories.` 
+          title: "Connected ✅", 
+          description: `Successfully connected to your Google Sheet! Found ${productCount} products and ${categoryCount} categories.` 
         });
       }
     } catch (error) {
+      let errorMessage = "An unexpected error occurred.";
+      
+      if (error instanceof Error) {
+        // Parse fetch/network errors
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMessage = "Network error. Check your internet connection and that the Supabase project URL is correct.";
+        } else if (error.message.includes('404')) {
+          errorMessage = "Edge Function not found. Please deploy it using GitHub Actions (Step 5).";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({ 
         variant: "destructive", 
         title: "Connection Error", 
-        description: error instanceof Error ? error.message : "An unexpected error occurred. Make sure the Edge Function is deployed." 
+        description: errorMessage
       });
     } finally {
       setTestingConnection(false);
@@ -519,6 +544,21 @@ const Admin = () => {
 
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Step 4b: Navigate to Edge Function Secrets</p>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.open(`https://supabase.com/dashboard/project/${supabaseProjectRef}/functions/google-sheets`, '_blank')}
+                    disabled={!supabaseProjectRef}
+                    className="mb-2"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                    Open Google Sheets Function Settings
+                  </Button>
+                  {!supabaseProjectRef && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400">⚠️ Project Reference not detected. Use manual navigation below.</p>
+                  )}
+                  <p className="text-xs font-semibold mb-1">Manual navigation if button doesn't work:</p>
                   <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                     <li>In the left sidebar, click <strong>"Functions"</strong></li>
                     <li>Click <strong>"Edge Functions"</strong> (if not visible, you may need to expand the menu)</li>
@@ -581,22 +621,44 @@ const Admin = () => {
                   <p className="text-sm font-medium mb-3">One-Time Setup: Add GitHub Secrets</p>
                   <div className="bg-muted p-4 rounded-lg space-y-3">
                     <div>
-                      <p className="text-xs font-semibold mb-2">1. Go to your GitHub repository → Settings → Secrets and variables → Actions</p>
+                      <p className="text-xs font-semibold mb-2">1. Open GitHub Secrets Settings</p>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open('https://github.com/bravobraverman1/product-entry-hub-10/settings/secrets/actions', '_blank')}
+                        className="mb-2"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                        Open GitHub Secrets Settings
+                      </Button>
+                      <p className="text-xs text-muted-foreground">Or navigate: Repository → Settings → Secrets and variables → Actions</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold mb-2">2. Create three secrets:</p>
+                      <p className="text-xs font-semibold mb-2">2. Create three GitHub Secrets (click "New repository secret"):</p>
                       <div className="space-y-2">
                         <div className="bg-background p-2 rounded border">
                           <p className="text-xs font-semibold">Secret 1: SUPABASE_ACCESS_TOKEN</p>
-                          <p className="text-xs text-muted-foreground">Get from: https://supabase.com/dashboard/account/tokens</p>
+                          <p className="text-xs text-muted-foreground mb-1">Used to authenticate with Supabase from GitHub Actions</p>
+                          <Button 
+                            type="button" 
+                            variant="link" 
+                            size="sm"
+                            className="h-auto p-0 text-xs"
+                            onClick={() => window.open('https://supabase.com/dashboard/account/tokens', '_blank')}
+                          >
+                            Get token from Supabase Dashboard →
+                          </Button>
                         </div>
                         <div className="bg-background p-2 rounded border">
                           <p className="text-xs font-semibold">Secret 2: SUPABASE_PROJECT_REF</p>
-                          <p className="text-xs text-muted-foreground">Get from: Supabase Dashboard → Settings → General (Reference ID)</p>
+                          <p className="text-xs text-muted-foreground">Your project Reference ID: <code className="bg-muted px-1 rounded">{supabaseProjectRef || "Not detected"}</code></p>
+                          <p className="text-xs text-muted-foreground">Find in: Supabase Dashboard → Settings → General</p>
                         </div>
                         <div className="bg-background p-2 rounded border">
                           <p className="text-xs font-semibold">Secret 3: SUPABASE_DB_PASSWORD</p>
-                          <p className="text-xs text-muted-foreground">Your Supabase database password (from project creation)</p>
+                          <p className="text-xs text-muted-foreground">Your database password (set when you created the Supabase project)</p>
+                          <p className="text-xs text-muted-foreground italic">If forgotten, reset in: Supabase Dashboard → Settings → Database</p>
                         </div>
                       </div>
                     </div>
@@ -604,13 +666,25 @@ const Admin = () => {
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium mb-3">Then: Run the Workflow (5 Clicks)</p>
+                  <p className="text-sm font-medium mb-3">Then: Run the Workflow</p>
+                  <Button 
+                    type="button" 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => window.open('https://github.com/bravobraverman1/product-entry-hub-10/actions/workflows/deploy-google-sheets.yml', '_blank')}
+                    className="mb-3"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                    Open "Deploy Google Sheets Connection" Workflow
+                  </Button>
                   <div className="space-y-2">
+                    <p className="text-xs font-semibold">Steps to run the workflow:</p>
                     <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                      <li>Go to your GitHub repository → <strong>Actions</strong> tab</li>
+                      <li>Click the button above (or go to: Repository → Actions tab)</li>
                       <li>Select <strong>"Deploy Google Sheets Connection"</strong> from the left sidebar</li>
-                      <li>Click <strong>"Run workflow"</strong> button</li>
+                      <li>Click <strong>"Run workflow"</strong> button (top right)</li>
                       <li>Select <strong>"production"</strong> environment</li>
+                      <li>Click green <strong>"Run workflow"</strong> to start</li>
                       <li>Wait for completion (green checkmark ✓) — takes 2-3 minutes</li>
                     </ol>
                   </div>
@@ -653,6 +727,15 @@ const Admin = () => {
                 </Button>
                 <div className="rounded-lg border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-800 p-3">
                   <p className="text-xs font-semibold text-green-900 dark:text-green-100">✅ If this test succeeds, no further setup is ever required.</p>
+                  <p className="text-xs text-green-800 dark:text-green-200 mt-1">A successful test shows: "Connected ✅" with your product and category counts.</p>
+                </div>
+                <div className="rounded-lg border border-amber-600 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3">
+                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">Common Test Errors:</p>
+                  <ul className="text-xs text-amber-800 dark:text-amber-200 mt-1 space-y-1 list-disc list-inside">
+                    <li><strong>Edge Function not deployed:</strong> Run GitHub Actions workflow (Step 5)</li>
+                    <li><strong>Secrets not configured:</strong> Add GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID in Supabase (Step 4)</li>
+                    <li><strong>Access denied (403):</strong> Share your sheet with the service account email (Step 3)</li>
+                  </ul>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   The test will show clear error messages if something is not configured correctly (e.g., sheet not shared, missing credentials, or function not activated).
