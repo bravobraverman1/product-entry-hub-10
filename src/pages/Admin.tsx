@@ -296,7 +296,7 @@ const Admin = () => {
 
     setTestingConnection(true);
     try {
-      // Temporarily save to test
+      // Save settings to localStorage for the test to work
       setConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", googleServiceAccountKey);
       setConfigValue("GOOGLE_SHEET_ID", googleSheetId);
       
@@ -333,11 +333,15 @@ const Admin = () => {
     if (googleServiceAccountKey.trim()) {
       try {
         const parsed = JSON.parse(googleServiceAccountKey);
-        if (!parsed.type || !parsed.project_id || !parsed.private_key || !parsed.client_email) {
+        // Check for required fields with explicit validation
+        if (!parsed.type || typeof parsed.type !== 'string' || parsed.type.trim() === '' ||
+            !parsed.project_id || typeof parsed.project_id !== 'string' || parsed.project_id.trim() === '' ||
+            !parsed.private_key || typeof parsed.private_key !== 'string' || parsed.private_key.trim() === '' ||
+            !parsed.client_email || typeof parsed.client_email !== 'string' || parsed.client_email.trim() === '') {
           toast({ 
             variant: "destructive", 
             title: "Invalid JSON Key", 
-            description: "The Google Service Account Key is missing required fields. Please check the JSON structure." 
+            description: "The Google Service Account Key is missing required fields (type, project_id, private_key, client_email)." 
           });
           return;
         }
@@ -352,13 +356,16 @@ const Admin = () => {
     }
 
     // Validate Google Sheet ID format if provided
-    if (googleSheetId.trim() && !/^[a-zA-Z0-9_-]{20,}$/.test(googleSheetId.trim())) {
-      toast({ 
-        variant: "destructive", 
-        title: "Invalid Sheet ID", 
-        description: "The Google Sheet ID format appears incorrect. It should be a long alphanumeric string." 
-      });
-      return;
+    if (googleSheetId.trim()) {
+      // Google Sheet IDs are alphanumeric with hyphens/underscores, minimum 30 characters
+      if (googleSheetId.trim().length < 30 || !/^[a-zA-Z0-9_-]+$/.test(googleSheetId.trim())) {
+        toast({ 
+          variant: "destructive", 
+          title: "Invalid Sheet ID", 
+          description: "The Google Sheet ID format appears incorrect. It should be a long alphanumeric string (minimum 30 characters)." 
+        });
+        return;
+      }
     }
 
     // Save all settings
@@ -370,7 +377,7 @@ const Admin = () => {
     
     toast({ 
       title: "Saved", 
-      description: "Connection settings saved successfully. Reload the page to apply changes." 
+      description: "Connection settings saved. Changes take effect immediately." 
     });
   };
 
@@ -413,8 +420,14 @@ const Admin = () => {
           {/* Method 1: Supabase Edge Function Configuration */}
           <div className="border border-primary/20 rounded-lg p-4 space-y-3 bg-primary/5">
             <h4 className="text-sm font-semibold">Method 1: Google Service Account (Recommended)</h4>
+            <div className="rounded-lg border border-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 p-3 space-y-1">
+              <p className="text-xs font-semibold text-yellow-900 dark:text-yellow-100">⚠️ Security Notice</p>
+              <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                Credentials are stored in your browser's localStorage. Only use this on trusted devices. For production deployments, consider setting credentials server-side via Supabase dashboard instead.
+              </p>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Configure your Google Service Account credentials below. These will be stored in your browser and used to connect via Supabase Edge Function.
+              Configure your Google Service Account credentials below. Follow the <a href="https://github.com/bravobraverman1/product-entry-hub-10/blob/main/GOOGLE_SHEETS_SETUP.md" target="_blank" rel="noopener noreferrer" className="underline">complete setup guide</a> for step-by-step instructions.
             </p>
             
             <div className="space-y-1.5">
@@ -426,7 +439,7 @@ const Admin = () => {
                 className="min-h-32 text-xs font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                Follow steps 1-3 in the setup guide to create and download your service account JSON key file. Then paste the entire contents here.
+                Create a Google Service Account, download the JSON key file, and paste its entire contents here.
               </p>
             </div>
             

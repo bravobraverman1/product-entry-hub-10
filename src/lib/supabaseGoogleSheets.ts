@@ -32,6 +32,7 @@ export function isSupabaseGoogleSheetsConfigured(): boolean {
 
 /**
  * Calls the Supabase Edge Function to read data from Google Sheets
+ * Sends credentials in the request body for browser-based configuration
  */
 export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
   if (!isSupabaseGoogleSheetsConfigured()) {
@@ -40,13 +41,11 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
   }
 
   try {
-    // Set the secrets in the edge function environment
-    // Note: In production, these would be set server-side via Supabase dashboard
-    // For now, we'll send them in the request body
+    // Send credentials from browser config in request body
+    // The edge function also supports server-side env vars as fallback
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: {
         action: "read",
-        // Pass credentials from browser config
         serviceAccountKey: config.GOOGLE_SERVICE_ACCOUNT_KEY,
         sheetId: config.GOOGLE_SHEET_ID,
       },

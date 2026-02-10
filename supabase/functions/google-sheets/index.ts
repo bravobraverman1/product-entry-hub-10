@@ -12,7 +12,17 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("Invalid JSON in request body:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { action, serviceAccountKey: requestServiceAccountKey, sheetId: requestSheetId } = body;
 
     // Check for credentials in request body first, then environment
