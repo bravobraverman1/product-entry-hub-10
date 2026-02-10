@@ -3,7 +3,6 @@ import { ChevronDown, Search, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 interface SearchableSelectProps {
@@ -57,7 +56,11 @@ export function SearchableSelect({
           <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0 z-50 bg-popover"
+        align="start"
+        sideOffset={4}
+      >
         <div className="p-2 border-b border-border">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -70,7 +73,7 @@ export function SearchableSelect({
             />
           </div>
         </div>
-        <ScrollArea className="max-h-[200px]">
+        <div className="max-h-[200px] overflow-y-auto">
           {filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-3">No results</p>
           ) : (
@@ -99,7 +102,7 @@ export function SearchableSelect({
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );

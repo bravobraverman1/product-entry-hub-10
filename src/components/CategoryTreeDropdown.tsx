@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { CategoryLevel, isLeaf, filterTree, getAllLeafPaths } from "@/data/categoryData";
+import { CategoryLevel, isLeaf, filterTree } from "@/data/categoryData";
 
 interface CategoryTreeDropdownProps {
   categories: CategoryLevel[];
@@ -27,7 +26,6 @@ function TreeNode({
   onToggle,
   expandedKeys,
   onExpand,
-  searchQuery,
 }: {
   node: CategoryLevel;
   parentPath: string[];
@@ -35,7 +33,6 @@ function TreeNode({
   onToggle: (path: string) => void;
   expandedKeys: Set<string>;
   onExpand: (key: string) => void;
-  searchQuery: string;
 }) {
   const currentPath = [...parentPath, node.name];
   const fullPath = currentPath.join("/");
@@ -60,7 +57,11 @@ function TreeNode({
       >
         {!leaf && (
           <span className="text-muted-foreground shrink-0">
-            {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            {expanded ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
           </span>
         )}
         {leaf && (
@@ -86,7 +87,6 @@ function TreeNode({
               onToggle={onToggle}
               expandedKeys={expandedKeys}
               onExpand={onExpand}
-              searchQuery={searchQuery}
             />
           ))}
         </div>
@@ -148,11 +148,9 @@ export function CategoryTreeDropdown({
         ? selectedPaths.filter((p) => p !== path)
         : [...selectedPaths, path];
       onSelectedChange(next);
-      // If we removed the main, clear it
       if (mainPath === path && !next.includes(path)) {
         onMainChange("");
       }
-      // Auto-set main if only one selected
       if (next.length === 1) {
         onMainChange(next[0]);
       }
@@ -175,7 +173,11 @@ export function CategoryTreeDropdown({
     [selectedPaths, mainPath, onSelectedChange, onMainChange]
   );
 
-  const otherPaths = selectedPaths.filter((p) => p !== mainPath);
+  // Build breadcrumb for main category
+  const mainBreadcrumb = useMemo(() => {
+    if (!mainPath) return null;
+    return mainPath.split("/");
+  }, [mainPath]);
 
   return (
     <div className="space-y-3">
@@ -195,7 +197,11 @@ export function CategoryTreeDropdown({
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <PopoverContent
+          className="w-[var(--radix-popover-trigger-width)] p-0 z-50 bg-popover"
+          align="start"
+          sideOffset={4}
+        >
           {/* Search */}
           <div className="p-2 border-b border-border">
             <div className="relative">
@@ -208,10 +214,12 @@ export function CategoryTreeDropdown({
               />
             </div>
           </div>
-          {/* Tree */}
-          <ScrollArea className="max-h-[300px] p-2">
+          {/* Tree - scrollable */}
+          <div className="max-h-[300px] overflow-y-auto p-2">
             {filteredTree.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No categories found</p>
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No categories found
+              </p>
             ) : (
               filteredTree.map((node) => (
                 <TreeNode
@@ -222,11 +230,10 @@ export function CategoryTreeDropdown({
                   onToggle={handleToggle}
                   expandedKeys={effectiveExpanded}
                   onExpand={handleExpand}
-                  searchQuery={search}
                 />
               ))
             )}
-          </ScrollArea>
+          </div>
           {/* Footer */}
           <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
             {selectedPaths.length} selected
@@ -258,7 +265,9 @@ export function CategoryTreeDropdown({
                   <Star
                     className={cn(
                       "h-3 w-3",
-                      isMain ? "fill-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      isMain
+                        ? "fill-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   />
                 </button>
@@ -283,6 +292,21 @@ export function CategoryTreeDropdown({
         </div>
       )}
 
+      {/* Main category breadcrumb */}
+      {mainBreadcrumb && mainBreadcrumb.length > 1 && (
+        <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
+          <span className="font-medium">Path:</span>
+          {mainBreadcrumb.map((segment, i) => (
+            <span key={i} className="flex items-center gap-1">
+              {i > 0 && <span className="text-muted-foreground/50">→</span>}
+              <span className={i === mainBreadcrumb.length - 1 ? "font-medium text-foreground" : ""}>
+                {segment}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Preview fields */}
       {selectedPaths.length > 0 && (
         <div className="space-y-1.5">
@@ -294,12 +318,12 @@ export function CategoryTreeDropdown({
               className="h-8 text-xs bg-muted/50 font-mono"
             />
           </div>
-          {otherPaths.length > 0 && (
+          {selectedPaths.filter((p) => p !== mainPath).length > 0 && (
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Others</Label>
               <Input
                 readOnly
-                value={otherPaths.join("; ")}
+                value={selectedPaths.filter((p) => p !== mainPath).join("; ")}
                 className="h-8 text-xs bg-muted/50 font-mono"
               />
             </div>

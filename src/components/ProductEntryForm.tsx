@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,10 +8,19 @@ import { CategoryTreeDropdown } from "@/components/CategoryTreeDropdown";
 import { DynamicImageInputs } from "@/components/DynamicImageInputs";
 import { DynamicSpecifications } from "@/components/DynamicSpecifications";
 import { SkuSelector } from "@/components/SkuSelector";
-import { useSheetData } from "@/hooks/useSheetData";
+import { ReopenSku } from "@/components/ReopenSku";
 import { CheckCircle, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  fetchSkus,
+  fetchCategories,
+  fetchProperties,
+  submitProduct,
+  type SkuEntry,
+  type ReopenedProduct,
+  type ProductPayload,
+} from "@/lib/api";
+import { config } from "@/config";
 
 interface FormErrors {
   sku?: string;
@@ -21,9 +31,28 @@ interface FormErrors {
 
 export function ProductEntryForm() {
   const { toast } = useToast();
-  const { data: sheetData } = useSheetData();
 
-  const { products, categories, properties, legalValues } = sheetData;
+  // Fetch data via API layer
+  const { data: skus = [] } = useQuery<SkuEntry[]>({
+    queryKey: ["skus", config.STATUS_READY],
+    queryFn: () => fetchSkus(config.STATUS_READY),
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: propData } = useQuery({
+    queryKey: ["properties"],
+    queryFn: fetchProperties,
+    staleTime: 5 * 60_000,
+  });
+
+  const properties = propData?.properties ?? [];
+  const legalValues = propData?.legalValues ?? [];
 
   // Basic Info
   const [sku, setSku] = useState("");
@@ -32,10 +61,10 @@ export function ProductEntryForm() {
 
   // Random example title as placeholder
   const exampleTitle = useMemo(() => {
-    const titles = products.map((p) => p.exampleTitle).filter(Boolean);
+    const titles = skus.map((p) => p.exampleTitle).filter(Boolean);
     if (titles.length === 0) return "e.g. 10W LED Ceiling Spotlight - White";
     return titles[Math.floor(Math.random() * titles.length)];
-  }, [products]);
+  }, [skus]);
 
   // Categories
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -51,6 +80,7 @@ export function ProductEntryForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isReopened, setIsReopened] = useState(false);
 
   const handleSkuSelect = useCallback((selectedSku: string, selectedBrand: string) => {
     setSku(selectedSku);
@@ -59,6 +89,21 @@ export function ProductEntryForm() {
 
   const handleSpecChange = useCallback((key: string, value: string) => {
     setSpecValues((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleReopened = useCallback((data: ReopenedProduct) => {
+    setSku(data.sku);
+    setBrand(data.brand);
+    setTitle(data.title);
+    setMainCategory(data.mainCategory);
+    setSelectedCategories(
+      data.additionalCategories.length > 0
+        ? [data.mainCategory, ...data.additionalCategories]
+        : [data.mainCategory]
+    );
+    setImageUrls(data.imageUrls.length > 0 ? data.imageUrls : [""]);
+    setSpecValues(data.specifications);
+    setIsReopened(true);
   }, []);
 
   const validateForm = (): boolean => {
@@ -86,48 +131,42 @@ export function ProductEntryForm() {
     setImageUrls([""]);
     setSpecValues({});
     setErrors({});
+    setIsReopened(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
-      toast({ variant: "destructive", title: "Validation Error", description: "Please fill in all required fields." });
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+      });
       return;
     }
 
     setIsSubmitting(true);
     try {
       const otherPaths = selectedCategories.filter((p) => p !== mainCategory);
-      const allPaths = [mainCategory, ...otherPaths];
 
-      // Build row data array for the RESPONSES sheet
-      const rowData = [
-        new Date().toISOString(),
-        sku.trim(),
+      const payload: ProductPayload = {
+        sku: sku.trim(),
         brand,
-        title.trim(),
+        title: title.trim(),
         mainCategory,
-        otherPaths.join(";"),
-        allPaths.join(";"),
-        ...imageUrls.map((u) => u.trim()),
-        // Pad images to 8
-        ...Array(Math.max(0, 8 - imageUrls.length)).fill(""),
-        // Property values in order
-        ...properties.map((p) => specValues[p.key] || ""),
-      ];
+        additionalCategories: otherPaths,
+        imageUrls: imageUrls.map((u) => u.trim()).filter(Boolean),
+        specifications: specValues,
+        timestamp: new Date().toISOString(),
+      };
 
-      // Try writing to Sheets via edge function
-      const { error } = await supabase.functions.invoke("google-sheets", {
-        body: { action: "write", rowData },
-      });
-
-      if (error) {
-        console.warn("Sheet write failed (may not have credentials):", error);
-        // Still show success in default mode
-      }
+      await submitProduct(payload);
 
       setShowSuccess(true);
-      toast({ title: "Product Submitted!", description: `SKU ${sku} has been added successfully.` });
+      toast({
+        title: "Product Submitted!",
+        description: `SKU ${sku} has been added successfully.`,
+      });
 
       setTimeout(() => {
         setShowSuccess(false);
@@ -135,7 +174,11 @@ export function ProductEntryForm() {
       }, 2000);
     } catch (error) {
       console.error("Submission error:", error);
-      toast({ variant: "destructive", title: "Submission Failed", description: "There was an error submitting the product." });
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "There was an error submitting the product.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -143,6 +186,11 @@ export function ProductEntryForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Reopen SKU */}
+      <FormSection title="Reopen SKU" defaultOpen={false}>
+        <ReopenSku onReopened={handleReopened} />
+      </FormSection>
+
       {/* Basic Info */}
       <FormSection title="Basic Info" required defaultOpen>
         <div className="space-y-3">
@@ -152,7 +200,7 @@ export function ProductEntryForm() {
                 SKU <span className="text-destructive">*</span>
               </Label>
               <SkuSelector
-                products={products}
+                products={skus}
                 value={sku}
                 onSelect={handleSkuSelect}
                 error={errors.sku}
@@ -179,7 +227,9 @@ export function ProductEntryForm() {
               placeholder={exampleTitle}
               className="h-9 text-sm"
             />
-            {errors.title && <p className="text-destructive text-xs">{errors.title}</p>}
+            {errors.title && (
+              <p className="text-destructive text-xs">{errors.title}</p>
+            )}
           </div>
         </div>
       </FormSection>
@@ -205,7 +255,7 @@ export function ProductEntryForm() {
         />
       </FormSection>
 
-      {/* Specifications */}
+      {/* Fields / Specifications */}
       <FormSection title="Fields" defaultOpen={false}>
         <DynamicSpecifications
           properties={properties}
@@ -223,11 +273,17 @@ export function ProductEntryForm() {
           className="min-w-[160px] h-10"
         >
           {showSuccess ? (
-            <><CheckCircle className="mr-2 h-4 w-4" /> Submitted!</>
+            <>
+              <CheckCircle className="mr-2 h-4 w-4" /> Submitted!
+            </>
           ) : isSubmitting ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+            </>
           ) : (
-            <><Send className="mr-2 h-4 w-4" /> Submit Product</>
+            <>
+              <Send className="mr-2 h-4 w-4" /> Submit Product
+            </>
           )}
         </Button>
       </div>
