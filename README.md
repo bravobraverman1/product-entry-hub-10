@@ -2,35 +2,33 @@
 
 A comprehensive product data entry and management system built with React, TypeScript, and Google Sheets integration.
 
-## ⚠️ IMPORTANT: Supabase Configuration Required
+---
 
-**Before you start, configure your Supabase project:**
+## 🚀 QUICK START - NO TECHNICAL KNOWLEDGE NEEDED
 
-### Quick Setup Steps:
+**👉 [CLICK HERE TO START: START_HERE.md](START_HERE.md)**
 
-1. **Create/Select Your Supabase Project**
-   - Go to https://supabase.com/dashboard
-   - Create a new project or select an existing one
+This guide will walk you through setup with:
+- ✅ **No file editing required** (automated script does it for you)
+- ✅ **No coding knowledge needed** (just copy, paste, and follow prompts)
+- ✅ **Takes 5 minutes** (3 questions, done!)
 
-2. **Get Your Credentials**
-   - In your Supabase project: **Settings** → **API**
-   - Copy your **Project URL** (e.g., `https://xxxxx.supabase.co`)
-   - Copy your **Project Reference ID** (the `xxxxx` part)
-   - Copy your **anon/public key** (starts with `eyJ`)
+**Three setup methods available:**
+1. **Automated Setup** (recommended) - Script asks you 3 questions, does everything else
+2. **Step-by-Step Guide** - Detailed instructions with exactly what to click and paste
+3. **Quick Setup** - For advanced users who know what they're doing
 
-3. **Update Your .env File**
-   ```bash
-   VITE_SUPABASE_PROJECT_ID="your-project-ref"
-   VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
-   VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key-here"
-   ```
+**Choose the method that works best for you - they all accomplish the same thing!**
 
-4. **Restart Your Dev Server**
-   ```bash
-   npm run dev
-   ```
+---
 
-📖 **Detailed Guide:** [COMPLETE_SETUP.md](./COMPLETE_SETUP.md)
+## ⚠️ Before You Can Use This Application
+
+You need to configure your Supabase project. **Don't worry - it's easy!**
+
+**→ Go to [START_HERE.md](START_HERE.md) and follow Method 1 (Automated Setup)**
+
+It will guide you through getting 3 pieces of information from Supabase and automatically configure everything for you.
 
 ---
 
