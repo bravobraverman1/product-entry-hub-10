@@ -8,31 +8,36 @@ A comprehensive product data entry and management system built with React, TypeS
 
 ## 🔗 Google Sheets Integration
 
-This application connects to Google Sheets to manage product data. To link your Google Sheets file:
+This application connects to Google Sheets to manage product data.
 
-### Quick Start (6 Steps)
+### 🆕 New to Setup? Start Here!
+
+**[📘 COMPLETE SETUP GUIDE](./COMPLETE_SETUP_GUIDE.md)** - Everything you need from zero to working application (45-60 minutes)
+
+This guide is designed for **non-technical users** and covers:
+- ✅ Setting up Supabase
+- ✅ Connecting to Google Sheets
+- ✅ Configuring your hosting environment (Lovable, Vercel, Netlify)
+- ✅ Deploying Edge Functions
+- ✅ Testing everything works
+- ✅ No command line or coding required!
+
+### Quick Start (For Experienced Users)
 
 1. **STEP 1-2:** [Create service account and share your sheet](./GOOGLE_SHEETS_SETUP.md)
-
-2. **STEP 3:** [Create and Deploy the Edge Function](./GOOGLE_SHEETS_SETUP.md#step-3-create-and-deploy-the-edge-function) (Required for new projects)
-
-3. **STEP 4:** [Add credentials to Supabase](./GOOGLE_SHEETS_SETUP.md#step-4-add-credentials-to-supabase) (server-side security)
-
+2. **STEP 3:** [Create and Deploy the Edge Function](./GOOGLE_SHEETS_SETUP.md#step-3-create-and-deploy-the-edge-function)
+3. **STEP 4:** [Add credentials to Supabase](./GOOGLE_SHEETS_SETUP.md#step-4-add-credentials-to-supabase)
 4. **STEP 5:** [Activate via GitHub Actions](./GOOGLE_SHEETS_SETUP.md#step-5-activate-the-google-sheets-connection-github-actions)
-   - ✓ No terminal required
-   - ✓ Just click a few buttons
-   - ✓ Takes 2-3 minutes
-   - 📖 [Quick Reference Guide](./STEP5_QUICK_REFERENCE.md)
-
 5. **STEP 6:** [Test Your Connection](./GOOGLE_SHEETS_SETUP.md#step-6-test-your-connection)
 
-### Documentation
+### All Documentation
 
-- **[GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md)** - Complete step-by-step guide for all 5 steps
+- **[COMPLETE_SETUP_GUIDE.md](./COMPLETE_SETUP_GUIDE.md)** - ⭐ START HERE - Complete guide for beginners
+- **[GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md)** - Detailed technical guide
 - **[SETUP_CHECKLIST.md](./SETUP_CHECKLIST.md)** - Checkbox checklist to track your progress
-- **[GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)** - Detailed GitHub Actions and secrets configuration
-- **[STEP5_QUICK_REFERENCE.md](./STEP5_QUICK_REFERENCE.md)** - Quick reference for Step 5 activation
-- **[.github/README.md](./.github/README.md)** - Information about GitHub Actions workflows
+- **[GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)** - GitHub Actions configuration
+- **[STEP5_QUICK_REFERENCE.md](./STEP5_QUICK_REFERENCE.md)** - Quick reference for Step 5
+- **[.github/README.md](./.github/README.md)** - GitHub Actions workflows info
 
 ### What you'll need
 
