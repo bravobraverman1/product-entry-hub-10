@@ -77,6 +77,8 @@ interface TreeEditorNodeProps {
   onRename: (path: string[], newName: string) => void;
   onDelete: (path: string[]) => void;
   onAddChild: (path: string[], childName: string) => void;
+  expandAllSignal: number;
+  expandAllValue: boolean | null;
 }
 
 function TreeEditorNode({
@@ -85,6 +87,8 @@ function TreeEditorNode({
   onRename,
   onDelete,
   onAddChild,
+  expandAllSignal,
+  expandAllValue,
 }: TreeEditorNodeProps) {
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -95,6 +99,12 @@ function TreeEditorNode({
 
   const currentPath = [...path, node.name];
   const leaf = isLeaf(node);
+
+  useEffect(() => {
+    if (expandAllValue !== null) {
+      setExpanded(expandAllValue);
+    }
+  }, [expandAllSignal, expandAllValue]);
 
   const handleRename = () => {
     if (editValue.trim() && editValue.trim() !== node.name) {
@@ -177,7 +187,16 @@ function TreeEditorNode({
       {!leaf && expanded && node.children && (
         <div>
           {node.children.map((child) => (
-            <TreeEditorNode key={child.name} node={child} path={currentPath} onRename={onRename} onDelete={onDelete} onAddChild={onAddChild} />
+            <TreeEditorNode
+              key={child.name}
+              node={child}
+              path={currentPath}
+              onRename={onRename}
+              onDelete={onDelete}
+              onAddChild={onAddChild}
+              expandAllSignal={expandAllSignal}
+              expandAllValue={expandAllValue}
+            />
           ))}
         </div>
       )}
@@ -203,6 +222,8 @@ const Admin = () => {
   const [dirty, setDirty] = useState(false);
   const [addingRoot, setAddingRoot] = useState(false);
   const [newRootName, setNewRootName] = useState("");
+  const [expandAllSignal, setExpandAllSignal] = useState(0);
+  const [expandAllValue, setExpandAllValue] = useState<boolean | null>(null);
 
   // Show error if categories failed to load
   useEffect(() => {
@@ -591,6 +612,32 @@ const Admin = () => {
       {/* Category Editor */}
       <FormSection title="Categories Editor" defaultOpen>
         <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                setExpandAllValue(true);
+                setExpandAllSignal((v) => v + 1);
+              }}
+            >
+              Expand All
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                setExpandAllValue(false);
+                setExpandAllSignal((v) => v + 1);
+              }}
+            >
+              Collapse All
+            </Button>
+          </div>
           {categoriesError && (
             <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950 p-3">
               <p className="text-xs font-semibold text-red-900 dark:text-red-100">❌ Error Loading Categories</p>
@@ -607,7 +654,16 @@ const Admin = () => {
               <p className="text-sm text-muted-foreground text-center py-4">No categories loaded.</p>
             ) : (
               tree.map((node) => (
-                <TreeEditorNode key={node.name} node={node} path={[]} onRename={handleRename} onDelete={handleDelete} onAddChild={handleAddChild} />
+                <TreeEditorNode
+                  key={node.name}
+                  node={node}
+                  path={[]}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                  onAddChild={handleAddChild}
+                  expandAllSignal={expandAllSignal}
+                  expandAllValue={expandAllValue}
+                />
               ))
             )}
           </div>
