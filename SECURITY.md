@@ -68,37 +68,19 @@ ALLOWED_ORIGIN=https://yourdomain.com
 ---
 
 ### 5. ⚠️ Row Level Security (RLS)
-**Status:** Optional but recommended for production.
+**Status:** NOT APPLICABLE - This application does not use Supabase tables.
 
-**Important:** `auth.users` table is managed by Supabase and already has RLS enabled. You only need to enable RLS on tables you create.
+**Why RLS is not needed:**
+This application stores all data in **Google Sheets**, not in Supabase database tables. Therefore, RLS policies are not applicable.
 
-**Recommendation:** Enable RLS on custom tables in your Supabase project.
+**What this means:**
+- ✅ Data security is handled by Google Sheets permissions (service account access)
+- ✅ Edge function authentication protects API access
+- ✅ No Supabase database tables to secure
+- ✅ **You can skip RLS setup entirely**
 
-**Steps:**
-1. Go to Supabase Dashboard → Your Project → SQL Editor
-2. Create a new query and run:
-
-```sql
--- Enable RLS on your custom tables (not auth.users - that's managed by Supabase)
--- Example if you have a 'products' or 'submissions' table:
-
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
-
--- Example policy: Public read access (adjust based on your needs)
-CREATE POLICY "Public can read products"
-ON products
-FOR SELECT
-USING (true);
-
--- Example policy: Only authenticated users can insert
-CREATE POLICY "Authenticated users can insert"
-ON submissions
-FOR INSERT
-WITH CHECK (true);
-```
-
-**Note:** If you don't have custom tables yet, RLS is not needed for this application since it only uses Google Sheets as the data source.
+**If you add Supabase tables in the future:**
+Then you would need to enable RLS. For now, it's not needed.
 
 ---
 
