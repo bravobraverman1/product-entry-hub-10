@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { ChevronDown, Search, Check } from "lucide-react";
+import { ChevronDown, Search, Check, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ interface SkuSelectorProps {
 export function SkuSelector({ products, value, onSelect, error }: SkuSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [expandedBrands, setExpandedBrands] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
@@ -27,6 +28,28 @@ export function SkuSelector({ products, value, onSelect, error }: SkuSelectorPro
         p.brand.toLowerCase().includes(q)
     );
   }, [products, search]);
+
+  // Group filtered products by brand
+  const grouped = useMemo(() => {
+    const groups: Record<string, SkuEntry[]> = {};
+    filtered.forEach((product) => {
+      if (!groups[product.brand]) {
+        groups[product.brand] = [];
+      }
+      groups[product.brand].push(product);
+    });
+    return Object.entries(groups).sort(([brandA], [brandB]) => brandA.localeCompare(brandB));
+  }, [filtered]);
+
+  const toggleBrand = (brand: string) => {
+    const newExpanded = new Set(expandedBrands);
+    if (newExpanded.has(brand)) {
+      newExpanded.delete(brand);
+    } else {
+      newExpanded.add(brand);
+    }
+    setExpandedBrands(newExpanded);
+  };
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
@@ -67,32 +90,55 @@ export function SkuSelector({ products, value, onSelect, error }: SkuSelectorPro
             </div>
           </div>
           <div className="max-h-[250px] overflow-y-auto">
-            {filtered.length === 0 ? (
+            {grouped.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-3">No SKUs found</p>
             ) : (
               <div className="p-1">
-                {filtered.map((product) => (
-                  <button
-                    key={product.sku}
-                    type="button"
-                    className={cn(
-                      "w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm text-left hover:bg-muted/60 transition-colors",
-                      value === product.sku && "bg-muted"
+                {grouped.map(([brand, skus]) => (
+                  <div key={brand}>
+                    {/* Brand header (collapsible) */}
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm text-left hover:bg-muted/60 transition-colors font-semibold"
+                      onClick={() => toggleBrand(brand)}
+                    >
+                      <ChevronRight
+                        className={cn(
+                          "h-3.5 w-3.5 shrink-0 transition-transform",
+                          expandedBrands.has(brand) && "rotate-90"
+                        )}
+                      />
+                      <span>{brand}</span>
+                    </button>
+
+                    {/* Expanded SKU list */}
+                    {expandedBrands.has(brand) && (
+                      <div className="bg-muted/20">
+                        {skus.map((product) => (
+                          <button
+                            key={product.sku}
+                            type="button"
+                            className={cn(
+                              "w-full flex items-center gap-2 px-2 py-1.5 pl-8 rounded-sm text-sm text-left hover:bg-muted/60 transition-colors",
+                              value === product.sku && "bg-muted"
+                            )}
+                            onClick={() => {
+                              onSelect(product.sku, product.brand);
+                              setOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "h-3.5 w-3.5 shrink-0",
+                                value === product.sku ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="font-mono text-xs">{product.sku}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
-                    onClick={() => {
-                      onSelect(product.sku, product.brand);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "h-3.5 w-3.5 shrink-0",
-                        value === product.sku ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <span className="font-mono text-xs">{product.sku}</span>
-                    <span className="text-muted-foreground text-xs">— {product.brand}</span>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

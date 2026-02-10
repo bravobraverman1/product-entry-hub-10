@@ -118,6 +118,9 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
                   <SelectValue placeholder={sku.trim() ? "Not available" : "Select SKU…"} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">
+                    Select SKU…
+                  </SelectItem>
                   {dockSkus.map((skuOption) => (
                     <SelectItem key={skuOption} value={skuOption}>
                       {skuOption}
