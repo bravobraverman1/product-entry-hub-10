@@ -12,15 +12,19 @@ This application connects to Google Sheets to manage product data. To link your 
 
 ### Quick Start (5 Steps)
 
-1. **STEP 1-3:** [Create service account, share your sheet, and configure credentials](./GOOGLE_SHEETS_SETUP.md)
+1. **STEP 1-2:** [Create service account and share your sheet](./GOOGLE_SHEETS_SETUP.md)
 
-2. **STEP 4:** [Deploy the Edge Function](./GOOGLE_SHEETS_SETUP.md#step-4-deploy-the-edge-function) (if using server-side config)
+2. **STEP 3:** [Create and Deploy the Edge Function](./GOOGLE_SHEETS_SETUP.md#step-3-create-and-deploy-the-edge-function) (Required for new projects)
 
-3. **STEP 5:** [Activate via GitHub Actions](./GOOGLE_SHEETS_SETUP.md#step-5-activate-the-google-sheets-connection-github-actions)
+3. **STEP 4:** [Add credentials to Supabase](./GOOGLE_SHEETS_SETUP.md#step-4-add-credentials-to-supabase) (server-side security)
+
+4. **STEP 5:** [Activate via GitHub Actions](./GOOGLE_SHEETS_SETUP.md#step-5-activate-the-google-sheets-connection-github-actions)
    - ✓ No terminal required
    - ✓ Just click a few buttons
    - ✓ Takes 2-3 minutes
    - 📖 [Quick Reference Guide](./STEP5_QUICK_REFERENCE.md)
+
+5. **STEP 6:** [Test Your Connection](./GOOGLE_SHEETS_SETUP.md#step-6-test-your-connection)
 
 ### Documentation
 
