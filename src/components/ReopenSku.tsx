@@ -111,14 +111,14 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
             <Label className="text-xs font-medium">SKU from Loading Dock</Label>
             <div className="flex gap-2">
               <Select value={dockSku} onValueChange={(value) => {
-                setDockSku(value);
+                setDockSku(value === "__clear__" ? "" : value);
                 setReopened(false);
               }} disabled={sku.trim() !== ""}>
                 <SelectTrigger className="h-9 flex-1" disabled={sku.trim() !== ""}>
                   <SelectValue placeholder={sku.trim() ? "Not available" : "Select SKU…"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">
+                  <SelectItem value="__clear__">
                     Select SKU…
                   </SelectItem>
                   {dockSkus.map((skuOption) => (
