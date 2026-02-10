@@ -456,37 +456,7 @@ const Admin = () => {
             </div>
           </div>
 
-          {/* Google Sheets Credentials Status */}
-          <div className="space-y-3 rounded-lg border border-muted bg-muted/50 p-4">
-            <h5 className="text-sm font-semibold">Google Sheets Credentials Status</h5>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-40 shrink-0">Service Account Key:</span>
-                <span className={`font-semibold ${googleServiceAccountKey ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {googleServiceAccountKey ? `✓ Configured (${googleServiceAccountKey.length} chars)` : "❌ NOT SET"}
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-40 shrink-0">Google Sheet ID:</span>
-                <span className={`font-semibold ${googleSheetId ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {googleSheetId ? `✓ Configured (${googleSheetId})` : "❌ NOT SET"}
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground w-40 shrink-0">Status:</span>
-                <span className={`font-semibold ${isGoogleSheetsConfigured ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {isGoogleSheetsConfigured ? "✓ READY" : "❌ NOT READY"}
-                </span>
-              </div>
-            </div>
-            {!isGoogleSheetsConfigured && (
-              <div className="mt-3 text-xs bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100 p-2 rounded border border-red-300 dark:border-red-700">
-                <p className="font-semibold mb-1">⚠️ Why categories won't load:</p>
-                <p>Google Sheets credentials are not set in localStorage. The app is looking for <code className="bg-red-200 dark:bg-red-800 px-1">GOOGLE_SERVICE_ACCOUNT_KEY</code> and <code className="bg-red-200 dark:bg-red-800 px-1">GOOGLE_SHEET_ID</code> in browser storage.</p>
-              </div>
-            )}
-          </div>
-          
+
           {/* Configuration Help Alert - Show when environment variables are not configured */}
           {(!isValidSupabaseUrl || !supabaseAnonKey) && (
             <div className="rounded-lg border-2 border-red-500 bg-red-50 dark:bg-red-950 dark:border-red-800 p-4 space-y-3">
