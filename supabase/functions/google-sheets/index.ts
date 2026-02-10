@@ -43,18 +43,10 @@ function getSupabaseClient(authHeader: string) {
 }
 
 function getCorsHeaders(origin?: string) {
-  const allowAll = ALLOWED_ORIGINS.includes("*");
-  const isAllowed = !!origin && ALLOWED_ORIGINS.some((allowed) => originMatches(allowed, origin));
-  
-  // If wildcard is set OR origin matches allowlist, reflect the origin.
-  // Otherwise, use the first allowed origin or fall back to the request origin.
-  // Security is enforced via Supabase authentication (apikey + JWT verification).
-  const allowOrigin = (allowAll || isAllowed) 
-    ? origin 
-    : (ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS[0] : origin);
-
+  // Always reflect the request origin to avoid browser CORS blocks.
+  // Security is enforced via Supabase authentication (apikey + JWT), not CORS allowlisting.
   return {
-    "Access-Control-Allow-Origin": allowOrigin || "*",
+    "Access-Control-Allow-Origin": origin || "*",
     "Access-Control-Allow-Credentials": "true",
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
