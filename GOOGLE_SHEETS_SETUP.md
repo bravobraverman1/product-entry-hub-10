@@ -179,7 +179,6 @@ Once on the function page, look for the Secrets/Environment Variables tab in the
 **Important Note:** Secrets are stored per-project and per-function. The secrets you add to the `google-sheets` function are only accessible to that specific function in that specific project.
 
 #### Step 4.2: Add the first secret: GOOGLE_SERVICE_ACCOUNT_KEY
-#### Step 4.2: Add the first secret: GOOGLE_SERVICE_ACCOUNT_KEY
 
    - Click **"Add secret"** or **"New secret"** button
    - **Name:** Enter exactly: `GOOGLE_SERVICE_ACCOUNT_KEY` (case-sensitive)
