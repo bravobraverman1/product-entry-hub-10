@@ -12,7 +12,11 @@ interface SearchableSelectProps {
   placeholder?: string;
   className?: string;
   allowNone?: boolean;
+  allowOther?: boolean;
+  onOtherSubmit?: (value: string) => void;
 }
+
+const OTHER_SENTINEL = "__OTHER__";
 
 export function SearchableSelect({
   value,
@@ -21,25 +25,52 @@ export function SearchableSelect({
   placeholder = "Select...",
   className,
   allowNone = true,
+  allowOther = false,
+  onOtherSubmit,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherText, setOtherText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const otherInputRef = useRef<HTMLInputElement>(null);
+
+  const isOtherValue = value && !options.includes(value) && value !== "";
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const base = allowNone ? ["", ...options] : options;
-    if (!q) return base;
-    return base.filter((o) => o.toLowerCase().includes(q));
+    const result = q ? base.filter((o) => o.toLowerCase().includes(q)) : base;
+    return result;
   }, [options, search, allowNone]);
 
   useEffect(() => {
     if (open) {
+      setShowOtherInput(false);
+      setOtherText("");
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
       setSearch("");
     }
   }, [open]);
+
+  useEffect(() => {
+    if (showOtherInput) {
+      setTimeout(() => otherInputRef.current?.focus(), 50);
+    }
+  }, [showOtherInput]);
+
+  const handleOtherConfirm = () => {
+    if (otherText.trim()) {
+      onOtherSubmit?.(otherText.trim());
+      onValueChange(otherText.trim());
+      setShowOtherInput(false);
+      setOtherText("");
+      setOpen(false);
+    }
+  };
+
+  const displayValue = value || placeholder;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,7 +82,7 @@ export function SearchableSelect({
           className={cn("w-full justify-between h-9 text-sm font-normal", className)}
         >
           <span className={cn("truncate", !value && "text-muted-foreground")}>
-            {value || placeholder}
+            {isOtherValue ? `${value} (custom)` : displayValue}
           </span>
           <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
@@ -74,7 +105,7 @@ export function SearchableSelect({
           </div>
         </div>
         <div className="max-h-[200px] overflow-y-auto">
-          {filtered.length === 0 ? (
+          {filtered.length === 0 && !allowOther ? (
             <p className="text-sm text-muted-foreground text-center py-3">No results</p>
           ) : (
             <div className="p-1">
@@ -91,18 +122,47 @@ export function SearchableSelect({
                     setOpen(false);
                   }}
                 >
-                  <Check
-                    className={cn(
-                      "h-3.5 w-3.5 shrink-0",
-                      value === opt ? "opacity-100" : "opacity-0"
-                    )}
-                  />
+                  <Check className={cn("h-3.5 w-3.5 shrink-0", value === opt ? "opacity-100" : "opacity-0")} />
                   <span>{opt || "None"}</span>
                 </button>
               ))}
+
+              {/* Other option */}
+              {allowOther && !showOtherInput && (
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm text-left hover:bg-muted/60 transition-colors text-primary"
+                  onClick={() => setShowOtherInput(true)}
+                >
+                  <span className="h-3.5 w-3.5 shrink-0 text-center text-xs font-bold">+</span>
+                  <span>Other…</span>
+                </button>
+              )}
             </div>
           )}
         </div>
+
+        {/* Other input area */}
+        {allowOther && showOtherInput && (
+          <div className="p-2 border-t border-border">
+            <div className="flex items-center gap-1.5">
+              <Input
+                ref={otherInputRef}
+                value={otherText}
+                onChange={(e) => setOtherText(e.target.value)}
+                placeholder="Enter custom value…"
+                className="h-7 text-xs flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); handleOtherConfirm(); }
+                  if (e.key === "Escape") setShowOtherInput(false);
+                }}
+              />
+              <Button type="button" size="sm" className="h-7 text-xs px-2" onClick={handleOtherConfirm}>
+                Add
+              </Button>
+            </div>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

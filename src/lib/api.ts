@@ -45,6 +45,7 @@ export interface SkuEntry {
   sku: string;
   brand: string;
   status: string;
+  visibility?: number;
   exampleTitle?: string;
 }
 
@@ -52,15 +53,16 @@ export async function fetchSkus(
   status?: string
 ): Promise<SkuEntry[]> {
   if (!isConfigured()) {
-    // Mock: return defaultProducts filtered by status
     return defaultProducts
       .map((p) => ({
         sku: p.sku,
         brand: p.brand,
         status: config.STATUS_READY,
+        visibility: 1,
         exampleTitle: p.exampleTitle,
       }))
-      .filter((s) => !status || s.status === status);
+      .filter((s) => !status || s.status === status)
+      .filter((s) => (s.visibility ?? 0) >= 1);
   }
   return apiFetch<SkuEntry[]>(
     `/skus${status ? `?status=${encodeURIComponent(status)}` : ""}`
@@ -117,6 +119,22 @@ export async function fetchProperties(): Promise<{
   return apiFetch("/properties");
 }
 
+// ── Add Legal Value (for "Other…" option) ───────────────────
+
+export async function addLegalValue(
+  propertyName: string,
+  value: string
+): Promise<void> {
+  if (!isConfigured()) {
+    console.log("[mock] addLegalValue:", propertyName, value);
+    return;
+  }
+  await apiFetch("/legal/add", {
+    method: "POST",
+    body: JSON.stringify({ propertyName, value }),
+  });
+}
+
 // ── Submit Product ──────────────────────────────────────────
 
 export interface ProductPayload {
@@ -127,6 +145,10 @@ export interface ProductPayload {
   additionalCategories: string[];
   imageUrls: string[];
   specifications: Record<string, string>;
+  chatgptData?: string;
+  chatgptDescription?: string;
+  datasheetUrl?: string;
+  webpageUrl?: string;
   timestamp: string;
 }
 
@@ -155,7 +177,6 @@ export async function fetchRecentSubmissions(): Promise<
   RecentSubmission[]
 > {
   if (!isConfigured()) {
-    // Mock data
     return [
       { id: "1", sku: "LED-DL-001", submittedAt: new Date(Date.now() - 3600000).toISOString() },
       { id: "2", sku: "LED-SP-001", submittedAt: new Date(Date.now() - 7200000).toISOString() },
@@ -165,6 +186,29 @@ export async function fetchRecentSubmissions(): Promise<
     ];
   }
   return apiFetch("/recentSubmissions");
+}
+
+// ── Delete Submission ───────────────────────────────────────
+
+export async function deleteSubmission(id: string): Promise<void> {
+  if (!isConfigured()) {
+    console.log("[mock] deleteSubmission:", id);
+    return;
+  }
+  await apiFetch("/submissions/delete", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  });
+}
+
+// ── Send All & Clear Dock ───────────────────────────────────
+
+export async function sendAllAndClearDock(): Promise<void> {
+  if (!isConfigured()) {
+    console.log("[mock] sendAllAndClearDock");
+    return;
+  }
+  await apiFetch("/dock/sendAll", { method: "POST" });
 }
 
 // ── Reopen SKU ──────────────────────────────────────────────
@@ -177,13 +221,14 @@ export interface ReopenedProduct {
   additionalCategories: string[];
   imageUrls: string[];
   specifications: Record<string, string>;
+  chatgptData?: string;
+  chatgptDescription?: string;
 }
 
 export async function reopenSku(
   sku: string
 ): Promise<ReopenedProduct> {
   if (!isConfigured()) {
-    // Mock: validate as if COMPLETE and return sample data
     const found = defaultProducts.find((p) => p.sku === sku);
     if (!found) throw new Error(`SKU "${sku}" not found`);
     return {
@@ -229,5 +274,62 @@ export async function markNotForSale(
   return apiFetch("/markNotForSale", {
     method: "POST",
     body: JSON.stringify({ sku }),
+  });
+}
+
+// ── Brands ──────────────────────────────────────────────────
+
+export interface BrandEntry {
+  brand: string;
+  supplier: string;
+}
+
+export async function fetchBrands(): Promise<BrandEntry[]> {
+  if (!isConfigured()) {
+    return [
+      { brand: "Havit", supplier: "LED World" },
+      { brand: "Domus", supplier: "Beacon Lighting" },
+      { brand: "Telbix", supplier: "Telbix Australia" },
+      { brand: "Eglo", supplier: "Eglo Lighting" },
+      { brand: "CLA", supplier: "CLA Lighting" },
+    ];
+  }
+  return apiFetch("/brands");
+}
+
+export async function saveBrands(brands: BrandEntry[]): Promise<void> {
+  if (!isConfigured()) {
+    console.log("[mock] saveBrands:", brands);
+    return;
+  }
+  await apiFetch("/brands/update", {
+    method: "POST",
+    body: JSON.stringify({ brands }),
+  });
+}
+
+// ── Filter Rules ────────────────────────────────────────────
+
+export interface FilterRule {
+  categoryPath: string;
+  visibleFields: string[];
+  requiredFields: string[];
+}
+
+export async function fetchFilterRules(): Promise<FilterRule[]> {
+  if (!isConfigured()) {
+    return [];
+  }
+  return apiFetch("/filters");
+}
+
+export async function saveFilterRules(rules: FilterRule[]): Promise<void> {
+  if (!isConfigured()) {
+    console.log("[mock] saveFilterRules:", rules);
+    return;
+  }
+  await apiFetch("/filters/update", {
+    method: "POST",
+    body: JSON.stringify({ rules }),
   });
 }

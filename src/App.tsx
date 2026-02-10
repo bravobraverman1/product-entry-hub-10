@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import LoadingDock from "./pages/LoadingDock";
 import ProductOptions from "./pages/ProductOptions";
+import Brands from "./pages/Brands";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/loading-dock" element={<LoadingDock />} />
             <Route path="/product-options" element={<ProductOptions />} />
+            <Route path="/brands" element={<Brands />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

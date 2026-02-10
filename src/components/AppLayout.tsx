@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Coffee, ClipboardList, Truck, Settings, PackageSearch } from "lucide-react";
+import { Coffee, ClipboardList, Truck, PackageSearch, Tag, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { to: "/", label: "Form", icon: ClipboardList, end: true },
   { to: "/loading-dock", label: "Loading Dock", icon: Truck },
   { to: "/product-options", label: "Product Options", icon: PackageSearch },
+  { to: "/brands", label: "Brands", icon: Tag },
   { to: "/admin", label: "Admin", icon: Settings },
 ];
 
@@ -30,7 +31,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
         {/* Tab Navigation */}
-        <nav className="max-w-5xl mx-auto px-4 flex gap-0 border-t border-border">
+        <nav className="max-w-5xl mx-auto px-4 flex gap-0 border-t border-border overflow-x-auto">
           {tabs.map((tab) => (
             <NavLink
               key={tab.to}
@@ -38,7 +39,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               end={tab.end}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                  "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
                   isActive
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"

@@ -12,7 +12,7 @@ interface DynamicImageInputsProps {
 }
 
 const MAX_IMAGES = 8;
-const MIN_DIMENSION = 650;
+const MIN_DIMENSION = 700;
 const VALID_EXTENSIONS = /\.(jpe?g|png|gif|webp)$/i;
 const URL_PATTERN = /^https?:\/\/.+/i;
 
