@@ -87,8 +87,8 @@ You will now create the Edge Function by pasting ready-made code directly into S
 ### 1.1) Grab your Project URL and Publishable Key (for the Admin .env fields)
 
 On your **project home page** in Supabase (not the user profile page):
-- Find **Project URL** and **Publishable Key** in the left info panel
-- Hover each and click **Copy**
+- Hover over the **Project URL** row and click **Copy**
+- Hover over the **Publishable Key** row and click **Copy**
 
 You’ll paste these into the Admin panel later under **Google Sheets Connection** → “Paste .env entries”.
 
