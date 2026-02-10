@@ -2,6 +2,59 @@
 
 A comprehensive product data entry and management system built with React, TypeScript, and Google Sheets integration.
 
+---
+
+## 🎉 NEW: Automated Setup Process!
+
+**Configuration issue FIXED!** The app now uses YOUR Supabase project automatically.
+
+👉 **[START HERE - Read This First!](./START_HERE.md)** 👈
+
+---
+
+## 🚀 Quick Setup (5 Minutes)
+
+**No code editing required - just copy and paste!**
+
+### 1️⃣ Install & Configure
+
+```bash
+# Clone and setup
+git clone https://github.com/bravobraverman1/product-entry-hub-10.git
+cd product-entry-hub-10
+npm install
+
+# Automated configuration (copy-paste your credentials)
+npm run setup
+```
+
+### 2️⃣ Start the App
+
+```bash
+npm run dev
+```
+
+Open http://localhost:5173/ → Go to **Admin** tab → Verify your project info ✓
+
+### 3️⃣ Need Help?
+
+See **[START_HERE.md](./START_HERE.md)** for complete instructions and troubleshooting.
+
+---
+
+## 📖 Documentation
+
+| Guide | What It Covers |
+|-------|----------------|
+| **[START_HERE.md](./START_HERE.md)** | ⭐ **Read this first!** Complete solution summary |
+| **[QUICK_START.md](./QUICK_START.md)** | Complete setup in 15 minutes |
+| **[SETUP.md](./SETUP.md)** | Detailed Supabase configuration |
+| **[VISUAL_SETUP_GUIDE.md](./VISUAL_SETUP_GUIDE.md)** | Step-by-step visual walkthrough |
+| **[GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md)** | Google Sheets integration |
+| **[EDGE_FUNCTIONS_SETUP.md](./EDGE_FUNCTIONS_SETUP.md)** | Edge Functions deployment |
+
+---
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID

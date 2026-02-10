@@ -283,7 +283,7 @@ const Admin = () => {
   };
 
   // ── Connection Settings ──
-  const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'osiueywaplycxspbaadh';
+  const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "";
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   const supabaseProjectRef = supabaseUrl.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i)?.[1] || "";
