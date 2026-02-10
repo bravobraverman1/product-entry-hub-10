@@ -87,6 +87,7 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
               }}
               placeholder="Enter SKU…"
               className="h-9 text-sm font-mono flex-1"
+              disabled={dockSku !== ""}
             />
             <Button
               type="button"
@@ -106,15 +107,15 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
 
         {/* SKU from Loading Dock dropdown */}
         {dockSkus.length > 0 && (
-          <div className="flex-1 space-y-1.5">
+          <div className={`flex-1 space-y-1.5 opacity-50 ${sku.trim() ? "" : ""}`} style={{ opacity: sku.trim() ? 0.5 : 1 }}>
             <Label className="text-xs font-medium">SKU from Loading Dock</Label>
             <div className="flex gap-2">
               <Select value={dockSku} onValueChange={(value) => {
                 setDockSku(value);
                 setReopened(false);
-              }}>
-                <SelectTrigger className="h-9 flex-1">
-                  <SelectValue placeholder="Select SKU…" />
+              }} disabled={sku.trim() !== ""}>
+                <SelectTrigger className="h-9 flex-1" disabled={sku.trim() !== ""}>
+                  <SelectValue placeholder={sku.trim() ? "Not available" : "Select SKU…"} />
                 </SelectTrigger>
                 <SelectContent>
                   {dockSkus.map((skuOption) => (
@@ -128,7 +129,7 @@ export function ReopenSku({ onReopened, dockSkus = [] }: ReopenSkuProps) {
                 type="button"
                 variant="outline"
                 onClick={handleDockSkuReopen}
-                disabled={loading || !dockSku}
+                disabled={loading || !dockSku || sku.trim() !== ""}
                 className="h-9 shrink-0"
               >
                 {loading ? (

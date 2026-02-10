@@ -134,7 +134,7 @@ const LoadingDock = () => {
                   <TableRow>
                     <TableHead className="text-xs">SKU</TableHead>
                     <TableHead className="text-xs">Date / Time</TableHead>
-                    <TableHead className="text-xs text-right">Actions</TableHead>
+                    <TableHead className="text-xs text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
