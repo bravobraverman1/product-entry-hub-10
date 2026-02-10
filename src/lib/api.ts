@@ -159,23 +159,19 @@ export async function fetchCategories(): Promise<CategoryLevel[]> {
 export async function updateCategories(
   paths: string[]
 ): Promise<void> {
-  // STRICT: Write ONLY to Google Sheets if configured
-  if (isSupabaseGoogleSheetsConfigured()) {
-    try {
-      const success = await writeCategoriesToGoogleSheets(paths);
-      if (!success) {
-        throw new Error("Failed to write categories to Google Sheets");
-      }
-      console.log("Categories successfully updated in Google Sheets");
-      return;
-    } catch (error) {
-      console.error("FATAL: Error updating categories in Google Sheets:", error);
-      throw new Error(`Failed to save categories to Google Sheet: ${error instanceof Error ? error.message : "Unknown error"}`);
+  // Always write via Supabase Edge Function (uses server-side secrets)
+  try {
+    const success = await writeCategoriesToGoogleSheets(paths);
+    if (!success) {
+      throw new Error("Failed to write categories to Google Sheets");
     }
+    console.log("Categories successfully updated in Google Sheets");
+  } catch (error) {
+    console.error("FATAL: Error updating categories in Google Sheets:", error);
+    throw new Error(
+      `Failed to save categories to Google Sheet: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
   }
-
-  // If Google Sheets is not configured, we cannot proceed - no fallback
-  throw new Error("Google Sheets integration is not configured. Cannot save categories.");
 }
 
 // ── Properties & Legal Values ───────────────────────────────
