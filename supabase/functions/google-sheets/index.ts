@@ -106,20 +106,25 @@ serve(async (req) => {
       );
     }
 
-    // AUTHENTICATION: allow either a valid user JWT or a valid anon apikey
+    // AUTHENTICATION: Verify Supabase JWT token from Authorization header
+    // For "read" actions (testing), allow anon key. For "write" actions, require JWT.
     const authHeader = req.headers.get("authorization") || "";
     const apiKeyHeader = req.headers.get("apikey") || "";
-
-    const hasValidApiKey = !!SUPABASE_ANON_KEY && apiKeyHeader === SUPABASE_ANON_KEY;
-    if (!hasValidApiKey) {
-      if (!authHeader.startsWith("Bearer ")) {
-        console.error("Missing or invalid Authorization header and apikey");
-        return new Response(
-          JSON.stringify({ error: "Unauthorized: Missing authentication token" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
+    
+    const isReadAction = action === "read";
+    const isAnonKeyValid = !!SUPABASE_ANON_KEY && apiKeyHeader === SUPABASE_ANON_KEY;
+    
+    // Read actions (testing) can use anon key. Write actions require JWT.
+    if (!isReadAction && !authHeader.startsWith("Bearer ")) {
+      console.error("Missing or invalid Authorization header for write action");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Write operations require authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // For write actions, verify JWT
+    if (!isReadAction) {
       const supabaseClient = getSupabaseClient(authHeader);
       if (!supabaseClient) {
         console.error("Supabase client not configured on edge function");
@@ -315,6 +320,19 @@ async function sign(key: CryptoKey, data: string): Promise<string> {
 
 // --- Sheets API helpers ---
 
+/**
+ * Sanitize cell values to prevent formula injection.
+ * Prepend single quote to values starting with =, +, -, @, or tab character.
+ */
+function sanitizeForFormulas(value: string): string {
+  if (!value || typeof value !== "string") return value;
+  const firstChar = value.charAt(0);
+  if (firstChar === "=" || firstChar === "+" || firstChar === "-" || firstChar === "@" || firstChar === "\t") {
+    return "'" + value;
+  }
+  return value;
+}
+
 function resolveTabName(
   tabNames: Record<string, string> | undefined,
   key: string,
@@ -341,6 +359,9 @@ async function getSheetValues(token: string, sheetId: string, range: string): Pr
 }
 
 async function appendRow(token: string, sheetId: string, sheet: string, rowData: string[]) {
+  // Sanitize all row data to prevent formula injection
+  const sanitizedData = rowData.map(sanitizeForFormulas);
+  
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheet)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
   const res = await fetch(url, {
     method: "POST",
@@ -348,7 +369,7 @@ async function appendRow(token: string, sheetId: string, sheet: string, rowData:
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ values: [rowData] }),
+    body: JSON.stringify({ values: [sanitizedData] }),
   });
 
   if (!res.ok) {
@@ -483,6 +504,9 @@ async function clearAndWriteCategories(
     throw new Error(`Failed to clear categories: ${errText}`);
   }
 
+  // Sanitize category paths to prevent formula injection
+  const sanitizedPaths = categoryPaths.map(sanitizeForFormulas);
+
   // Write new category paths
   const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${categoriesTab}!A2`)}?valueInputOption=USER_ENTERED`;
   const writeRes = await fetch(writeUrl, {
@@ -492,7 +516,7 @@ async function clearAndWriteCategories(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      values: categoryPaths.map((path) => [path]),
+      values: sanitizedPaths.map((path) => [path]),
     }),
   });
 
@@ -501,7 +525,7 @@ async function clearAndWriteCategories(
     throw new Error(`Failed to write categories: ${errText}`);
   }
 
-  console.log(`Successfully wrote ${categoryPaths.length} category paths to ${categoriesTab} tab`);
+  console.log(`Successfully wrote ${sanitizedPaths.length} category paths to ${categoriesTab} tab`);
 }
 
 async function clearAndWriteBrands(
@@ -526,6 +550,13 @@ async function clearAndWriteBrands(
     throw new Error(`Failed to clear brands: ${errText}`);
   }
 
+  // Sanitize brand data to prevent formula injection
+  const sanitizedBrands = brands.map((brand) => [
+    sanitizeForFormulas(brand.brand),
+    sanitizeForFormulas(brand.brandName),
+    sanitizeForFormulas(brand.website),
+  ]);
+
   // Write new brands
   const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2`)}?valueInputOption=USER_ENTERED`;
   const writeRes = await fetch(writeUrl, {
@@ -535,7 +566,7 @@ async function clearAndWriteBrands(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      values: brands.map((brand) => [brand.brand, brand.brandName, brand.website]),
+      values: sanitizedBrands,
     }),
   });
 
