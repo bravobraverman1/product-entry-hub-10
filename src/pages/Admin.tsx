@@ -278,6 +278,8 @@ const Admin = () => {
   };
 
   // ── Connection Settings ──
+  const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'osiueywaplycxspbaadh';
+  
   const [appsScriptUrl, setAppsScriptUrl] = useState(getConfigValue("APPS_SCRIPT_BASE_URL", ""));
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
@@ -466,7 +468,7 @@ const Admin = () => {
                 <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                   <li>Open your Google Sheet</li>
                   <li>Click "Share"</li>
-                  <li>Paste the service account email (looks like <code className="text-xs bg-muted px-1 py-0.5 rounded">name@project.iam.gserviceaccount.com</code> from the JSON file)</li>
+                  <li>Paste the service account email (looks like <code className="text-xs bg-muted px-1 py-0.5 rounded">name@project-id.iam.gserviceaccount.com</code> from the JSON file)</li>
                   <li>Set permission to "Editor"</li>
                   <li>Click "Send"</li>
                 </ul>
@@ -487,7 +489,7 @@ const Admin = () => {
                   type="button" 
                   variant="outline" 
                   size="sm"
-                  onClick={() => window.open('https://supabase.com/dashboard/project/osiueywaplycxspbaadh/settings/functions', '_blank')}
+                  onClick={() => window.open(`https://supabase.com/dashboard/project/${supabaseProjectId}/settings/functions`, '_blank')}
                 >
                   <ExternalLink className="h-3.5 w-3.5 mr-2" />
                   Open Supabase Edge Function Secrets
@@ -560,9 +562,9 @@ const Admin = () => {
                     </div>
                     <div className="bg-muted p-3 rounded-lg">
                       <p className="text-xs font-semibold mb-1">3. Link your project:</p>
-                      <code className="text-xs bg-background px-2 py-1 rounded border block">supabase link --project-ref osiueywaplycxspbaadh</code>
+                      <code className="text-xs bg-background px-2 py-1 rounded border block">supabase link --project-ref {supabaseProjectId}</code>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Project ref can be found at: <a href="https://supabase.com/dashboard/project/osiueywaplycxspbaadh/settings/general" target="_blank" rel="noopener noreferrer" className="underline">Supabase Settings</a>
+                        Project ref can be found at: <a href={`https://supabase.com/dashboard/project/${supabaseProjectId}/settings/general`} target="_blank" rel="noopener noreferrer" className="underline">Supabase Settings</a>
                       </p>
                     </div>
                     <div className="bg-muted p-3 rounded-lg">
