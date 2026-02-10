@@ -175,6 +175,14 @@ serve(async (req) => {
       });
     }
 
+    if (action === "write-categories") {
+      const { categoryPaths } = body;
+      await clearAndWriteCategories(accessToken, sheetId, categoryPaths);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -305,8 +313,24 @@ async function readAllSheets(token: string, sheetId: string) {
   })).filter((p) => p.sku);
 
   // Parse CATEGORIES: full path strings -> build tree
-  const categoryPaths = categoriesRaw.slice(1).map((row) => row[0]).filter(Boolean);
+  // STRICT: Read ONLY from CATEGORIES tab, skip header row (row 1), data starts at row 2
+  const categoryPaths = categoriesRaw.slice(1).map((row) => {
+    const path = row[0] ?? "";
+    // Trim whitespace from the entire path and from each segment
+    return path.trim();
+  }).filter((p) => p.length > 0);
+  
+  // Fail loudly if no categories found
+  if (categoryPaths.length === 0) {
+    console.error("ERROR: CATEGORIES tab is empty or missing data. Expected at least one category path in column A, row 2+");
+    throw new Error("CATEGORIES tab has no data. Add category paths to the CATEGORIES sheet starting at row 2 (e.g., 'Indoor Lights/Wall Lights')");
+  }
+  
   const categories = buildCategoryTree(categoryPaths);
+  
+  // Count actual leaf paths (not tree nodes) for logging
+  const leafPathCount = categoryPaths.length;
+  console.log(`Successfully read ${leafPathCount} category paths from CATEGORIES tab`);
 
   // Parse PROPERTIES: PropertyName, Key, InputType, Section
   const properties = propertiesRaw.slice(1).map((row) => ({
@@ -322,7 +346,7 @@ async function readAllSheets(token: string, sheetId: string) {
     allowedValue: row[1] ?? "",
   })).filter((l) => l.propertyName && l.allowedValue);
 
-  return { products, categories, properties, legalValues };
+  return { products, categories, properties, legalValues, categoryPathCount: leafPathCount };
 }
 
 function buildCategoryTree(paths: string[]) {
@@ -355,6 +379,48 @@ function buildCategoryTree(paths: string[]) {
   }
 
   return root;
+}
+
+async function clearAndWriteCategories(
+  token: string,
+  sheetId: string,
+  categoryPaths: string[]
+): Promise<void> {
+  // Clear existing data in CATEGORIES!A:A (keep header, delete data starting at row 2)
+  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent("CATEGORIES!A2:A")}:clear`;
+  const clearRes = await fetch(clearUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (!clearRes.ok) {
+    const errText = await clearRes.text();
+    throw new Error(`Failed to clear categories: ${errText}`);
+  }
+
+  // Write new category paths
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent("CATEGORIES!A2")}?valueInputOption=USER_ENTERED`;
+  const writeRes = await fetch(writeUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      values: categoryPaths.map((path) => [path]),
+    }),
+  });
+
+  if (!writeRes.ok) {
+    const errText = await writeRes.text();
+    throw new Error(`Failed to write categories: ${errText}`);
+  }
+
+  console.log(`Successfully wrote ${categoryPaths.length} category paths to CATEGORIES tab`);
 }
 ```
 
@@ -597,7 +663,9 @@ If any step fails, refer to the [Troubleshooting](#troubleshooting) section belo
 
 Your Google Sheet must contain the following tabs with the specified structure:
 
-### 1. PRODUCTS TO DO (or your configured name)
+**Important:** The Supabase Edge Function reads these exact tab names: `PRODUCTS`, `CATEGORIES`, `PROPERTIES`, and `LEGAL`. If your sheet uses different names, rename the tabs or update the Edge Function ranges.
+
+### 1. PRODUCTS (required for Edge Function)
 
 Contains products to be processed.
 
@@ -608,15 +676,15 @@ Contains products to be processed.
 | C | Status | READY, COMPLETE, or DEAD |
 | D | Visibility | 1 (visible) or 0 (hidden) |
 
-### 2. Categories (or your configured name)
+### 2. CATEGORIES (required for Edge Function)
 
 Contains category hierarchy as full paths.
 
 | Column | Field | Description |
 |--------|-------|-------------|
-| A | Path | Full category path (e.g., "Indoor Lights/Ceiling Lights/Downlights") |
+| A | Path | Full category path (e.g., "Indoor Lights/Ceiling Lights/Downlights") in column A, starting at row 2 (row 1 is a header) |
 
-### 3. BRANDS (or your configured name)
+### 3. BRANDS (optional)
 
 Contains brand and supplier information.
 
@@ -625,7 +693,7 @@ Contains brand and supplier information.
 | A | Brand | Brand name |
 | B | Supplier | Supplier name |
 
-### 4. PROPERTIES (or your configured name)
+### 4. PROPERTIES (required for Edge Function)
 
 Defines custom properties/fields for products.
 
@@ -636,7 +704,7 @@ Defines custom properties/fields for products.
 | C | InputType | text, dropdown, number, or boolean |
 | D | Section | Grouping section name |
 
-### 5. LEGAL (or your configured name)
+### 5. LEGAL (required for Edge Function)
 
 Defines allowed values for dropdown properties.
 
@@ -645,11 +713,11 @@ Defines allowed values for dropdown properties.
 | A | PropertyName | Must match a property from PROPERTIES sheet |
 | B | AllowedValue | A valid option for this dropdown |
 
-### 6. OUTPUT (or your configured name)
+### 6. OUTPUT (optional)
 
 Where completed product data is written. Structure should match your business requirements.
 
-### 7. FILTER (or your configured name)
+### 7. FILTER (optional)
 
 Optional: Defines which fields are visible/required for specific categories.
 
