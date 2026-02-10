@@ -12,11 +12,9 @@ Follow these in order:
 
 - [ ] **STEP 1:** Set up Supabase (5 min) - Database connection
 - [ ] **STEP 2:** Deploy to GitHub Pages (5 min) - Get your live app URL
-- [ ] **STEP 3:** Set up Edge Functions (10 min) - Deploy server-side code
-- [ ] **STEP 4:** Configure Supabase Secrets (5 min) - Add credentials securely
-- [ ] **STEP 5:** Set up Google Sheets (10 min) - Connect your data source
+- [ ] **STEP 3:** Set up Google Sheets (10 min) - Connect your data source
 
-**Total Time: ~35 minutes**
+**Total Time: ~20 minutes**
 
 ---
 
@@ -70,49 +68,11 @@ https://YOUR-USERNAME.github.io/product-entry-hub-10/
 **When done, you'll have:**
 - ✅ Live application URL
 - ✅ Supabase connected
-- ✅ Ready to configure Edge Functions
+- ✅ Ready to configure Google Sheets
 
 ---
 
-## ⚡ STEP 3: Deploy Edge Functions (10 minutes)
-
-Edge Functions run server-side code for Google Sheets integration.
-
-### 👉 [Follow: SUPABASE_EDGE_FUNCTIONS.md](SUPABASE_EDGE_FUNCTIONS.md)
-
-**Quick summary:**
-1. Get Supabase Access Token
-2. Get Project Ref and DB Password
-3. Add to GitHub Secrets
-4. Deploy Edge Functions
-
-**When done, you'll have:**
-- ✅ Edge Functions deployed
-- ✅ Server-side processing enabled
-- ✅ Ready for Google Sheets
-
----
-
-## 🔐 STEP 4: Configure Supabase Secrets (5 minutes)
-
-Add Google Sheets credentials to Supabase.
-
-### 👉 [Follow: SUPABASE_SECRETS_SETUP.md](SUPABASE_SECRETS_SETUP.md)
-
-**Quick summary:**
-1. Access Supabase Secrets dashboard
-2. Add `GOOGLE_SHEET_ID`
-3. Add `GOOGLE_SERVICE_ACCOUNT_KEY`
-4. Redeploy Edge Functions
-
-**When done, you'll have:**
-- ✅ Secrets configured in Supabase
-- ✅ Edge Functions can access credentials
-- ✅ Ready for Google Sheets connection
-
----
-
-## 📊 STEP 5: Google Sheets Setup (10 minutes)
+## 📊 STEP 3: Google Sheets Setup (10 minutes)
 
 Connect your Google Sheet for data storage.
 
@@ -123,7 +83,7 @@ Connect your Google Sheet for data storage.
 2. Download JSON key file
 3. Share your Google Sheet
 4. Add secrets to GitHub
-5. Test the connection
+5. Deploy the connection
 
 **When done, you'll have:**
 - ✅ Google Sheets connected
@@ -157,33 +117,12 @@ Connect your Google Sheet for data storage.
 - ✅ Project Ref: (your ref)
 - ✅ Publishable Key: ✓ Detected
 
-### After STEP 3 (Edge Functions):
+### After STEP 3 (Google Sheets):
 **GO TO:** Settings → Secrets and variables → Actions
 
 **YOU SHOULD ALSO HAVE:**
-- ✅ `SUPABASE_ACCESS_TOKEN`
-- ✅ `SUPABASE_PROJECT_REF`
-- ✅ `SUPABASE_DB_PASSWORD`
-
-**GO TO:** Actions → Latest "Deploy Google Sheets Connection" run
-
-**YOU SHOULD SEE:**
-- ✅ Green checkmark
-- ✅ "Edge Function deployed successfully"
-
-### After STEP 4 (Supabase Secrets):
-**GO TO:** Supabase → Edge Functions → Manage secrets
-
-**YOU SHOULD SEE:**
 - ✅ `GOOGLE_SHEET_ID`
 - ✅ `GOOGLE_SERVICE_ACCOUNT_KEY`
-
-### After STEP 5 (Google Sheets):
-**GO TO:** Settings → Secrets and variables → Actions
-
-**YOU SHOULD ALSO HAVE:**
-- ✅ `GOOGLE_SHEET_ID` (also in GitHub)
-- ✅ `GOOGLE_SERVICE_ACCOUNT_KEY` (also in GitHub)
 
 **IN YOUR APP:** Admin page → Google Sheets Connection section
 
