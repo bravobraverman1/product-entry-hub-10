@@ -102,3 +102,37 @@ export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
     return false;
   }
 }
+/**
+ * Writes category paths to the Google Sheet via Supabase Edge Function
+ * Uses server-side Supabase secrets
+ */
+export async function writeCategoriesToGoogleSheets(
+  categoryPaths: string[]
+): Promise<boolean> {
+  try {
+    const requestBody: any = {
+      action: "write-categories",
+      categoryPaths,
+    };
+    
+    // Include browser credentials if available (optional, for backward compatibility)
+    if (isSupabaseGoogleSheetsConfigured()) {
+      requestBody.serviceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
+      requestBody.sheetId = config.GOOGLE_SHEET_ID;
+    }
+
+    const { data, error } = await supabase.functions.invoke("google-sheets", {
+      body: requestBody,
+    });
+
+    if (error) {
+      console.error("Error writing categories to google-sheets function:", error);
+      return false;
+    }
+
+    return data?.success ?? false;
+  } catch (error) {
+    console.error("Exception writing categories to google-sheets function:", error);
+    return false;
+  }
+}
