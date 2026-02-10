@@ -62,78 +62,295 @@ Follow these steps in order:
 
 ---
 
-## STEP 3: Create and Deploy the Edge Function
+## STEP 3: Create & Deploy the `google-sheets` Edge Function
 
-**Important:** Before you can add secrets to your Edge Function in the next step, the `google-sheets` function must first be deployed to your Supabase project. If you haven't deployed the function yet, you won't see it in the Functions list, and you won't be able to add secrets to it.
+You will now create the Edge Function by pasting ready-made code directly into Supabase.
 
-### Why this step is necessary
+### 1) Open Supabase Dashboard
 
-On a brand-new Supabase project, the Edge Functions page will only show templates and sample functions. The `google-sheets` function doesn't exist until you create and deploy it. This step ensures the function is ready to receive your secrets in Step 4.
+- Go to [supabase.com/dashboard](https://supabase.com/dashboard)
+- Select your project
+- Left sidebar → **Edge Functions** → **Functions**
+- Click **"Open Editor"** (or **"Deploy a new function"**)
 
-### Choose one deployment method:
+### 2) Confirm you are on the correct screen
 
-#### **Option 1: Deploy via Supabase Dashboard (Recommended for beginners)**
+You should see:
+- Title: **"Create new edge function"**
+- A code editor with sample 'Hello {name}' code
+- A **"Function name"** field at the bottom right
+- A green **"Deploy function"** button
 
-1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) and log in
-2. Select your project
-3. In the left sidebar, click **"Edge Functions"**
-4. Click the **"Deploy a new function"** button (or **"Open Editor"** if you see that instead)
-5. When prompted for a function name, enter exactly: `google-sheets`
-6. Paste the Edge Function code:
-   - The code is located in your repository at: `supabase/functions/google-sheets/index.ts`
-   - Copy the entire contents of that file
-   - Paste it into the function editor in the Supabase dashboard
-7. Click **"Deploy"** or **"Save and Deploy"**
-8. Wait for the deployment to complete (usually takes 10-30 seconds)
-9. Confirm the function appears in your Edge Functions list
+### 3) Set the Function name
 
-**Copy/Paste Helper:** You can find the Edge Function code in your repository at:
+In the **"Function name"** field, type EXACTLY:
+
 ```
-supabase/functions/google-sheets/index.ts
-```
-Or view it on GitHub (replace YOUR_USERNAME and YOUR_REPO with your actual repository details):
-```
-https://github.com/YOUR_USERNAME/YOUR_REPO/blob/main/supabase/functions/google-sheets/index.ts
+google-sheets
 ```
 
-#### **Option 2: Deploy via Supabase CLI (For advanced users)**
+### 4) Replace the template code (IMPORTANT)
 
-If you're comfortable using the command line:
+- Click inside the editor
+- Select ALL (Cmd+A / Ctrl+A)
+- Delete everything
+- Paste the FULL code below (do not edit it)
 
-1. Install the Supabase CLI (if not already installed):
-   ```bash
-   npm install -g supabase
-   ```
+### 5) Copy the Edge Function code
 
-2. Log in to Supabase:
-   ```bash
-   supabase login
-   ```
+**⚠️ Copy EVERYTHING in this block. Do not skip any lines.**
 
-3. Link to your project:
-   ```bash
-   supabase link --project-ref YOUR_PROJECT_REF
-   ```
-   
-   **Where to find PROJECT_REF:**
-   - Go to Supabase Dashboard → Your Project → Settings → General
-   - Copy the **Reference ID** (looks like: `abcdefghijklmnop`)
+```typescript
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-4. Deploy the function:
-   ```bash
-   supabase functions deploy google-sheets
-   ```
-   
-5. Confirm deployment:
-   - Check your Supabase Dashboard → Edge Functions
-   - You should now see `google-sheets` in the list
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 
-### Verify the function is deployed
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
-Before moving to Step 4, confirm:
-- ✅ You can see `google-sheets` listed in Supabase Dashboard → Edge Functions
-- ✅ The function status shows as "Active" or "Deployed"
-- ✅ You can click on the function name to open its details
+  try {
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("Invalid JSON in request body:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { action, serviceAccountKey: requestServiceAccountKey, sheetId: requestSheetId } = body;
+
+    // Check for credentials in request body first, then environment
+    const serviceAccountKey = requestServiceAccountKey || Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+    const sheetId = requestSheetId || Deno.env.get("GOOGLE_SHEET_ID");
+
+    // If no credentials configured, return flag to use defaults
+    if (!serviceAccountKey || !sheetId) {
+      console.log("Google Sheets credentials not configured, using defaults");
+      return new Response(
+        JSON.stringify({ useDefaults: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Parse service account key
+    const keyData = JSON.parse(serviceAccountKey);
+
+    // Get access token via JWT
+    const accessToken = await getAccessToken(keyData);
+
+    if (action === "read") {
+      const result = await readAllSheets(accessToken, sheetId);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "write") {
+      const { rowData } = body;
+      await appendRow(accessToken, sheetId, "RESPONSES", rowData);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Invalid action" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Edge function error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message, useDefaults: true }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+// --- Google Auth helpers ---
+
+async function getAccessToken(keyData: any): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = btoa(
+    JSON.stringify({
+      iss: keyData.client_email,
+      scope: "https://www.googleapis.com/auth/spreadsheets",
+      aud: "https://oauth2.googleapis.com/token",
+      exp: now + 3600,
+      iat: now,
+    })
+  );
+
+  const signatureInput = `${header}.${claim}`;
+  const key = await importPrivateKey(keyData.private_key);
+  const signature = await sign(key, signatureInput);
+  const jwt = `${signatureInput}.${signature}`;
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  });
+
+  const tokenData = await tokenRes.json();
+  if (!tokenData.access_token) {
+    throw new Error(`Failed to get access token: ${JSON.stringify(tokenData)}`);
+  }
+  return tokenData.access_token;
+}
+
+async function importPrivateKey(pem: string) {
+  const pemContents = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\n/g, "");
+
+  const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+
+  return await crypto.subtle.importKey(
+    "pkcs8",
+    binaryDer,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+}
+
+async function sign(key: CryptoKey, data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    encoder.encode(data)
+  );
+  return btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+// --- Sheets API helpers ---
+
+async function getSheetValues(token: string, sheetId: string, range: string): Promise<string[][]> {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`Sheets API error for range ${range}:`, errText);
+    return [];
+  }
+
+  const data = await res.json();
+  return data.values ?? [];
+}
+
+async function appendRow(token: string, sheetId: string, sheet: string, rowData: string[]) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheet)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ values: [rowData] }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to append row: ${errText}`);
+  }
+
+  console.log("Row appended successfully");
+}
+
+async function readAllSheets(token: string, sheetId: string) {
+  // Read all tabs in parallel
+  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw] = await Promise.all([
+    getSheetValues(token, sheetId, "PRODUCTS!A:C"),
+    getSheetValues(token, sheetId, "CATEGORIES!A:A"),
+    getSheetValues(token, sheetId, "PROPERTIES!A:D"),
+    getSheetValues(token, sheetId, "LEGAL!A:B"),
+  ]);
+
+  // Parse PRODUCTS: SKU, Brand, ExampleTitle (skip header row)
+  const products = productsRaw.slice(1).map((row) => ({
+    sku: row[0] ?? "",
+    brand: row[1] ?? "",
+    exampleTitle: row[2] ?? "",
+  })).filter((p) => p.sku);
+
+  // Parse CATEGORIES: full path strings -> build tree
+  const categoryPaths = categoriesRaw.slice(1).map((row) => row[0]).filter(Boolean);
+  const categories = buildCategoryTree(categoryPaths);
+
+  // Parse PROPERTIES: PropertyName, Key, InputType, Section
+  const properties = propertiesRaw.slice(1).map((row) => ({
+    name: row[0] ?? "",
+    key: row[1] ?? "",
+    inputType: (row[2] ?? "text") as "dropdown" | "text" | "number" | "boolean",
+    section: row[3] ?? "Other",
+  })).filter((p) => p.name && p.key);
+
+  // Parse LEGAL: PropertyName, AllowedValue
+  const legalValues = legalRaw.slice(1).map((row) => ({
+    propertyName: row[0] ?? "",
+    allowedValue: row[1] ?? "",
+  })).filter((l) => l.propertyName && l.allowedValue);
+
+  return { products, categories, properties, legalValues };
+}
+
+function buildCategoryTree(paths: string[]) {
+  interface TreeNode {
+    name: string;
+    children?: TreeNode[];
+  }
+
+  const root: TreeNode[] = [];
+
+  for (const path of paths) {
+    const parts = path.split("/").map((s) => s.trim()).filter(Boolean);
+    let current = root;
+
+    for (let i = 0; i < parts.length; i++) {
+      const name = parts[i];
+      let existing = current.find((n) => n.name === name);
+      if (!existing) {
+        existing = { name };
+        if (i < parts.length - 1) {
+          existing.children = [];
+        }
+        current.push(existing);
+      }
+      if (i < parts.length - 1) {
+        if (!existing.children) existing.children = [];
+        current = existing.children;
+      }
+    }
+  }
+
+  return root;
+}
+```
+
+### 6) Deploy
+
+- Click **"Deploy function"**
+- Wait for completion (usually 10-30 seconds)
+- Go back to **Edge Functions** → **Functions**
+- Confirm `google-sheets` appears and is clickable
 
 ---
 
@@ -471,8 +688,8 @@ Manage dropdown options for your custom properties/fields.
 
 **Solution:**
 - You haven't deployed the function yet
-- Go back to [Step 3: Create and Deploy the Edge Function](#step-3-create-and-deploy-the-edge-function)
-- Follow either the Dashboard method (Option 1) or CLI method (Option 2) to deploy the function
+- Go back to [STEP 3: Create & Deploy the `google-sheets` Edge Function](#step-3-create--deploy-the-google-sheets-edge-function)
+- Follow the steps to create and deploy the function using the Supabase Dashboard
 - After deployment, refresh your browser and check the Functions list again
 - The function should appear within 30 seconds after successful deployment
 
