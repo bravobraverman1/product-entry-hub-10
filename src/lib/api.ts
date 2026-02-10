@@ -19,6 +19,7 @@ import {
   isSupabaseGoogleSheetsConfigured,
   readGoogleSheets,
   writeCategoriesToGoogleSheets,
+  writeBrandsToGoogleSheets,
 } from "@/lib/supabaseGoogleSheets";
 
 const BASE = () => config.APPS_SCRIPT_BASE_URL;
@@ -368,23 +369,49 @@ export async function markNotForSale(
 
 export interface BrandEntry {
   brand: string;
-  supplier: string;
+  brandName: string;
+  website: string;
 }
 
 export async function fetchBrands(): Promise<BrandEntry[]> {
+  // Try Supabase Google Sheets first
+  if (isSupabaseGoogleSheetsConfigured()) {
+    try {
+      const data = await readGoogleSheets();
+      if (data.brands && !data.useDefaults) {
+        return data.brands;
+      }
+    } catch (error) {
+      console.error("Error fetching brands from Supabase Google Sheets:", error);
+    }
+  }
+
+  // Fall back to Apps Script if configured
   if (!isConfigured()) {
     return [
-      { brand: "Havit", supplier: "LED World" },
-      { brand: "Domus", supplier: "Beacon Lighting" },
-      { brand: "Telbix", supplier: "Telbix Australia" },
-      { brand: "Eglo", supplier: "Eglo Lighting" },
-      { brand: "CLA", supplier: "CLA Lighting" },
+      { brand: "Havit", brandName: "Havit Lighting", website: "https://www.havit.com.au" },
+      { brand: "Domus", brandName: "Domus Lighting", website: "https://www.domuslighting.com.au" },
+      { brand: "Telbix", brandName: "Telbix Australia", website: "https://www.telbix.com.au" },
+      { brand: "Eglo", brandName: "Eglo Lighting", website: "https://www.eglo.com.au" },
+      { brand: "CLA", brandName: "CLA Lighting", website: "https://www.clalighting.com.au" },
     ];
   }
   return apiFetch("/brands");
 }
 
 export async function saveBrands(brands: BrandEntry[]): Promise<void> {
+  // Use Supabase Google Sheets integration
+  if (isSupabaseGoogleSheetsConfigured()) {
+    try {
+      await writeBrandsToGoogleSheets(brands);
+      return;
+    } catch (error) {
+      console.error("Error saving brands to Google Sheets:", error);
+      throw error;
+    }
+  }
+
+  // Fall back to Apps Script if configured
   if (!isConfigured()) {
     console.log("[mock] saveBrands:", brands);
     return;

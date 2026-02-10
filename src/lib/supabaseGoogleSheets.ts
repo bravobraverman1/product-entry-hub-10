@@ -16,6 +16,11 @@ interface GoogleSheetsReadResponse {
     brand: string;
     exampleTitle: string;
   }>;
+  brands?: Array<{
+    brand: string;
+    brandName: string;
+    website: string;
+  }>;
   categories?: CategoryLevel[];
   properties?: PropertyDefinition[];
   legalValues?: LegalValue[];
@@ -28,6 +33,7 @@ interface SheetTabNamesPayload {
   PROPERTIES: string;
   LEGAL: string;
   RESPONSES: string;
+  BRANDS: string;
 }
 
 function getSheetTabNamesPayload(): SheetTabNamesPayload {
@@ -37,6 +43,7 @@ function getSheetTabNamesPayload(): SheetTabNamesPayload {
     PROPERTIES: config.SHEET_PROPERTIES,
     LEGAL: config.SHEET_LEGAL,
     RESPONSES: config.SHEET_OUTPUT,
+    BRANDS: config.SHEET_BRANDS,
   };
 }
 
@@ -167,5 +174,53 @@ export async function writeCategoriesToGoogleSheets(
     throw error instanceof Error
       ? error
       : new Error("Failed to write categories to Google Sheets");
+  }
+}
+
+/**
+ * Writes brands to the Google Sheet via Supabase Edge Function
+ * Uses server-side Supabase secrets
+ */
+export async function writeBrandsToGoogleSheets(
+  brands: Array<{ brand: string; brandName: string; website: string }>
+): Promise<boolean> {
+  try {
+    const requestBody: any = {
+      action: "write-brands",
+      brands,
+      tabNames: getSheetTabNamesPayload(),
+    };
+    
+    // Include browser credentials if available (optional, for backward compatibility)
+    if (isSupabaseGoogleSheetsConfigured()) {
+      requestBody.serviceAccountKey = config.GOOGLE_SERVICE_ACCOUNT_KEY;
+      requestBody.sheetId = config.GOOGLE_SHEET_ID;
+    }
+
+    const { data, error } = await supabase.functions.invoke("google-sheets", {
+      body: requestBody,
+    });
+
+    if (error) {
+      console.error("Error writing brands to google-sheets function:", error);
+      throw new Error(error.message || "Failed to write brands to Google Sheets");
+    }
+
+    if (data?.useDefaults) {
+      throw new Error(
+        "Edge function cannot read Supabase secrets. Redeploy the edge function after setting GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID."
+      );
+    }
+
+    if (!data?.success) {
+      throw new Error(data?.error || "Failed to write brands to Google Sheets");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Exception writing brands to google-sheets function:", error);
+    throw error instanceof Error
+      ? error
+      : new Error("Failed to write brands to Google Sheets");
   }
 }

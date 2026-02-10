@@ -72,6 +72,19 @@ serve(async (req) => {
       });
     }
 
+    if (action === "write-brands") {
+      const { brands } = body;
+      await clearAndWriteBrands(
+        accessToken,
+        sheetId,
+        brands,
+        resolveTabName(tabNames, "BRANDS", "BRANDS")
+      );
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -204,11 +217,13 @@ async function readAllSheets(
   const categoriesTab = resolveTabName(tabNames, "CATEGORIES", "CATEGORIES");
   const propertiesTab = resolveTabName(tabNames, "PROPERTIES", "PROPERTIES");
   const legalTab = resolveTabName(tabNames, "LEGAL", "LEGAL");
-  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw] = await Promise.all([
+  const brandsTab = resolveTabName(tabNames, "BRANDS", "BRANDS");
+  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw, brandsRaw] = await Promise.all([
     getSheetValues(token, sheetId, `${productsTab}!A:C`),
     getSheetValues(token, sheetId, `${categoriesTab}!A:A`),
     getSheetValues(token, sheetId, `${propertiesTab}!A:D`),
     getSheetValues(token, sheetId, `${legalTab}!A:B`),
+    getSheetValues(token, sheetId, `${brandsTab}!A:C`),
   ]);
 
   // Parse PRODUCTS: SKU, Brand, ExampleTitle (skip header row)
@@ -252,7 +267,14 @@ async function readAllSheets(
     allowedValue: row[1] ?? "",
   })).filter((l) => l.propertyName && l.allowedValue);
 
-  return { products, categories, properties, legalValues, categoryPathCount: leafPathCount };
+  // Parse BRANDS: Brand, BrandName, Website (skip header row)
+  const brands = brandsRaw.slice(1).map((row) => ({
+    brand: row[0] ?? "",
+    brandName: row[1] ?? "",
+    website: row[2] ?? "",
+  })).filter((b) => b.brand);
+
+  return { products, brands, categories, properties, legalValues, categoryPathCount: leafPathCount };
 }
 
 function buildCategoryTree(paths: string[]) {
@@ -328,4 +350,47 @@ async function clearAndWriteCategories(
   }
 
   console.log(`Successfully wrote ${categoryPaths.length} category paths to ${categoriesTab} tab`);
+}
+
+async function clearAndWriteBrands(
+  token: string,
+  sheetId: string,
+  brands: Array<{ brand: string; brandName: string; website: string }>,
+  brandsTab: string
+): Promise<void> {
+  // Clear existing data in BRANDS!A:C (keep header, delete data starting at row 2)
+  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2:C`)}:clear`;
+  const clearRes = await fetch(clearUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (!clearRes.ok) {
+    const errText = await clearRes.text();
+    throw new Error(`Failed to clear brands: ${errText}`);
+  }
+
+  // Write new brands
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2`)}?valueInputOption=USER_ENTERED`;
+  const writeRes = await fetch(writeUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      values: brands.map((brand) => [brand.brand, brand.brandName, brand.website]),
+    }),
+  });
+
+  if (!writeRes.ok) {
+    const errText = await writeRes.text();
+    throw new Error(`Failed to write brands: ${errText}`);
+  }
+
+  console.log(`Successfully wrote ${brands.length} brands to ${brandsTab} tab`);
 }

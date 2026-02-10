@@ -37,10 +37,12 @@ const Brands = () => {
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editBrand, setEditBrand] = useState("");
-  const [editSupplier, setEditSupplier] = useState("");
+  const [editBrandName, setEditBrandName] = useState("");
+  const [editWebsite, setEditWebsite] = useState("");
   const [adding, setAdding] = useState(false);
   const [newBrand, setNewBrand] = useState("");
-  const [newSupplier, setNewSupplier] = useState("");
+  const [newBrandName, setNewBrandName] = useState("");
+  const [newWebsite, setNewWebsite] = useState("");
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const saveMutation = useMutation({
@@ -57,23 +59,33 @@ const Brands = () => {
   const handleStartEdit = (index: number) => {
     setEditingIndex(index);
     setEditBrand(brands[index].brand);
-    setEditSupplier(brands[index].supplier);
+    setEditBrandName(brands[index].brandName);
+    setEditWebsite(brands[index].website);
   };
 
   const handleSaveEdit = () => {
     if (editingIndex === null || !editBrand.trim()) return;
     const updated = [...brands];
-    updated[editingIndex] = { brand: editBrand.trim(), supplier: editSupplier.trim() };
+    updated[editingIndex] = { 
+      brand: editBrand.trim(), 
+      brandName: editBrandName.trim(),
+      website: editWebsite.trim()
+    };
     saveMutation.mutate(updated);
     setEditingIndex(null);
   };
 
   const handleAdd = () => {
     if (!newBrand.trim()) return;
-    const updated = [...brands, { brand: newBrand.trim(), supplier: newSupplier.trim() }];
+    const updated = [...brands, { 
+      brand: newBrand.trim(), 
+      brandName: newBrandName.trim(),
+      website: newWebsite.trim()
+    }];
     saveMutation.mutate(updated);
     setNewBrand("");
-    setNewSupplier("");
+    setNewBrandName("");
+    setNewWebsite("");
     setAdding(false);
   };
 
@@ -96,7 +108,8 @@ const Brands = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Brand</TableHead>
-                    <TableHead className="text-xs">Supplier</TableHead>
+                    <TableHead className="text-xs">Brand Name</TableHead>
+                    <TableHead className="text-xs">Website</TableHead>
                     <TableHead className="text-xs text-right w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -115,8 +128,15 @@ const Brands = () => {
                           </TableCell>
                           <TableCell>
                             <Input
-                              value={editSupplier}
-                              onChange={(e) => setEditSupplier(e.target.value)}
+                              value={editBrandName}
+                              onChange={(e) => setEditBrandName(e.target.value)}
+                              className="h-7 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={editWebsite}
+                              onChange={(e) => setEditWebsite(e.target.value)}
                               className="h-7 text-xs"
                             />
                           </TableCell>
@@ -132,7 +152,12 @@ const Brands = () => {
                       ) : (
                         <>
                           <TableCell className="text-xs font-medium">{entry.brand}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{entry.supplier}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{entry.brandName}</TableCell>
+                          <TableCell className="text-xs text-blue-600 hover:underline">
+                            <a href={entry.website} target="_blank" rel="noopener noreferrer">
+                              {entry.website}
+                            </a>
+                          </TableCell>
                           <TableCell className="text-right space-x-1">
                             <Button type="button" variant="ghost" size="sm" className="h-7" onClick={() => handleStartEdit(i)}>
                               <Pencil className="h-3 w-3" />
@@ -147,7 +172,7 @@ const Brands = () => {
                   ))}
                   {brands.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-4">
+                      <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-4">
                         No brands yet.
                       </TableCell>
                     </TableRow>
@@ -162,14 +187,20 @@ const Brands = () => {
               <Input
                 value={newBrand}
                 onChange={(e) => setNewBrand(e.target.value)}
-                placeholder="Brand name"
+                placeholder="Brand"
                 className="h-8 text-sm flex-1"
                 autoFocus
               />
               <Input
-                value={newSupplier}
-                onChange={(e) => setNewSupplier(e.target.value)}
-                placeholder="Supplier"
+                value={newBrandName}
+                onChange={(e) => setNewBrandName(e.target.value)}
+                placeholder="Brand Name"
+                className="h-8 text-sm flex-1"
+              />
+              <Input
+                value={newWebsite}
+                onChange={(e) => setNewWebsite(e.target.value)}
+                placeholder="Website"
                 className="h-8 text-sm flex-1"
               />
               <Button type="button" size="sm" className="h-8" onClick={handleAdd}>
