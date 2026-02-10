@@ -127,12 +127,24 @@ export async function writeCategoriesToGoogleSheets(
 
     if (error) {
       console.error("Error writing categories to google-sheets function:", error);
-      return false;
+      throw new Error(error.message || "Failed to write categories to Google Sheets");
     }
 
-    return data?.success ?? false;
+    if (data?.useDefaults) {
+      throw new Error(
+        "Edge function cannot read Supabase secrets. Redeploy the edge function after setting GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID."
+      );
+    }
+
+    if (!data?.success) {
+      throw new Error(data?.error || "Failed to write categories to Google Sheets");
+    }
+
+    return true;
   } catch (error) {
     console.error("Exception writing categories to google-sheets function:", error);
-    return false;
+    throw error instanceof Error
+      ? error
+      : new Error("Failed to write categories to Google Sheets");
   }
 }
