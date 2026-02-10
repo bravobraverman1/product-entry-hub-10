@@ -518,16 +518,30 @@ Once on the function page, look for the Secrets/Environment Variables tab in the
      - Example: `1abc2def3ghi4jkl5mno6pqr7stu8vwxyz`
    - Click **"Save"** or **"Add Secret"**
 
+#### Step 4.4: Add the third secret: ALLOWED_ORIGINS (IMPORTANT for production)
+
+   - Click **"Add secret"** or **"New secret"** button again
+   - **Name (COPY THIS EXACTLY):** `ALLOWED_ORIGINS` (case-sensitive)
+   - **Value (YOUR DOMAIN):** Your application's domain origin
+     - **For Lovable preview:** `https://lovable.dev`
+     - **For production (custom domain):** `https://yourdomain.com`
+     - **For multiple domains (comma-separated):** `https://lovable.dev,https://yourdomain.com`
+     - **For development (allow all):** `*` (not recommended for production)
+   - Click **"Save"** or **"Add Secret"**
+   
+   **Why this is needed:** The Edge Function uses this to set CORS headers so your application can communicate with Google Sheets. Misconfiguration will result in "CORS error" when testing the connection.
+
 **Copy/Paste Tip - Secret Names (COPY EXACTLY):**
 ```
 GOOGLE_SERVICE_ACCOUNT_KEY
 GOOGLE_SHEET_ID
+ALLOWED_ORIGINS
 ```
 
-### Verify both secrets are saved
+### Verify all secrets are saved
 
-- You should see both `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` listed in the Secrets section
-- Both should show a green checkmark indicating they're saved
+- You should see `GOOGLE_SERVICE_ACCOUNT_KEY`, `GOOGLE_SHEET_ID`, and `ALLOWED_ORIGINS` listed in the Secrets section
+- All should show a green checkmark indicating they're saved
 
 #### Step 4.4: Redeploy the Edge Function (REQUIRED)
 
