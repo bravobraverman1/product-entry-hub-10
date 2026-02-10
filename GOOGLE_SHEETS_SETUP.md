@@ -2,20 +2,6 @@
 
 This guide explains how to link your Google Sheets file to the Product Entry Hub application using a secure Google Service Account connected through Supabase Edge Functions.
 
-## ⚠️ PREREQUISITES
-
-**Before starting this guide, make sure you've completed the initial Supabase setup!**
-
-If you haven't configured your Supabase project yet:
-1. 👉 **Go to [SETUP.md](./SETUP.md)** and complete the initial setup
-2. Run `npm run setup` to configure your Supabase credentials
-3. Verify your project is correctly configured in the Admin panel
-4. Then come back here to set up Google Sheets
-
-**Already completed Supabase setup?** Continue below! ✓
-
----
-
 ## ⚠️ IMPORTANT: Most Common Mistake
 
 **If you get a "Cannot Read Secrets" error when testing:**
