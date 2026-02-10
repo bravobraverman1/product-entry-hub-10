@@ -83,8 +83,19 @@ You will now create the Edge Function by pasting ready-made code directly into S
 
 - Go to [supabase.com/dashboard](https://supabase.com/dashboard)
 - Select your project
-- Left sidebar → **Edge Functions** → **Functions**
-- Click **"Open Editor"** (or **"Deploy a new function"**)
+
+### 1.1) Grab your Project URL and Publishable Key (for the Admin .env fields)
+
+On your **project home page** in Supabase (not the user profile page):
+- Find **Project URL** and **Publishable Key** in the left info panel
+- Hover each and click **Copy**
+
+You’ll paste these into the Admin panel later under **Google Sheets Connection** → “Paste .env entries”.
+
+### 1.2) Open the Edge Function editor
+
+- Left sidebar → **Edge Functions**
+- Click **Open Editor**
 
 ### 2) Confirm you are on the correct screen
 
@@ -457,19 +468,16 @@ Supabase is a secure backend service that hosts your application's server-side f
    - Select the project you're using for this application
 
 2. **Navigate to the Edge Functions page**
-   - In the left sidebar, click **"Edge Functions"**
-   - You should see a list of deployed functions
+  - In the left sidebar, click **"Edge Functions"**
+  - You should see a list of deployed functions
 
 3. **Open the google-sheets function**
-   - In the functions list, find and click on **"google-sheets"**
-   - This opens the function details page
+  - In the functions list, find and click on **"google-sheets"**
+  - This opens the function details page
 
-4. **Open the Secrets section**
-   - Look for a tab or section labeled one of the following:
-     - **"Secrets"**
-     - **"Environment Variables"**
-     - **"Settings"** (may contain a Secrets subsection)
-   - Click on it to open the secrets/environment configuration
+4. **Open the Secrets tab**
+  - In the left sidebar under **Edge Functions**, click **Secrets**
+  - This opens the secrets page where you can add values and click **Save**
 
 **Workaround / Manual Navigation:**
 If buttons or links aren't working, manually navigate using this URL pattern:
