@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { FormSection } from "@/components/FormSection";
 import {
   Plus,
@@ -15,11 +16,27 @@ import {
   FolderPlus,
   Loader2,
   Save,
+  ExternalLink,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { fetchCategories, updateCategories } from "@/lib/api";
+import {
+  fetchCategories,
+  updateCategories,
+  fetchProperties,
+  fetchFilterRules,
+  saveFilterRules,
+  type FilterRule,
+} from "@/lib/api";
 import { CategoryLevel, isLeaf, getAllLeafPaths } from "@/data/categoryData";
-import { config } from "@/config";
+import {
+  config,
+  DEFAULT_SHEET_TABS,
+  getConfigValue,
+  setConfigValue,
+  getSheetTabName,
+  setSheetTabName,
+} from "@/config";
+import type { LegalValue } from "@/data/defaultProperties";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,30 +61,6 @@ function treeToPaths(tree: CategoryLevel[], prefix: string[] = []): string[] {
     }
   }
   return paths;
-}
-
-function pathsToTree(paths: string[]): CategoryLevel[] {
-  const root: CategoryLevel[] = [];
-
-  for (const path of paths) {
-    const parts = path.split("/");
-    let current = root;
-
-    for (let i = 0; i < parts.length; i++) {
-      const name = parts[i];
-      let found = current.find((n) => n.name === name);
-      if (!found) {
-        found = { name, children: i < parts.length - 1 ? [] : undefined };
-        current.push(found);
-      }
-      if (i < parts.length - 1) {
-        if (!found.children) found.children = [];
-        current = found.children;
-      }
-    }
-  }
-
-  return root;
 }
 
 // ── Tree Node Editor ────────────────────────────────────────
@@ -119,16 +112,8 @@ function TreeEditorNode({
         style={{ paddingLeft: `${path.length * 16 + 4}px` }}
       >
         {!leaf ? (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="shrink-0 text-muted-foreground"
-          >
-            {expanded ? (
-              <ChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5" />
-            )}
+          <button type="button" onClick={() => setExpanded(!expanded)} className="shrink-0 text-muted-foreground">
+            {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           </button>
         ) : (
           <span className="w-3.5" />
@@ -136,49 +121,22 @@ function TreeEditorNode({
 
         {editing ? (
           <div className="flex items-center gap-1 flex-1">
-            <Input
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className="h-6 text-xs flex-1"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleRename();
-                if (e.key === "Escape") setEditing(false);
-              }}
-            />
-            <button type="button" onClick={handleRename}>
-              <Check className="h-3.5 w-3.5 text-success" />
-            </button>
-            <button type="button" onClick={() => setEditing(false)}>
-              <X className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
+            <Input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="h-6 text-xs flex-1" autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setEditing(false); }} />
+            <button type="button" onClick={handleRename}><Check className="h-3.5 w-3.5 text-success" /></button>
+            <button type="button" onClick={() => setEditing(false)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
           </div>
         ) : (
           <>
             <span className="text-sm flex-1 truncate">{node.name}</span>
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditValue(node.name);
-                  setEditing(true);
-                }}
-                title="Rename"
-              >
+              <button type="button" onClick={() => { setEditValue(node.name); setEditing(true); }} title="Rename">
                 <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
               </button>
-              <button
-                type="button"
-                onClick={() => setAdding(true)}
-                title="Add child"
-              >
+              <button type="button" onClick={() => setAdding(true)} title="Add child">
                 <FolderPlus className="h-3 w-3 text-muted-foreground hover:text-foreground" />
               </button>
-              <button
-                type="button"
-                onClick={() => setDeleteOpen(true)}
-                title="Delete"
-              >
+              <button type="button" onClick={() => setDeleteOpen(true)} title="Delete">
                 <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
               </button>
             </div>
@@ -186,69 +144,34 @@ function TreeEditorNode({
         )}
       </div>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete "{node.name}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              {!leaf
-                ? "This will delete the category and all its children. This cannot be undone."
-                : "This category will be removed. This cannot be undone."}
+              {!leaf ? "This will delete the category and all its children." : "This category will be removed."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                onDelete(currentPath);
-                setDeleteOpen(false);
-              }}
-            >
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => { onDelete(currentPath); setDeleteOpen(false); }}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add child inline */}
       {adding && (
-        <div
-          className="flex items-center gap-1 py-1"
-          style={{ paddingLeft: `${(path.length + 1) * 16 + 8}px` }}
-        >
-          <Input
-            value={newChildName}
-            onChange={(e) => setNewChildName(e.target.value)}
-            placeholder="New category name…"
-            className="h-6 text-xs flex-1"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleAddChild();
-              if (e.key === "Escape") setAdding(false);
-            }}
-          />
-          <button type="button" onClick={handleAddChild}>
-            <Check className="h-3.5 w-3.5 text-success" />
-          </button>
-          <button type="button" onClick={() => setAdding(false)}>
-            <X className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
+        <div className="flex items-center gap-1 py-1" style={{ paddingLeft: `${(path.length + 1) * 16 + 8}px` }}>
+          <Input value={newChildName} onChange={(e) => setNewChildName(e.target.value)} placeholder="New category name…" className="h-6 text-xs flex-1" autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter") handleAddChild(); if (e.key === "Escape") setAdding(false); }} />
+          <button type="button" onClick={handleAddChild}><Check className="h-3.5 w-3.5 text-success" /></button>
+          <button type="button" onClick={() => setAdding(false)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
         </div>
       )}
 
-      {/* Children */}
       {!leaf && expanded && node.children && (
         <div>
           {node.children.map((child) => (
-            <TreeEditorNode
-              key={child.name}
-              node={child}
-              path={currentPath}
-              onRename={onRename}
-              onDelete={onDelete}
-              onAddChild={onAddChild}
-            />
+            <TreeEditorNode key={child.name} node={child} path={currentPath} onRename={onRename} onDelete={onDelete} onAddChild={onAddChild} />
           ))}
         </div>
       )}
@@ -262,6 +185,7 @@ const Admin = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // ── Categories ──
   const { data: loadedTree = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
@@ -272,218 +196,249 @@ const Admin = () => {
   const [dirty, setDirty] = useState(false);
   const [addingRoot, setAddingRoot] = useState(false);
   const [newRootName, setNewRootName] = useState("");
-  const [filtersTabName, setFiltersTabName] = useState<string>(config.FILTERS_TAB_NAME);
 
-  // Sync loaded tree into local state
   useEffect(() => {
-    if (loadedTree.length > 0 && !dirty) {
-      setTree(loadedTree);
-    }
+    if (loadedTree.length > 0 && !dirty) setTree(loadedTree);
   }, [loadedTree, dirty]);
 
   const saveMutation = useMutation({
-    mutationFn: () => {
-      const paths = treeToPaths(tree);
-      return updateCategories(paths);
-    },
+    mutationFn: () => updateCategories(treeToPaths(tree)),
     onSuccess: () => {
-      toast({ title: "Saved", description: "Categories updated successfully." });
+      toast({ title: "Saved", description: "Categories updated." });
       setDirty(false);
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      queryClient.invalidateQueries({ queryKey: ["sheet-data"] });
     },
     onError: (err) => {
-      toast({
-        variant: "destructive",
-        title: "Save Failed",
-        description: err instanceof Error ? err.message : "Could not save categories.",
-      });
+      toast({ variant: "destructive", title: "Save Failed", description: err instanceof Error ? err.message : "Could not save." });
     },
   });
 
-  // ── Tree operations ──
   const modifyTree = (fn: (draft: CategoryLevel[]) => CategoryLevel[]) => {
     setTree((prev) => fn(JSON.parse(JSON.stringify(prev))));
     setDirty(true);
   };
 
-  const findParentAndIndex = (
-    nodes: CategoryLevel[],
-    path: string[]
-  ): { parent: CategoryLevel[] | null; index: number } => {
-    if (path.length === 1) {
-      const idx = nodes.findIndex((n) => n.name === path[0]);
-      return { parent: nodes, index: idx };
-    }
+  const findParentAndIndex = (nodes: CategoryLevel[], path: string[]): { parent: CategoryLevel[] | null; index: number } => {
+    if (path.length === 1) return { parent: nodes, index: nodes.findIndex((n) => n.name === path[0]) };
     const parentNode = nodes.find((n) => n.name === path[0]);
     if (!parentNode?.children) return { parent: null, index: -1 };
     return findParentAndIndex(parentNode.children, path.slice(1));
   };
 
-  const handleRename = useCallback(
-    (path: string[], newName: string) => {
-      modifyTree((draft) => {
-        const { parent, index } = findParentAndIndex(draft, path);
-        if (parent && index >= 0) {
-          parent[index] = { ...parent[index], name: newName };
-        }
-        return draft;
-      });
-    },
-    []
-  );
+  const handleRename = useCallback((path: string[], newName: string) => {
+    modifyTree((draft) => { const { parent, index } = findParentAndIndex(draft, path); if (parent && index >= 0) parent[index] = { ...parent[index], name: newName }; return draft; });
+  }, []);
 
-  const handleDelete = useCallback(
-    (path: string[]) => {
-      modifyTree((draft) => {
-        const { parent, index } = findParentAndIndex(draft, path);
-        if (parent && index >= 0) {
-          parent.splice(index, 1);
-        }
-        return draft;
-      });
-    },
-    []
-  );
+  const handleDelete = useCallback((path: string[]) => {
+    modifyTree((draft) => { const { parent, index } = findParentAndIndex(draft, path); if (parent && index >= 0) parent.splice(index, 1); return draft; });
+  }, []);
 
-  const handleAddChild = useCallback(
-    (parentPath: string[], childName: string) => {
-      modifyTree((draft) => {
-        const findNode = (
-          nodes: CategoryLevel[],
-          path: string[]
-        ): CategoryLevel | null => {
-          if (path.length === 0) return null;
-          const node = nodes.find((n) => n.name === path[0]);
-          if (!node) return null;
-          if (path.length === 1) return node;
-          return findNode(node.children || [], path.slice(1));
-        };
-
-        const target = findNode(draft, parentPath);
-        if (target) {
-          if (!target.children) target.children = [];
-          target.children.push({ name: childName });
-        }
-        return draft;
-      });
-    },
-    []
-  );
+  const handleAddChild = useCallback((parentPath: string[], childName: string) => {
+    modifyTree((draft) => {
+      const findNode = (nodes: CategoryLevel[], p: string[]): CategoryLevel | null => {
+        if (p.length === 0) return null;
+        const node = nodes.find((n) => n.name === p[0]);
+        if (!node) return null;
+        if (p.length === 1) return node;
+        return findNode(node.children || [], p.slice(1));
+      };
+      const target = findNode(draft, parentPath);
+      if (target) { if (!target.children) target.children = []; target.children.push({ name: childName }); }
+      return draft;
+    });
+  }, []);
 
   const handleAddRoot = () => {
     if (newRootName.trim()) {
-      modifyTree((draft) => {
-        draft.push({ name: newRootName.trim(), children: [] });
-        return draft;
-      });
+      modifyTree((draft) => { draft.push({ name: newRootName.trim(), children: [] }); return draft; });
       setNewRootName("");
       setAddingRoot(false);
     }
   };
 
+  // ── Sheet Tab Config ──
+  const [tabValues, setTabValues] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const tab of DEFAULT_SHEET_TABS) {
+      initial[tab.key] = getSheetTabName(tab.key);
+    }
+    return initial;
+  });
+
+  const handleTabNameChange = (key: string, value: string) => {
+    setTabValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const saveTabNames = () => {
+    for (const [key, value] of Object.entries(tabValues)) {
+      setSheetTabName(key, value);
+    }
+    toast({ title: "Saved", description: "Sheet tab names updated." });
+  };
+
+  // ── Connection Settings ──
+  const [appsScriptUrl, setAppsScriptUrl] = useState(getConfigValue("APPS_SCRIPT_BASE_URL", ""));
+  const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
+  const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
+
+  const saveConnectionSettings = () => {
+    setConfigValue("APPS_SCRIPT_BASE_URL", appsScriptUrl);
+    setConfigValue("INSTRUCTIONS_PDF_URL", pdfUrl);
+    setConfigValue("DRIVE_CSV_FOLDER_ID", driveFolderId);
+    toast({ title: "Saved", description: "Connection settings updated. Reload to apply." });
+  };
+
+  // ── LEGAL Editor ──
+  const { data: propData } = useQuery({ queryKey: ["properties"], queryFn: fetchProperties, staleTime: 60_000 });
+  const properties = propData?.properties ?? [];
+  const legalValues = propData?.legalValues ?? [];
+
+  const [selectedLegalProp, setSelectedLegalProp] = useState("");
+  const legalForProp = useMemo(() => legalValues.filter((l) => l.propertyName === selectedLegalProp).map((l) => l.allowedValue), [legalValues, selectedLegalProp]);
+  const dropdownProps = useMemo(() => properties.filter((p) => p.inputType === "dropdown").map((p) => p.name), [properties]);
+
+  // ── FILTER Editor ──
+  const { data: filterRules = [] } = useQuery({ queryKey: ["filter-rules"], queryFn: fetchFilterRules, staleTime: 60_000 });
+  const leafPaths = useMemo(() => getAllLeafPaths(tree), [tree]);
+
   return (
     <div className="space-y-6">
+      {/* Connection Settings */}
+      <FormSection title="Connection Settings" defaultOpen={false}>
+        <div className="space-y-4">
+          <div className="space-y-1.5 max-w-lg">
+            <Label className="text-xs font-medium">Apps Script Web App URL</Label>
+            <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
+            <p className="text-xs text-muted-foreground">Leave empty to use mock/default data.</p>
+          </div>
+          <div className="space-y-1.5 max-w-lg">
+            <Label className="text-xs font-medium">Product Instructions PDF URL</Label>
+            <Input value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="/chatgpt-product-instructions.pdf" className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1.5 max-w-lg">
+            <Label className="text-xs font-medium">Google Drive CSV Folder ID</Label>
+            <Input value={driveFolderId} onChange={(e) => setDriveFolderId(e.target.value)} placeholder="1abc..." className="h-9 text-sm font-mono" />
+          </div>
+          <Button type="button" size="sm" onClick={saveConnectionSettings}><Save className="h-3.5 w-3.5 mr-1" /> Save Connection Settings</Button>
+        </div>
+      </FormSection>
+
+      {/* Sheet Tab Names */}
+      <FormSection title="Sheet Tab Names" defaultOpen={false}>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">Configure the exact Google Sheet tab names used by this application.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {DEFAULT_SHEET_TABS.map((tab) => (
+              <div key={tab.key} className="space-y-1">
+                <Label className="text-xs font-medium">{tab.label}</Label>
+                <Input
+                  value={tabValues[tab.key] || ""}
+                  onChange={(e) => handleTabNameChange(tab.key, e.target.value)}
+                  className="h-8 text-sm font-mono"
+                />
+              </div>
+            ))}
+          </div>
+          <Button type="button" size="sm" onClick={saveTabNames}><Save className="h-3.5 w-3.5 mr-1" /> Save Tab Names</Button>
+        </div>
+      </FormSection>
+
       {/* Category Editor */}
       <FormSection title="Categories Editor" defaultOpen>
         <div className="space-y-3">
           <div className="border border-border rounded-lg p-2 max-h-[500px] overflow-y-auto">
             {tree.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No categories loaded.
-              </p>
+              <p className="text-sm text-muted-foreground text-center py-4">No categories loaded.</p>
             ) : (
               tree.map((node) => (
-                <TreeEditorNode
-                  key={node.name}
-                  node={node}
-                  path={[]}
-                  onRename={handleRename}
-                  onDelete={handleDelete}
-                  onAddChild={handleAddChild}
-                />
+                <TreeEditorNode key={node.name} node={node} path={[]} onRename={handleRename} onDelete={handleDelete} onAddChild={handleAddChild} />
               ))
             )}
           </div>
 
-          {/* Add root category */}
           {addingRoot ? (
             <div className="flex items-center gap-2">
-              <Input
-                value={newRootName}
-                onChange={(e) => setNewRootName(e.target.value)}
-                placeholder="New root category…"
-                className="h-8 text-sm flex-1 max-w-sm"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddRoot();
-                  if (e.key === "Escape") setAddingRoot(false);
-                }}
-              />
-              <Button type="button" size="sm" className="h-8" onClick={handleAddRoot}>
-                <Check className="h-3.5 w-3.5 mr-1" />
-                Add
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8"
-                onClick={() => setAddingRoot(false)}
-              >
-                Cancel
-              </Button>
+              <Input value={newRootName} onChange={(e) => setNewRootName(e.target.value)} placeholder="New root category…" className="h-8 text-sm flex-1 max-w-sm" autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleAddRoot(); if (e.key === "Escape") setAddingRoot(false); }} />
+              <Button type="button" size="sm" className="h-8" onClick={handleAddRoot}><Check className="h-3.5 w-3.5 mr-1" /> Add</Button>
+              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => setAddingRoot(false)}>Cancel</Button>
             </div>
           ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={() => setAddingRoot(true)}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Add Root Category
+            <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setAddingRoot(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add Root Category
             </Button>
           )}
 
-          {/* Save */}
           <div className="flex items-center gap-3 pt-2 border-t border-border">
-            <Button
-              type="button"
-              disabled={!dirty || saveMutation.isPending}
-              onClick={() => saveMutation.mutate()}
-              className="h-9"
-            >
-              {saveMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-1.5" />
-              )}
+            <Button type="button" disabled={!dirty || saveMutation.isPending} onClick={() => saveMutation.mutate()} className="h-9">
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
               Save Changes
             </Button>
-            {dirty && (
-              <p className="text-xs text-warning">Unsaved changes</p>
-            )}
+            {dirty && <p className="text-xs text-warning">Unsaved changes</p>}
           </div>
         </div>
       </FormSection>
 
-      {/* Filters Tab Name */}
-      <FormSection title="Settings" defaultOpen={false}>
+      {/* LEGAL Values Editor */}
+      <FormSection title="LEGAL Values Editor" defaultOpen={false}>
         <div className="space-y-3">
-          <div className="space-y-1.5 max-w-sm">
-            <Label className="text-xs font-medium">Filters Tab Name</Label>
-            <Input
-              value={filtersTabName}
-              onChange={(e) => setFiltersTabName(e.target.value)}
-              placeholder="FILTER"
-              className="h-9 text-sm"
-            />
-            <p className="text-xs text-muted-foreground">
-              Name of the sheet tab that contains filter rules. Future wiring only.
-            </p>
+          <p className="text-xs text-muted-foreground">Select a dropdown field to view and manage its allowed values. Changes are saved to the LEGAL sheet.</p>
+          <div className="max-w-sm">
+            <Label className="text-xs font-medium">Field</Label>
+            <select
+              value={selectedLegalProp}
+              onChange={(e) => setSelectedLegalProp(e.target.value)}
+              className="w-full h-9 text-sm border border-border rounded-md px-2 bg-background"
+            >
+              <option value="">Select a field…</option>
+              {dropdownProps.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
           </div>
+          {selectedLegalProp && (
+            <div className="border border-border rounded-lg p-3 space-y-2">
+              <p className="text-xs font-medium">Allowed values for "{selectedLegalProp}":</p>
+              {legalForProp.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No values defined yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {legalForProp.map((val) => (
+                    <span key={val} className="px-2 py-0.5 rounded-full bg-muted text-xs">{val}</span>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">New values can be added via the "Other…" option in form dropdowns, or edit the LEGAL sheet directly.</p>
+            </div>
+          )}
+        </div>
+      </FormSection>
+
+      {/* FILTER Rules Editor */}
+      <FormSection title="FILTER Rules Editor" defaultOpen={false}>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Define which fields/specifications are visible or required when a specific category is selected as MAIN.
+            Select a category, then configure field visibility.
+          </p>
+          <p className="text-xs text-muted-foreground italic">
+            This feature reads/writes to the "{config.SHEET_FILTER}" sheet tab. {filterRules.length > 0 ? `${filterRules.length} rules loaded.` : "No rules configured yet."}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Full filter editor coming soon — configure rules directly in the {config.SHEET_FILTER} sheet for now.
+          </p>
+        </div>
+      </FormSection>
+
+      {/* Product Instructions PDF */}
+      <FormSection title="Product Instructions" defaultOpen={false}>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Reference document for data entry guidelines.</p>
+          <Button type="button" variant="outline" size="sm" asChild>
+            <a href={config.INSTRUCTIONS_PDF_URL} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> View Instructions PDF
+            </a>
+          </Button>
         </div>
       </FormSection>
     </div>
