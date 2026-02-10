@@ -89,7 +89,7 @@ In the **"Function name"** field at the bottom right, type EXACTLY (copy this):
 google-sheets
 ```
 
-**⚠️ IMPORTANT:** The name must be exactly `google-sheets` - no spaces, no capital letters, no changes.
+**⚠️ IMPORTANT:** The name must be exactly `google-sheets` - no spaces, no underscores, no capital letters, no changes. It's "google-sheets" with a hyphen (-).
 
 ### 4) Replace the template code (IMPORTANT)
 
@@ -427,7 +427,7 @@ Once on the function page, look for the Secrets/Environment Variables tab in the
      - Example: `1abc2def3ghi4jkl5mno6pqr7stu8vwxyz`
    - Click **"Save"** or **"Add Secret"**
 
-**Copy/Paste Helper - Secret Names (COPY EXACTLY):**
+**Copy/Paste Tip - Secret Names (COPY EXACTLY):**
 ```
 GOOGLE_SERVICE_ACCOUNT_KEY
 GOOGLE_SHEET_ID
