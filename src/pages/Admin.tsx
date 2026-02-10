@@ -285,10 +285,13 @@ const Admin = () => {
   // ── Connection Settings ──
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-  const supabaseProjectRef = supabaseUrl.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i)?.[1] || "";
+  
+  // Regex pattern for validating and extracting project ref from Supabase URL
+  const SUPABASE_URL_PATTERN = /https:\/\/([a-z0-9-]+)\.supabase\.co/i;
+  const supabaseProjectRef = supabaseUrl.match(SUPABASE_URL_PATTERN)?.[1] || "";
   
   // Validate if URL is a proper Supabase URL
-  const isValidSupabaseUrl = /https:\/\/[a-z0-9-]+\.supabase\.co/i.test(supabaseUrl);
+  const isValidSupabaseUrl = SUPABASE_URL_PATTERN.test(supabaseUrl);
   
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));

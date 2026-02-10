@@ -6,8 +6,12 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Validate that both URL and key are provided
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  console.warn('⚠️ Supabase NOT CONFIGURED: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY must be set in environment variables. The application will load but Supabase features will not work until configured.');
+const missingVars = [];
+if (!SUPABASE_URL) missingVars.push('VITE_SUPABASE_URL');
+if (!SUPABASE_PUBLISHABLE_KEY) missingVars.push('VITE_SUPABASE_PUBLISHABLE_KEY');
+
+if (missingVars.length > 0) {
+  console.warn(`⚠️ Supabase NOT CONFIGURED: Missing environment variable(s): ${missingVars.join(', ')}. The application will load but Supabase features will not work until configured.`);
 }
 
 // Create client with placeholder values if not configured to allow the app to load
