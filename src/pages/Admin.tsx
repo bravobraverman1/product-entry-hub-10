@@ -358,7 +358,7 @@ const Admin = () => {
   return (
     <div className="space-y-6">
       {/* Connection Settings */}
-      <FormSection title="Google Sheets Connection" defaultOpen={true}>
+      <FormSection title="Google Sheets Connection" defaultOpen={false}>
         <div className="space-y-4">
           <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-4 space-y-2">
             <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">📚 Need Help Connecting Your Google Sheet?</h4>
@@ -526,53 +526,63 @@ const Admin = () => {
               </div>
             </div>
 
-            {/* Step 5: Activate Configuration */}
+            {/* Step 5: Activate Configuration via GitHub Actions */}
             <div className="space-y-3">
               <div className="flex items-start gap-2">
                 <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">5</div>
                 <div className="flex-1">
-                  <h5 className="text-sm font-semibold">Activate the Pre-Built Configuration (One Time)</h5>
+                  <h5 className="text-sm font-semibold">Activate the Google Sheets Connection (GitHub Actions)</h5>
                   <p className="text-sm text-muted-foreground mt-1">
-                    This step activates a configuration file that already exists. <strong>You are not creating or editing code.</strong>
+                    <strong>No terminal required.</strong> This step activates your connection by clicking a button in GitHub. 
                   </p>
                 </div>
               </div>
               <div className="ml-8 space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  There is a server file named <code className="text-xs bg-muted px-1 py-0.5 rounded">google-sheets</code> that already contains everything needed. This step turns it on.
-                </p>
-                <div>
-                  <p className="text-sm font-medium mb-2">Prerequisites:</p>
-                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                    <li>Access to the Supabase project</li>
-                    <li>A computer with Node.js installed (<a href="https://nodejs.org" target="_blank" rel="noopener noreferrer" className="underline">download here</a>)</li>
-                  </ul>
+                <div className="rounded-lg border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-800 p-3">
+                  <p className="text-xs font-semibold text-green-900 dark:text-green-100">✓ What this does: Automatically deploys your Edge Function and activates your Google Sheets connection.</p>
                 </div>
+                
                 <div>
-                  <p className="text-sm font-medium mb-2">Commands (run these in order):</p>
-                  <div className="space-y-3">
-                    <div className="bg-muted p-3 rounded-lg">
-                      <p className="text-xs font-semibold mb-1">1. Install Supabase CLI (one time):</p>
-                      <code className="text-xs bg-background px-2 py-1 rounded border block">npm install -g supabase</code>
+                  <p className="text-sm font-medium mb-3">One-Time Setup: Add GitHub Secrets</p>
+                  <div className="bg-muted p-4 rounded-lg space-y-3 max-h-48 overflow-y-auto">
+                    <div>
+                      <p className="text-xs font-semibold mb-2">1. Go to your GitHub repository → Settings → Secrets and variables → Actions</p>
                     </div>
-                    <div className="bg-muted p-3 rounded-lg">
-                      <p className="text-xs font-semibold mb-1">2. Sign in to Supabase:</p>
-                      <code className="text-xs bg-background px-2 py-1 rounded border block">supabase login</code>
-                      <p className="text-xs text-muted-foreground mt-1">This opens your browser to log in, then return to the terminal</p>
-                    </div>
-                    <div className="bg-muted p-3 rounded-lg">
-                      <p className="text-xs font-semibold mb-1">3. Link your project:</p>
-                      <code className="text-xs bg-background px-2 py-1 rounded border block">supabase link --project-ref {supabaseProjectId}</code>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Project ref can be found at: <a href={`https://supabase.com/dashboard/project/${supabaseProjectId}/settings/general`} target="_blank" rel="noopener noreferrer" className="underline">Supabase Settings</a>
-                      </p>
-                    </div>
-                    <div className="bg-muted p-3 rounded-lg">
-                      <p className="text-xs font-semibold mb-1">4. Activate the configuration:</p>
-                      <code className="text-xs bg-background px-2 py-1 rounded border block">supabase functions deploy google-sheets</code>
-                      <p className="text-xs text-muted-foreground mt-1">This usually takes less than 30 seconds and only needs to be done once.</p>
+                    <div>
+                      <p className="text-xs font-semibold mb-2">2. Create three secrets:</p>
+                      <div className="space-y-2">
+                        <div className="bg-background p-2 rounded border">
+                          <p className="text-xs font-semibold">Secret 1: SUPABASE_ACCESS_TOKEN</p>
+                          <p className="text-xs text-muted-foreground">Get from: https://supabase.com/dashboard/account/tokens</p>
+                        </div>
+                        <div className="bg-background p-2 rounded border">
+                          <p className="text-xs font-semibold">Secret 2: SUPABASE_PROJECT_REF</p>
+                          <p className="text-xs text-muted-foreground">Get from: Supabase Dashboard → Settings → General (Reference ID)</p>
+                        </div>
+                        <div className="bg-background p-2 rounded border">
+                          <p className="text-xs font-semibold">Secret 3: SUPABASE_DB_PASSWORD</p>
+                          <p className="text-xs text-muted-foreground">Your Supabase database password (from project creation)</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium mb-3">Then: Run the Workflow (5 Clicks)</p>
+                  <div className="space-y-2">
+                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                      <li>Go to your GitHub repository → <strong>Actions</strong> tab</li>
+                      <li>Select <strong>"Deploy Google Sheets Connection"</strong> from the left sidebar</li>
+                      <li>Click <strong>"Run workflow"</strong> button</li>
+                      <li>Select <strong>"production"</strong> environment</li>
+                      <li>Wait for completion (green checkmark ✓) — takes 2-3 minutes</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-blue-600 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
+                  <p className="text-xs text-blue-900 dark:text-blue-100"><strong>ℹ️ This only needs to be done once.</strong> After completion, your Google Sheets connection is active!</p>
                 </div>
               </div>
             </div>
