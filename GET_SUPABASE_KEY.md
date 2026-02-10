@@ -2,14 +2,12 @@
 
 ## Quick Steps
 
-Your application is configured to use project: `oqaodtatfzcibpfmhejl`
-
-To complete the configuration, you need to get the publishable key from your Supabase dashboard:
+This guide shows you how to get your Supabase publishable key (anon key) for any project.
 
 ### 1. Go to Supabase Dashboard
-Visit: https://supabase.com/dashboard/project/oqaodtatfzcibpfmhejl
+Visit: https://supabase.com/dashboard
 
-(If the direct link doesn't work, go to https://supabase.com/dashboard and select your project)
+Select your project from the list (or create a new one if needed)
 
 ### 2. Navigate to API Settings
 - Click on **Settings** (gear icon in sidebar)
@@ -22,26 +20,47 @@ You'll see two keys:
 - **`anon` / `public`** ← This is your **publishable key** (safe to use in frontend)
 - **`service_role`** ← Do NOT use this one (it's for backend only)
 
-### 4. Copy the Publishable Key
-- Click the copy icon next to the **`anon`** key
-- It will look something like: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+### 4. Copy All Three Values
+
+From the API page, copy:
+1. **Project URL** - Example: `https://abcd1234.supabase.co`
+2. **Project Reference ID** - Example: `abcd1234` (the part before .supabase.co)
+3. **anon/public key** - Click the copy icon next to the **`anon`** key
+   - It will look something like: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
 
 ### 5. Update Your .env File
 
-Open the `.env` file in your project root and replace the placeholder:
+Open the `.env` file in your project root and add your values:
 
-**Before:**
-```
-VITE_SUPABASE_PUBLISHABLE_KEY="YOUR_PUBLISHABLE_KEY_HERE"
-```
-
-**After:**
-```
+```bash
+VITE_SUPABASE_PROJECT_ID="your-project-ref"
+VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
-(Paste your actual key)
 
-### 6. Restart Your Development Server
+**Example with sample values:**
+```bash
+VITE_SUPABASE_PROJECT_ID="abcd1234"
+VITE_SUPABASE_URL="https://abcd1234.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2QxMjM0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MjAwMDAwMDAwMH0.example"
+```
+
+**Important:**
+- Make sure the Project ID matches between the URL and PROJECT_ID variable
+- The key should be one long string (no line breaks)
+- Save the file
+
+### 6. Verify Your Configuration
+
+Run the configuration checker:
+
+```bash
+./check-config.sh
+```
+
+This will verify all values are set correctly and match each other.
+
+### 7. Restart Your Development Server
 
 **Important:** Environment variables are loaded when Vite starts, so you must restart:
 
@@ -51,21 +70,21 @@ VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 npm run dev
 ```
 
-### 7. Verify the Configuration
+### 8. Verify in the Application
 
 1. Open your application in the browser
 2. Navigate to the **Admin** page
 3. Look at the **"Project Check"** section
-4. You should now see:
+4. You should now see your project details:
    ```
-   Supabase URL: https://oqaodtatfzcibpfmhejl.supabase.co
-   Project Ref: oqaodtatfzcibpfmhejl
+   Supabase URL: https://your-project.supabase.co
+   Project Ref: your-project-ref
    Publishable Key: ✓ Detected
    ```
 
 ## Troubleshooting
 
-### Still seeing the old project ID?
+### Still seeing "Not Configured"?
 1. **Clear browser cache:**
    - Press `Ctrl+Shift+Delete` (or `Cmd+Shift+Delete` on Mac)
    - Clear cached images and files

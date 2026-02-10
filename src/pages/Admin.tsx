@@ -421,11 +421,11 @@ const Admin = () => {
                 <ol className="list-decimal list-inside space-y-1 text-xs text-amber-900 dark:text-amber-100 ml-2">
                   <li>Create or select your Supabase project at <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline">supabase.com/dashboard</a></li>
                   <li>Get your project URL and anon key from: Settings → API</li>
-                  <li>Update environment variables in Lovable (Cloud tab) OR your local .env file</li>
-                  <li>Restart your dev server / redeploy your app</li>
+                  <li>Update your local .env file with your credentials</li>
+                  <li>Restart your dev server (Ctrl+C then npm run dev)</li>
                 </ol>
                 <p className="text-xs italic text-amber-800 dark:text-amber-200 mt-2">
-                  See: <strong>LOVABLE_CLOUD_SETUP.md</strong> or <strong>COMPLETE_SETUP.md</strong> for detailed instructions
+                  See: <strong>COMPLETE_SETUP.md</strong> or <strong>QUICKSTART.txt</strong> for detailed instructions
                 </p>
               </div>
             ) : (
