@@ -2,13 +2,18 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Placeholder values used when configuration is missing to allow app to load gracefully
+const PLACEHOLDER_URL = 'https://placeholder.supabase.co';
+const PLACEHOLDER_KEY = 'placeholder-key';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Validate that both URL and key are provided
-const missingVars = [];
-if (!SUPABASE_URL) missingVars.push('VITE_SUPABASE_URL');
-if (!SUPABASE_PUBLISHABLE_KEY) missingVars.push('VITE_SUPABASE_PUBLISHABLE_KEY');
+const missingVars = [
+  { name: 'VITE_SUPABASE_URL', value: SUPABASE_URL },
+  { name: 'VITE_SUPABASE_PUBLISHABLE_KEY', value: SUPABASE_PUBLISHABLE_KEY }
+].filter(v => !v.value).map(v => v.name);
 
 if (missingVars.length > 0) {
   console.warn(`⚠️ Supabase NOT CONFIGURED: Missing environment variable(s): ${missingVars.join(', ')}. The application will load but Supabase features will not work until configured.`);
@@ -17,8 +22,8 @@ if (missingVars.length > 0) {
 // Create client with placeholder values if not configured to allow the app to load
 // The Admin page will show "NOT CONFIGURED" status and disable connection tests
 // Any attempted Supabase API calls will fail gracefully
-const url = SUPABASE_URL || 'https://placeholder.supabase.co';
-const key = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
+const url = SUPABASE_URL || PLACEHOLDER_URL;
+const key = SUPABASE_PUBLISHABLE_KEY || PLACEHOLDER_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
