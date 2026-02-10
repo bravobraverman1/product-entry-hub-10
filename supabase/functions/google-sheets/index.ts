@@ -12,8 +12,22 @@ serve(async (req) => {
   }
 
   try {
-    const serviceAccountKey = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
-    const sheetId = Deno.env.get("GOOGLE_SHEET_ID");
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("Invalid JSON in request body:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { action, serviceAccountKey: requestServiceAccountKey, sheetId: requestSheetId } = body;
+
+    // Check for credentials in request body first, then environment
+    const serviceAccountKey = requestServiceAccountKey || Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+    const sheetId = requestSheetId || Deno.env.get("GOOGLE_SHEET_ID");
 
     // If no credentials configured, return flag to use defaults
     if (!serviceAccountKey || !sheetId) {
@@ -23,9 +37,6 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const body = await req.json();
-    const { action } = body;
 
     // Parse service account key
     const keyData = JSON.parse(serviceAccountKey);

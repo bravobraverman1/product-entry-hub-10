@@ -1,7 +1,9 @@
 // ============================================================
 // API Layer – wraps all backend calls.
-// When APPS_SCRIPT_BASE_URL is set, calls the real backend.
-// Otherwise, returns mock/fallback data.
+// Priority order:
+// 1. Supabase Edge Function (if Google Sheets credentials configured)
+// 2. Apps Script URL (if APPS_SCRIPT_BASE_URL is set)
+// 3. Mock/fallback data
 // ============================================================
 
 import { config } from "@/config";
@@ -13,6 +15,10 @@ import {
   type LegalValue,
 } from "@/data/defaultProperties";
 import { categoryTree, type CategoryLevel } from "@/data/categoryData";
+import {
+  isSupabaseGoogleSheetsConfigured,
+  readGoogleSheets,
+} from "@/lib/supabaseGoogleSheets";
 
 const BASE = () => config.APPS_SCRIPT_BASE_URL;
 
@@ -52,6 +58,28 @@ export interface SkuEntry {
 export async function fetchSkus(
   status?: string
 ): Promise<SkuEntry[]> {
+  // Try Supabase Google Sheets first
+  if (isSupabaseGoogleSheetsConfigured()) {
+    try {
+      const data = await readGoogleSheets();
+      if (data.products && !data.useDefaults) {
+        return data.products
+          .map((p) => ({
+            sku: p.sku,
+            brand: p.brand,
+            status: config.STATUS_READY,
+            visibility: 1,
+            exampleTitle: p.exampleTitle,
+          }))
+          .filter((s) => !status || s.status === status)
+          .filter((s) => (s.visibility ?? 0) >= 1);
+      }
+    } catch (error) {
+      console.error("Error fetching from Supabase Google Sheets:", error);
+    }
+  }
+
+  // Fall back to Apps Script if configured
   if (!isConfigured()) {
     return defaultProducts
       .map((p) => ({
@@ -72,6 +100,20 @@ export async function fetchSkus(
 // ── Brand Lookup ────────────────────────────────────────────
 
 export async function fetchBrand(sku: string): Promise<string> {
+  // Try Supabase Google Sheets first
+  if (isSupabaseGoogleSheetsConfigured()) {
+    try {
+      const data = await readGoogleSheets();
+      if (data.products && !data.useDefaults) {
+        const found = data.products.find((p) => p.sku === sku);
+        if (found) return found.brand;
+      }
+    } catch (error) {
+      console.error("Error fetching brand from Supabase Google Sheets:", error);
+    }
+  }
+
+  // Fall back to Apps Script or defaults
   if (!isConfigured()) {
     const found = defaultProducts.find((p) => p.sku === sku);
     return found?.brand ?? "";
@@ -85,6 +127,19 @@ export async function fetchBrand(sku: string): Promise<string> {
 // ── Categories ──────────────────────────────────────────────
 
 export async function fetchCategories(): Promise<CategoryLevel[]> {
+  // Try Supabase Google Sheets first
+  if (isSupabaseGoogleSheetsConfigured()) {
+    try {
+      const data = await readGoogleSheets();
+      if (data.categories && !data.useDefaults) {
+        return data.categories;
+      }
+    } catch (error) {
+      console.error("Error fetching categories from Supabase Google Sheets:", error);
+    }
+  }
+
+  // Fall back to Apps Script or defaults
   if (!isConfigured()) {
     return categoryTree;
   }
@@ -110,6 +165,22 @@ export async function fetchProperties(): Promise<{
   properties: PropertyDefinition[];
   legalValues: LegalValue[];
 }> {
+  // Try Supabase Google Sheets first
+  if (isSupabaseGoogleSheetsConfigured()) {
+    try {
+      const data = await readGoogleSheets();
+      if (data.properties && data.legalValues && !data.useDefaults) {
+        return {
+          properties: data.properties,
+          legalValues: data.legalValues,
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching properties from Supabase Google Sheets:", error);
+    }
+  }
+
+  // Fall back to Apps Script or defaults
   if (!isConfigured()) {
     return {
       properties: defaultProperties,

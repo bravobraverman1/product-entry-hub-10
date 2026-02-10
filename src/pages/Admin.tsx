@@ -280,12 +280,105 @@ const Admin = () => {
   const [appsScriptUrl, setAppsScriptUrl] = useState(getConfigValue("APPS_SCRIPT_BASE_URL", ""));
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
+  const [googleServiceAccountKey, setGoogleServiceAccountKey] = useState(getConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", ""));
+  const [googleSheetId, setGoogleSheetId] = useState(getConfigValue("GOOGLE_SHEET_ID", ""));
+  const [testingConnection, setTestingConnection] = useState(false);
+
+  const testSupabaseConnection = async () => {
+    if (!googleServiceAccountKey.trim() || !googleSheetId.trim()) {
+      toast({ 
+        variant: "destructive", 
+        title: "Missing Configuration", 
+        description: "Please provide both Service Account Key and Sheet ID before testing." 
+      });
+      return;
+    }
+
+    setTestingConnection(true);
+    try {
+      // Save settings to localStorage for the test to work
+      setConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", googleServiceAccountKey);
+      setConfigValue("GOOGLE_SHEET_ID", googleSheetId);
+      
+      const { readGoogleSheets } = await import("@/lib/supabaseGoogleSheets");
+      const result = await readGoogleSheets();
+      
+      if (result.useDefaults) {
+        toast({ 
+          variant: "destructive", 
+          title: "Connection Failed", 
+          description: "Could not connect to Google Sheets. Check your credentials and Sheet ID." 
+        });
+      } else {
+        const productCount = result.products?.length ?? 0;
+        const categoryCount = result.categories?.length ?? 0;
+        toast({ 
+          title: "Connection Successful! ✓", 
+          description: `Connected to your sheet. Found ${productCount} products and ${categoryCount} categories.` 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        variant: "destructive", 
+        title: "Connection Error", 
+        description: error instanceof Error ? error.message : "An unexpected error occurred." 
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   const saveConnectionSettings = () => {
+    // Validate Google Service Account Key if provided
+    if (googleServiceAccountKey.trim()) {
+      try {
+        const parsed = JSON.parse(googleServiceAccountKey);
+        // Check for required fields with explicit validation
+        if (!parsed.type || typeof parsed.type !== 'string' || parsed.type.trim() === '' ||
+            !parsed.project_id || typeof parsed.project_id !== 'string' || parsed.project_id.trim() === '' ||
+            !parsed.private_key || typeof parsed.private_key !== 'string' || parsed.private_key.trim() === '' ||
+            !parsed.client_email || typeof parsed.client_email !== 'string' || parsed.client_email.trim() === '') {
+          toast({ 
+            variant: "destructive", 
+            title: "Invalid JSON Key", 
+            description: "The Google Service Account Key is missing required fields (type, project_id, private_key, client_email)." 
+          });
+          return;
+        }
+      } catch (error) {
+        toast({ 
+          variant: "destructive", 
+          title: "Invalid JSON", 
+          description: "The Google Service Account Key must be valid JSON. Please check the format." 
+        });
+        return;
+      }
+    }
+
+    // Validate Google Sheet ID format if provided
+    if (googleSheetId.trim()) {
+      // Google Sheet IDs are alphanumeric with hyphens/underscores, minimum 30 characters
+      if (googleSheetId.trim().length < 30 || !/^[a-zA-Z0-9_-]+$/.test(googleSheetId.trim())) {
+        toast({ 
+          variant: "destructive", 
+          title: "Invalid Sheet ID", 
+          description: "The Google Sheet ID format appears incorrect. It should be a long alphanumeric string (minimum 30 characters)." 
+        });
+        return;
+      }
+    }
+
+    // Save all settings
     setConfigValue("APPS_SCRIPT_BASE_URL", appsScriptUrl);
     setConfigValue("INSTRUCTIONS_PDF_URL", pdfUrl);
     setConfigValue("DRIVE_CSV_FOLDER_ID", driveFolderId);
-    toast({ title: "Saved", description: "Connection settings updated. Reload to apply." });
+    setConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", googleServiceAccountKey);
+    setConfigValue("GOOGLE_SHEET_ID", googleSheetId);
+    
+    toast({ 
+      title: "Saved", 
+      description: "Connection settings saved. Changes take effect immediately." 
+    });
   };
 
   // ── LEGAL Editor ──
@@ -324,12 +417,81 @@ const Admin = () => {
             </div>
           </div>
 
-          <div className="space-y-1.5 max-w-lg">
-            <Label className="text-xs font-medium">Apps Script Web App URL (Method 2 Only)</Label>
-            <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
+          {/* Method 1: Supabase Edge Function Configuration */}
+          <div className="border border-primary/20 rounded-lg p-4 space-y-3 bg-primary/5">
+            <h4 className="text-sm font-semibold">Method 1: Google Service Account (Recommended)</h4>
+            <div className="rounded-lg border border-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 p-3 space-y-1">
+              <p className="text-xs font-semibold text-yellow-900 dark:text-yellow-100">⚠️ Security Notice</p>
+              <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                Credentials are stored in your browser's localStorage. Only use this on trusted devices. For production deployments, consider setting credentials server-side via Supabase dashboard instead.
+              </p>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Only needed if using Google Apps Script method. Leave empty to use Supabase Edge Function or mock data.
+              Configure your Google Service Account credentials below. Follow the <a href="https://github.com/bravobraverman1/product-entry-hub-10/blob/main/GOOGLE_SHEETS_SETUP.md" target="_blank" rel="noopener noreferrer" className="underline">complete setup guide</a> for step-by-step instructions.
             </p>
+            
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Google Service Account Key (JSON)</Label>
+              <Textarea 
+                value={googleServiceAccountKey} 
+                onChange={(e) => setGoogleServiceAccountKey(e.target.value)} 
+                placeholder='Paste the entire JSON key file contents here: {"type": "service_account", "project_id": "...", ...}'
+                className="min-h-32 text-xs font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Create a Google Service Account, download the JSON key file, and paste its entire contents here.
+              </p>
+            </div>
+            
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Google Sheet ID</Label>
+              <Input 
+                value={googleSheetId} 
+                onChange={(e) => setGoogleSheetId(e.target.value)} 
+                placeholder="1abc123xyz..." 
+                className="h-9 text-sm font-mono" 
+              />
+              <p className="text-xs text-muted-foreground">
+                The long string in your sheet URL between /d/ and /edit. Example: In https://docs.google.com/spreadsheets/d/1abc123xyz/edit, the ID is 1abc123xyz
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={testSupabaseConnection}
+                disabled={testingConnection || !googleServiceAccountKey.trim() || !googleSheetId.trim()}
+              >
+                {testingConnection ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                    Test Connection
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground self-center">
+                Test your credentials before saving to ensure they work correctly.
+              </p>
+            </div>
+          </div>
+
+          {/* Method 2: Apps Script Configuration */}
+          <div className="border border-border rounded-lg p-4 space-y-3">
+            <h4 className="text-sm font-semibold">Method 2: Google Apps Script (Alternative)</h4>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Apps Script Web App URL</Label>
+              <Input value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="h-9 text-sm font-mono" />
+              <p className="text-xs text-muted-foreground">
+                Only needed if using Google Apps Script method. Leave empty to use Method 1 (Supabase) or mock data.
+              </p>
+            </div>
           </div>
           
           <div className="space-y-1.5 max-w-lg">

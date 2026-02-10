@@ -108,6 +108,14 @@ export const config = {
   get DRIVE_CSV_FOLDER_ID() {
     return getConfigValue("DRIVE_CSV_FOLDER_ID", "");
   },
+
+  // ── Supabase Google Sheets Configuration ─────────────────
+  get GOOGLE_SERVICE_ACCOUNT_KEY() {
+    return getConfigValue("GOOGLE_SERVICE_ACCOUNT_KEY", "");
+  },
+  get GOOGLE_SHEET_ID() {
+    return getConfigValue("GOOGLE_SHEET_ID", "");
+  },
 } as const;
 
 export type AppConfig = typeof config;
