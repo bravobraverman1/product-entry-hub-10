@@ -21,7 +21,8 @@ Follow these steps in order:
 3. **STEP 3:** Create and Deploy the Edge Function (Required for new projects)
 4. **STEP 4:** Add credentials to Supabase (server-side security)
 5. **STEP 5:** Activate the Google Sheets Connection (GitHub Actions) **← REQUIRED after adding secrets**
-6. **STEP 6:** Test your connection
+6. **STEP 6:** Configure Admin settings (optional but recommended)
+7. **STEP 7:** Test your connection
 
 ## Table of Contents
 1. [STEP 1: Create a Google Service Account](#step-1-create-a-google-service-account)
@@ -29,7 +30,8 @@ Follow these steps in order:
 3. [STEP 3: Create and Deploy the Edge Function](#step-3-create-and-deploy-the-edge-function)
 4. [STEP 4: Add Credentials to Supabase](#step-4-add-credentials-to-supabase)
 5. [STEP 5: Activate the Google Sheets Connection (GitHub Actions)](#step-5-activate-the-google-sheets-connection-github-actions)
-6. [STEP 6: Test Your Connection](#step-6-test-your-connection)
+6. [STEP 6: Configure Admin Settings (Optional)](#step-6-configure-admin-settings-optional)
+7. [STEP 7: Test Your Connection](#step-7-test-your-connection)
 7. [New Project Checklist](#new-project-checklist)
 8. [Sheet Structure Requirements](#sheet-structure-requirements)
 9. [Configuration in Admin Panel](#configuration-in-admin-panel)
@@ -608,7 +610,25 @@ Before running the workflow, you need to add three GitHub secrets. These allow t
 
 ---
 
-## STEP 6: Test Your Connection
+## STEP 6: Configure Admin Settings (Optional)
+
+Open the **Admin** page and expand **Google Sheets Connection**.
+
+### ✅ Paste .env entries (no file edits required)
+You can paste your frontend env entries directly here:
+
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+```
+
+Click **Save Connection Settings**, then refresh the page. The current effective values are shown below the input.
+
+> These values are stored locally in your browser (localStorage). They are only needed if your hosting environment does not inject `.env` variables at build time.
+
+---
+
+## STEP 7: Test Your Connection
 
 ### Verify everything is working
 

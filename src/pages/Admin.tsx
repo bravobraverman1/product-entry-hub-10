@@ -319,13 +319,18 @@ const Admin = () => {
   // ── Connection Settings ──
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  const [envPaste, setEnvPaste] = useState("");
+  const [localSupabaseUrl, setLocalSupabaseUrl] = useState(getConfigValue("VITE_SUPABASE_URL", ""));
+  const [localSupabaseAnonKey, setLocalSupabaseAnonKey] = useState(getConfigValue("VITE_SUPABASE_PUBLISHABLE_KEY", ""));
   
   // Regex pattern for validating and extracting project ref from Supabase URL
   const SUPABASE_URL_PATTERN = /https:\/\/([a-z0-9-]+)\.supabase\.co/i;
   const supabaseProjectRef = supabaseUrl.match(SUPABASE_URL_PATTERN)?.[1] || "";
   
   // Validate if URL is a proper Supabase URL
-  const isValidSupabaseUrl = SUPABASE_URL_PATTERN.test(supabaseUrl);
+  const effectiveSupabaseUrl = localSupabaseUrl || supabaseUrl;
+  const effectiveSupabaseAnonKey = localSupabaseAnonKey || supabaseAnonKey;
+  const isValidSupabaseUrl = SUPABASE_URL_PATTERN.test(effectiveSupabaseUrl);
   
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
@@ -405,10 +410,26 @@ const Admin = () => {
     // Save all settings (Google Sheets credentials are now managed server-side)
     setConfigValue("INSTRUCTIONS_PDF_URL", pdfUrl);
     setConfigValue("DRIVE_CSV_FOLDER_ID", driveFolderId);
+
+    // Parse .env entries if pasted
+    if (envPaste.trim()) {
+      const lines = envPaste.split(/\r?\n/);
+      for (const line of lines) {
+        const match = line.match(/^\s*(VITE_SUPABASE_URL|VITE_SUPABASE_PUBLISHABLE_KEY)\s*=\s*(.*)\s*$/);
+        if (match) {
+          const key = match[1];
+          const value = match[2].replace(/^"|"$/g, "");
+          setConfigValue(key, value);
+          if (key === "VITE_SUPABASE_URL") setLocalSupabaseUrl(value);
+          if (key === "VITE_SUPABASE_PUBLISHABLE_KEY") setLocalSupabaseAnonKey(value);
+        }
+      }
+      setEnvPaste("");
+    }
     
     toast({ 
       title: "Saved", 
-      description: "Connection settings saved. Changes take effect immediately." 
+      description: "Connection settings saved. Refresh the page to reinitialize Supabase if you updated .env values." 
     });
   };
 
@@ -585,6 +606,24 @@ const Admin = () => {
             </p>
           </div>
           
+          <div className="space-y-2">
+            <Label className="text-xs font-medium">Paste .env entries (optional)</Label>
+            <Textarea
+              value={envPaste}
+              onChange={(e) => setEnvPaste(e.target.value)}
+              placeholder="VITE_SUPABASE_URL=...\nVITE_SUPABASE_PUBLISHABLE_KEY=..."
+              className="text-xs font-mono"
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Paste your .env entries here to store them locally (no need to edit files). Refresh after saving to reinitialize Supabase.
+            </p>
+            <div className="rounded-md border border-muted bg-muted/50 p-2 text-xs space-y-1">
+              <p><span className="font-semibold">Current URL:</span> {effectiveSupabaseUrl || "(not set)"}</p>
+              <p><span className="font-semibold">Current Key:</span> {effectiveSupabaseAnonKey ? `${effectiveSupabaseAnonKey.slice(0, 6)}…${effectiveSupabaseAnonKey.slice(-4)}` : "(not set)"}</p>
+            </div>
+          </div>
+
           <Button type="button" size="sm" onClick={saveConnectionSettings}><Save className="h-3.5 w-3.5 mr-1" /> Save Connection Settings</Button>
         </div>
       </FormSection>
