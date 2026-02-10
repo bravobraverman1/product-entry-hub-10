@@ -284,13 +284,37 @@ const Admin = () => {
 
   // ── Connection Settings ──
   const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'osiueywaplycxspbaadh';
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  const supabaseUrlOverride = getConfigValue("SUPABASE_URL_OVERRIDE", "");
+  const supabaseAnonKeyOverride = getConfigValue("SUPABASE_ANON_KEY_OVERRIDE", "");
+  const supabaseUrl = supabaseUrlOverride || import.meta.env.VITE_SUPABASE_URL || "";
+  const supabaseAnonKey = supabaseAnonKeyOverride || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
   const supabaseProjectRef = supabaseUrl.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i)?.[1] || "";
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState(supabaseUrlOverride);
+  const [supabaseAnonKeyInput, setSupabaseAnonKeyInput] = useState(supabaseAnonKeyOverride);
   
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
   const [testingConnection, setTestingConnection] = useState(false);
+
+  const saveSupabaseOverrides = () => {
+    setConfigValue("SUPABASE_URL_OVERRIDE", supabaseUrlInput.trim());
+    setConfigValue("SUPABASE_ANON_KEY_OVERRIDE", supabaseAnonKeyInput.trim());
+    toast({
+      title: "Supabase settings saved",
+      description: "Refresh the page to apply the new Supabase connection."
+    });
+  };
+
+  const resetSupabaseOverrides = () => {
+    setConfigValue("SUPABASE_URL_OVERRIDE", "");
+    setConfigValue("SUPABASE_ANON_KEY_OVERRIDE", "");
+    setSupabaseUrlInput("");
+    setSupabaseAnonKeyInput("");
+    toast({
+      title: "Supabase settings reset",
+      description: "Refresh the page to return to the default connection."
+    });
+  };
 
   const testSupabaseConnection = async () => {
     setTestingConnection(true);
@@ -327,8 +351,8 @@ const Admin = () => {
       if (data?.useDefaults) {
         toast({ 
           variant: "destructive", 
-          title: "⚠️ Cannot Read Secrets", 
-          description: "The Edge Function cannot read GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID. Most likely cause: You added secrets AFTER deploying the function. Solution: Run the 'Deploy Google Sheets Connection' workflow in GitHub Actions (this redeploys the function with your secrets). See the yellow box below for step-by-step instructions." 
+          title: "Cannot Read Secrets", 
+          description: "The Edge Function cannot currently read the required secrets. If secrets exist in Supabase: 1) Verify secret names match exactly, 2) Redeploy the Edge Function (required after adding secrets), 3) Re-run this test. See Admin panel instructions for details." 
         });
       } else {
         const productCount = data?.products?.length ?? 0;
@@ -404,31 +428,6 @@ const Admin = () => {
               </Button>
             </div>
           </div>
-          
-          {/* Project Check Section */}
-          <div className="space-y-3 rounded-lg border border-muted bg-muted/50 p-4">
-            <h5 className="text-sm font-semibold">Project Check (Important)</h5>
-            <p className="text-xs text-muted-foreground">
-              Verify your Supabase project configuration before testing the connection.
-            </p>
-            <div className="space-y-2 text-sm font-mono">
-              <div className="flex items-start gap-2">
-                <span className="text-xs text-muted-foreground w-32 shrink-0">Supabase URL:</span>
-                <span className="text-xs break-all">{supabaseUrl || "Not configured"}</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-xs text-muted-foreground w-32 shrink-0">Project Ref:</span>
-                <span className="text-xs">{supabaseProjectRef || "Not detected"}</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-xs text-muted-foreground w-32 shrink-0">Publishable Key:</span>
-                <span className={`text-xs font-semibold ${supabaseAnonKey ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {supabaseAnonKey ? "✓ Detected" : "✗ Missing"}
-                </span>
-              </div>
-            </div>
-          </div>
-          
           {/* Test Connection Section */}
           <div className="space-y-3 border-l-2 border-primary pl-4">
             <h5 className="text-sm font-semibold">Test Your Connection</h5>
@@ -457,34 +456,13 @@ const Admin = () => {
               </Button>
               
               {/* Short Error Explanations */}
-              <div className="rounded-lg border border-amber-600 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3 space-y-2">
-                <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">🔴 "Cannot Read Secrets" Error?</p>
-                <div className="text-xs text-amber-900 dark:text-amber-100 space-y-1">
-                  <p className="font-semibold">This usually means you added secrets AFTER deploying the function.</p>
-                  <p className="font-medium">✅ Solution: Redeploy the Edge Function</p>
-                  <ol className="list-decimal list-inside space-y-0.5 ml-2">
-                    <li>Go to the <strong>Actions</strong> tab in your GitHub repository</li>
-                    <li>Click <strong>"Deploy Google Sheets Connection"</strong> in the left sidebar</li>
-                    <li>Click <strong>"Run workflow"</strong> dropdown → select "production" → click <strong>"Run workflow"</strong> button</li>
-                    <li>Wait 2-3 minutes for completion</li>
-                    <li>Return here and click <strong>"Test Connection"</strong> again</li>
-                  </ol>
-                  <p className="italic mt-1">Why? Edge Functions load secrets at deployment time only. Adding secrets to an already-running function requires redeployment.</p>
-                  <div className="pt-2">
-                    <Button type="button" variant="outline" size="sm" asChild className="bg-white dark:bg-gray-900">
-                      <a href={`${GITHUB_REPO_URL}/actions/workflows/deploy-google-sheets.yml`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3 w-3 mr-1" /> Go to GitHub Actions Workflow
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-                <div className="pt-2 border-t border-amber-200 dark:border-amber-700">
-                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">Other Common Errors:</p>
-                  <ul className="text-xs text-amber-800 dark:text-amber-200 mt-1 space-y-0.5 list-disc list-inside">
-                    <li><strong>Edge Function not found (404):</strong> Function not deployed yet - see setup guide STEP 3</li>
-                    <li><strong>Access denied (403):</strong> Google Sheet not shared with service account - see setup guide STEP 2</li>
-                  </ul>
-                </div>
+              <div className="rounded-lg border border-amber-600 bg-amber-50 dark:bg-amber-950 dark:border-amber-800 p-3">
+                <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">Common Test Errors:</p>
+                <ul className="text-xs text-amber-800 dark:text-amber-200 mt-1 space-y-1 list-disc list-inside">
+                  <li><strong>Cannot Read Secrets:</strong> Redeploy the Edge Function after adding secrets in Supabase</li>
+                  <li><strong>Edge Function not found (404):</strong> Function not deployed yet - see setup guide STEP 3</li>
+                  <li><strong>Access denied (403):</strong> Google Sheet not shared with service account - see setup guide STEP 2</li>
+                </ul>
               </div>
               
               <div className="rounded-lg border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-800 p-3">
