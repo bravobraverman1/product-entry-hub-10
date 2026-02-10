@@ -10,7 +10,7 @@ A comprehensive product data entry and management system built with React, TypeS
 
 This application connects to Google Sheets to manage product data. To link your Google Sheets file:
 
-### Quick Start (5 Steps)
+### Quick Start (6 Steps)
 
 1. **STEP 1-2:** [Create service account and share your sheet](./GOOGLE_SHEETS_SETUP.md)
 

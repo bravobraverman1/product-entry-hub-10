@@ -87,7 +87,11 @@ On a brand-new Supabase project, the Edge Functions page will only show template
 8. Wait for the deployment to complete (usually takes 10-30 seconds)
 9. Confirm the function appears in your Edge Functions list
 
-**Copy/Paste Helper:** You can find the Edge Function code at:
+**Copy/Paste Helper:** You can find the Edge Function code in your repository at:
+```
+supabase/functions/google-sheets/index.ts
+```
+Or view it on GitHub (replace YOUR_USERNAME and YOUR_REPO with your actual repository details):
 ```
 https://github.com/YOUR_USERNAME/YOUR_REPO/blob/main/supabase/functions/google-sheets/index.ts
 ```
@@ -140,6 +144,8 @@ Your credentials will be stored securely on Supabase's server, which is more sec
 ### What is Supabase?
 
 Supabase is a secure backend service that hosts your application's server-side functionality. When you add secrets to Supabase, they are encrypted and stored on Supabase's servers—never exposed to the browser or to the public.
+
+**Security Best Practice:** For production environments, consider rotating your service account keys periodically (every 90-180 days) to maintain security. When rotating, create a new key, update the secret in Supabase, and then delete the old key from Google Cloud Console.
 
 ### How to add your credentials to Supabase
 
