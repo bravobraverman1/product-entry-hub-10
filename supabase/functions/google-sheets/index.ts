@@ -45,10 +45,14 @@ function getSupabaseClient(authHeader: string) {
 function getCorsHeaders(origin?: string) {
   const allowAll = ALLOWED_ORIGINS.includes("*");
   const isAllowed = !!origin && ALLOWED_ORIGINS.some((allowed) => originMatches(allowed, origin));
-  const allowOrigin = allowAll ? "*" : (isAllowed ? origin : (ALLOWED_ORIGINS[0] || origin || "*"));
+  
+  // Always reflect the request origin if it's allowed or if wildcard is set.
+  // Never return '*' when request includes auth headers (browser will reject it).
+  const allowOrigin = (allowAll || isAllowed) ? origin : (ALLOWED_ORIGINS[0] || "");
 
   return {
-    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Origin": allowOrigin || "*",
+    "Access-Control-Allow-Credentials": "true",
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
