@@ -1,5 +1,19 @@
 # ⚠️ ACTION REQUIRED: Complete Supabase Configuration
 
+## 🚨 IMPORTANT: Are You Using Lovable Cloud?
+
+**If you're deploying with Lovable** (and you see a "Cloud" or "Environment" tab):
+
+👉 **Follow [LOVABLE_CLOUD_SETUP.md](./LOVABLE_CLOUD_SETUP.md) instead!**
+
+That guide covers both:
+- Configuring Lovable's cloud environment variables
+- Configuring local development
+
+**If you're NOT using Lovable** (self-hosting or other deployment), continue below.
+
+---
+
 ## Current Status
 
 ✅ **What's Been Fixed:**

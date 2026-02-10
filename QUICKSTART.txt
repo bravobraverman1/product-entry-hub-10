@@ -1,0 +1,45 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🔧 SUPABASE CONFIGURATION - QUICK START
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 CURRENT STATUS:
+  ✅ Configuration files updated to use project: oqaodtatfzcibpfmhejl
+  ❌ Need: Publishable key from Supabase dashboard
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 QUICK FIX (3 steps):
+
+  1️⃣  Get your key:
+     → https://supabase.com/dashboard/project/oqaodtatfzcibpfmhejl
+     → Settings → API → Copy "anon / public" key
+
+  2️⃣  Update .env:
+     → Open .env file
+     → Replace YOUR_PUBLISHABLE_KEY_HERE with your actual key
+     → Save the file
+
+  3️⃣  Restart dev server:
+     → Stop server (Ctrl+C)
+     → Run: npm run dev
+     → Clear browser cache (Ctrl+Shift+Delete)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 DETAILED GUIDES:
+
+  → COMPLETE_SETUP.md       - Full step-by-step guide
+  → GET_SUPABASE_KEY.md     - How to get your key
+  → check-config.sh         - Verify your configuration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 EXPECTED RESULT:
+
+  After completing the steps, your Admin page should show:
+
+  Supabase URL: https://oqaodtatfzcibpfmhejl.supabase.co
+  Project Ref: oqaodtatfzcibpfmhejl
+  Publishable Key: ✓ Detected
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

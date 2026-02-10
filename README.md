@@ -2,6 +2,30 @@
 
 A comprehensive product data entry and management system built with React, TypeScript, and Google Sheets integration.
 
+## ⚠️ IMPORTANT: Supabase Configuration Required
+
+**You're seeing the wrong Supabase project because of environment configuration.**
+
+### 🌩️ Using Lovable Cloud?
+
+**If you see a "Cloud" tab in Lovable**, you need to configure environment variables there:
+
+📖 **Follow: [LOVABLE_CLOUD_SETUP.md](./LOVABLE_CLOUD_SETUP.md)**
+
+This guide shows you how to:
+1. Update Lovable's cloud environment variables
+2. Configure your local development environment
+3. Get your Supabase publishable key
+4. Verify both environments are using the correct project
+
+### 💻 Not Using Lovable?
+
+📖 **Follow: [COMPLETE_SETUP.md](./COMPLETE_SETUP.md)**
+
+**Current Project:** `oqaodtatfzcibpfmhejl` (was incorrectly showing `osiueywaplycxspbaadh`)
+
+---
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
