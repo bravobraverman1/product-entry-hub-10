@@ -1,8 +1,36 @@
-# Welcome to your Lovable project
+# Product Entry Hub
+
+A comprehensive product data entry and management system built with React, TypeScript, and Google Sheets integration.
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+
+## 🔗 Google Sheets Integration
+
+This application connects to Google Sheets to manage product data. To link your Google Sheets file:
+
+### Quick Start
+
+1. **Choose your integration method:**
+   - **Recommended:** Google Service Account (via Supabase Edge Function)
+   - **Alternative:** Google Apps Script Web App
+
+2. **Follow the detailed setup guide:** [GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md)
+
+3. **What you'll need:**
+   - A Google Sheet with the required tabs (PRODUCTS, Categories, BRANDS, PROPERTIES, LEGAL, etc.)
+   - For Method 1: Google Cloud Console access and Supabase project credentials
+   - For Method 2: Ability to deploy Google Apps Script
+
+### Configuration
+
+After setup, configure your connection in the **Admin** panel of the application:
+- Set your Apps Script URL (if using Method 2)
+- Configure sheet tab names to match your Google Sheet
+- Manage categories, properties, and dropdown values
+
+📖 **See [GOOGLE_SHEETS_SETUP.md](./GOOGLE_SHEETS_SETUP.md) for complete instructions**
 
 ## How can I edit this code?
 
