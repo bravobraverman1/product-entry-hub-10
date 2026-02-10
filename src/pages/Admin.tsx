@@ -552,7 +552,7 @@ const Admin = () => {
                   </p>
                 </div>
               </div>
-              <div className="ml-8 space-y-3">
+              <div className="ml-8 space-y-3 max-h-96 overflow-y-auto pr-2">
                 <div className="rounded-lg border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-800 p-3">
                   <p className="text-xs font-semibold text-green-900 dark:text-green-100">✓ What this does: Automatically deploys your Edge Function and activates your Google Sheets connection.</p>
                 </div>
