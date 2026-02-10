@@ -18,7 +18,6 @@ import { categoryTree, type CategoryLevel } from "@/data/categoryData";
 import {
   isSupabaseGoogleSheetsConfigured,
   readGoogleSheets,
-  writeCategoriesToGoogleSheets,
 } from "@/lib/supabaseGoogleSheets";
 
 const BASE = () => config.APPS_SCRIPT_BASE_URL;
@@ -150,20 +149,6 @@ export async function fetchCategories(): Promise<CategoryLevel[]> {
 export async function updateCategories(
   paths: string[]
 ): Promise<void> {
-  // Try Supabase Google Sheets first
-  if (isSupabaseGoogleSheetsConfigured()) {
-    try {
-      const success = await writeCategoriesToGoogleSheets(paths);
-      if (success) {
-        console.log("Categories updated in Google Sheets");
-        return;
-      }
-    } catch (error) {
-      console.error("Error updating categories in Supabase Google Sheets:", error);
-    }
-  }
-
-  // Fall back to Apps Script
   if (!isConfigured()) {
     console.warn("[mock] updateCategories called with", paths.length, "paths");
     return;

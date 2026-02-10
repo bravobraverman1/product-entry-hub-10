@@ -59,14 +59,6 @@ serve(async (req) => {
       });
     }
 
-    if (action === "write-categories") {
-      const { categoryPaths } = body;
-      await clearAndWriteCategories(accessToken, sheetId, categoryPaths);
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -178,44 +170,6 @@ async function appendRow(token: string, sheetId: string, sheet: string, rowData:
   }
 
   console.log("Row appended successfully");
-}
-
-async function clearAndWriteCategories(token: string, sheetId: string, categoryPaths: string[]) {
-  // Clear the CATEGORIES sheet (keep header, delete all data rows)
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/CATEGORIES!A2:A?:clear`;
-  const clearRes = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!clearRes.ok) {
-    const errText = await clearRes.text();
-    console.warn(`Warning clearing categories: ${errText}`);
-  }
-
-  // Write new category paths
-  if (categoryPaths.length > 0) {
-    const values = categoryPaths.map((path) => [path]);
-    const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/CATEGORIES!A2:append?valueInputOption=USER_ENTERED`;
-    const appendRes = await fetch(appendUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ values }),
-    });
-
-    if (!appendRes.ok) {
-      const errText = await appendRes.text();
-      throw new Error(`Failed to write categories: ${errText}`);
-    }
-  }
-
-  console.log("Categories updated successfully");
 }
 
 async function readAllSheets(token: string, sheetId: string) {

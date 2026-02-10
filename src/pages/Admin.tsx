@@ -572,11 +572,6 @@ const Admin = () => {
       {/* Category Editor */}
       <FormSection title="Categories Editor" defaultOpen>
         <div className="space-y-3">
-          <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-3">
-            <p className="text-xs text-blue-900 dark:text-blue-100">
-              <span className="font-semibold">💾 Auto-synced to Google Sheets:</span> When you click "Save Changes" below, your category edits are automatically saved to the CATEGORIES sheet in your Google Sheet.
-            </p>
-          </div>
           <div className="border border-border rounded-lg p-2 max-h-[500px] overflow-y-auto">
             {tree.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No categories loaded.</p>
