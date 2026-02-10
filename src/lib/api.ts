@@ -18,6 +18,7 @@ import { categoryTree, type CategoryLevel } from "@/data/categoryData";
 import {
   isSupabaseGoogleSheetsConfigured,
   readGoogleSheets,
+  writeCategoriesToGoogleSheets,
 } from "@/lib/supabaseGoogleSheets";
 
 const BASE = () => config.APPS_SCRIPT_BASE_URL;
