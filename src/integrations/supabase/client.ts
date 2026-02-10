@@ -2,13 +2,33 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://osiueywaplycxspbaadh.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zaXVleXdhcGx5Y3hzcGJhYWRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1NzgxNzEsImV4cCI6MjA4NjE1NDE3MX0.bpLFAwMtutI8wnnnlNmewjVn8IKkqngRnnHTpXthuZU';
+// Placeholder values used when configuration is missing to allow app to load gracefully
+const PLACEHOLDER_URL = 'https://placeholder.supabase.co';
+const PLACEHOLDER_KEY = 'placeholder-key';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Validate that both URL and key are provided
+const missingVars = [
+  { name: 'VITE_SUPABASE_URL', value: SUPABASE_URL },
+  { name: 'VITE_SUPABASE_PUBLISHABLE_KEY', value: SUPABASE_PUBLISHABLE_KEY }
+].filter(v => !v.value).map(v => v.name);
+
+if (missingVars.length > 0) {
+  console.warn(`⚠️ Supabase NOT CONFIGURED: Missing environment variable(s): ${missingVars.join(', ')}. The application will load but Supabase features will not work until configured.`);
+}
+
+// Create client with placeholder values if not configured to allow the app to load
+// The Admin page will show "NOT CONFIGURED" status and disable connection tests
+// Any attempted Supabase API calls will fail gracefully
+const url = SUPABASE_URL || PLACEHOLDER_URL;
+const key = SUPABASE_PUBLISHABLE_KEY || PLACEHOLDER_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(url, key, {
   auth: {
     storage: localStorage,
     persistSession: true,
