@@ -14,6 +14,16 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ].filter(Boolean);
 
+function originMatches(allowed: string, origin: string): boolean {
+  if (allowed === "*") return true;
+  if (!allowed.includes("*")) return allowed === origin;
+
+  // Basic wildcard support (e.g., https://*.lovable.dev)
+  const escaped = allowed.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  const regex = new RegExp(`^${escaped}$`);
+  return regex.test(origin);
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
@@ -34,7 +44,7 @@ function getSupabaseClient(authHeader: string) {
 
 function getCorsHeaders(origin?: string) {
   const allowAll = ALLOWED_ORIGINS.includes("*");
-  const isAllowed = !!origin && ALLOWED_ORIGINS.includes(origin);
+  const isAllowed = !!origin && ALLOWED_ORIGINS.some((allowed) => originMatches(allowed, origin));
   const allowOrigin = allowAll ? "*" : (isAllowed ? origin : (ALLOWED_ORIGINS[0] || origin || "*"));
 
   return {
