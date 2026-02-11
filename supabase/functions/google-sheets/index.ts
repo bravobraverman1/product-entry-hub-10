@@ -386,25 +386,33 @@ async function readAllSheets(
   tabNames?: Record<string, string>
 ) {
   // Read all tabs in parallel
-  const productsTab = resolveTabName(tabNames, "PRODUCTS", "PRODUCTS");
+  const productsTab = resolveTabName(tabNames, "PRODUCTS_TODO", "PRODUCTS TO DO");
   const categoriesTab = resolveTabName(tabNames, "CATEGORIES", "CATEGORIES");
   const propertiesTab = resolveTabName(tabNames, "PROPERTIES", "PROPERTIES");
   const legalTab = resolveTabName(tabNames, "LEGAL", "LEGAL");
   const brandsTab = resolveTabName(tabNames, "BRANDS", "BRANDS");
   const [productsRaw, categoriesRaw, propertiesRaw, legalRaw, brandsRaw] = await Promise.all([
-    getSheetValues(token, sheetId, `${productsTab}!A:C`),
+    getSheetValues(token, sheetId, `${productsTab}!A:D`),
     getSheetValues(token, sheetId, `${categoriesTab}!A:A`),
     getSheetValues(token, sheetId, `${propertiesTab}!A:D`),
     getSheetValues(token, sheetId, `${legalTab}!A:B`),
     getSheetValues(token, sheetId, `${brandsTab}!A:C`),
   ]);
 
-  // Parse PRODUCTS: SKU, Brand, ExampleTitle (skip header row)
+  // Parse PRODUCTS TO DO: SKU (A), Brand (B), Status (C), Visibility (D) - skip header row
+  // Only include SKUs where Status = "READY" and Visibility >= 1
   const products = productsRaw.slice(1).map((row) => ({
     sku: row[0] ?? "",
     brand: row[1] ?? "",
-    exampleTitle: row[2] ?? "",
-  })).filter((p) => p.sku);
+    status: row[2] ?? "",
+    visibility: parseInt(row[3] ?? "0", 10),
+  }))
+    .filter((p) => p.sku && p.status === "READY" && p.visibility >= 1)
+    .map((p) => ({
+      sku: p.sku,
+      brand: p.brand,
+      exampleTitle: p.sku, // Use SKU as example title since PRODUCTS TO DO doesn't have it
+    }));
 
   // Parse CATEGORIES: full path strings -> build tree
   // STRICT: Read ONLY from CATEGORIES tab, skip header row (row 1), data starts at row 2

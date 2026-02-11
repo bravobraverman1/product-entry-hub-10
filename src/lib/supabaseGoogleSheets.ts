@@ -29,6 +29,7 @@ interface GoogleSheetsReadResponse {
 
 interface SheetTabNamesPayload {
   PRODUCTS: string;
+  PRODUCTS_TODO: string;
   CATEGORIES: string;
   PROPERTIES: string;
   LEGAL: string;
@@ -39,6 +40,7 @@ interface SheetTabNamesPayload {
 function getSheetTabNamesPayload(): SheetTabNamesPayload {
   return {
     PRODUCTS: config.SHEET_PRODUCTS,
+    PRODUCTS_TODO: config.SHEET_PRODUCTS_TODO,
     CATEGORIES: config.SHEET_CATEGORIES,
     PROPERTIES: config.SHEET_PROPERTIES,
     LEGAL: config.SHEET_LEGAL,
