@@ -63,18 +63,34 @@ export function ProductEntryForm() {
   const categoryFilterMap = propData?.categoryFilterMap ?? [];
   const filterDefaultMap = propData?.filterDefaultMap ?? [];
 
+  // Local storage key for persisting form state
+  const FORM_STATE_KEY = "productFormState";
+
+  // Helper to load state from localStorage
+  const loadFormState = () => {
+    try {
+      const stored = localStorage.getItem(FORM_STATE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Load initial state from localStorage
+  const savedState = useMemo(() => loadFormState(), []);
+
   // Basic Info
-  const [sku, setSku] = useState("");
-  const [brand, setBrand] = useState("");
-  const [title, setTitle] = useState("");
-  const [chatgptData, setChatgptData] = useState("");
-  const [chatgptDescription, setChatgptDescription] = useState("");
+  const [sku, setSku] = useState(savedState?.sku ?? "");
+  const [brand, setBrand] = useState(savedState?.brand ?? "");
+  const [title, setTitle] = useState(savedState?.title ?? "");
+  const [chatgptData, setChatgptData] = useState(savedState?.chatgptData ?? "");
+  const [chatgptDescription, setChatgptDescription] = useState(savedState?.chatgptDescription ?? "");
 
   // Supplier References (PDFs)
   const [datasheetFile, setDatasheetFile] = useState<File | null>(null);
   const [websitePdfFile, setWebsitePdfFile] = useState<File | null>(null);
-  const [datasheetUrl, setDatasheetUrl] = useState("");
-  const [webpageUrl, setWebpageUrl] = useState("");
+  const [datasheetUrl, setDatasheetUrl] = useState(savedState?.datasheetUrl ?? "");
+  const [webpageUrl, setWebpageUrl] = useState(savedState?.webpageUrl ?? "");
   const [pdfView, setPdfView] = useState<"datasheet" | "website">("datasheet");
   const [datasheetPreviewUrl, setDatasheetPreviewUrl] = useState<string | null>(null);
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
@@ -104,19 +120,19 @@ export function ProductEntryForm() {
   }, [skus]);
 
   // Categories
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [mainCategory, setMainCategory] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(savedState?.selectedCategories ?? []);
+  const [mainCategory, setMainCategory] = useState(savedState?.mainCategory ?? "");
 
   // Images
-  const [imageUrls, setImageUrls] = useState<string[]>([""]);
+  const [imageUrls, setImageUrls] = useState<string[]>(savedState?.imageUrls ?? [""]);
 
   // Specs
-  const [specValues, setSpecValues] = useState<Record<string, string>>({});
+  const [specValues, setSpecValues] = useState<Record<string, string>>(savedState?.specValues ?? {});
   // Track "Other" values to persist on submit
-  const [otherValues, setOtherValues] = useState<Record<string, string>>({});
+  const [otherValues, setOtherValues] = useState<Record<string, string>>(savedState?.otherValues ?? {});
 
   // Email Notes
-  const [emailNotes, setEmailNotes] = useState("");
+  const [emailNotes, setEmailNotes] = useState(savedState?.emailNotes ?? "");
 
   // Form state
   const [errors, setErrors] = useState<FormErrors>({});
@@ -161,6 +177,40 @@ export function ProductEntryForm() {
       cancelled = true;
     };
   }, [datasheetFile]);
+
+  // Save form state to localStorage whenever any value changes
+  useEffect(() => {
+    const formState = {
+      sku,
+      brand,
+      title,
+      chatgptData,
+      chatgptDescription,
+      datasheetUrl,
+      webpageUrl,
+      selectedCategories,
+      mainCategory,
+      imageUrls,
+      specValues,
+      otherValues,
+      emailNotes,
+    };
+    localStorage.setItem(FORM_STATE_KEY, JSON.stringify(formState));
+  }, [
+    sku,
+    brand,
+    title,
+    chatgptData,
+    chatgptDescription,
+    datasheetUrl,
+    webpageUrl,
+    selectedCategories,
+    mainCategory,
+    imageUrls,
+    specValues,
+    otherValues,
+    emailNotes,
+  ]);
 
   useEffect(() => {
     if (websitePdfFile) {
