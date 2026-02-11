@@ -232,6 +232,7 @@ export function ProductEntryForm() {
     script.onload = () => {
       if (window.pdfjsLib) {
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.js";
+        window.pdfjsLib.disableWorker = true;
         setPdfjsReady(true);
       }
     };
@@ -308,7 +309,13 @@ export function ProductEntryForm() {
         const pdfjs = window.pdfjsLib;
         if (!pdfjs) throw new Error("PDF viewer not available");
         const dataCopy = new Uint8Array(activePdfData.slice(0));
-        loadingTask = pdfjs.getDocument({ data: dataCopy, disableWorker: true });
+        loadingTask = pdfjs.getDocument({
+          data: dataCopy,
+          disableWorker: true,
+          disableRange: true,
+          disableStream: true,
+          worker: null,
+        });
         const pdf = await loadingTask.promise;
         if (!cancelled) pdfDocRef.current = pdf;
       } catch (err) {
