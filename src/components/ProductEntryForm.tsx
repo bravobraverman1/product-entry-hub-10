@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,9 @@ export function ProductEntryForm() {
   const [datasheetPreviewUrl, setDatasheetPreviewUrl] = useState<string | null>(null);
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
   const [pdfZoom, setPdfZoom] = useState(100);
+  const pdfScrollRef = useRef<HTMLDivElement | null>(null);
+  const [isDraggingPdf, setIsDraggingPdf] = useState(false);
+  const dragStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
 
   // Random example title as placeholder
   const exampleTitle = useMemo(() => {
@@ -167,6 +170,30 @@ export function ProductEntryForm() {
       setPdfView("website");
     }
   }, [datasheetPreviewUrl, websitePreviewUrl]);
+
+  const handlePdfMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!pdfScrollRef.current) return;
+    setIsDraggingPdf(true);
+    dragStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      left: pdfScrollRef.current.scrollLeft,
+      top: pdfScrollRef.current.scrollTop,
+    };
+  }, []);
+
+  const handlePdfMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingPdf || !dragStart.current || !pdfScrollRef.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    pdfScrollRef.current.scrollLeft = dragStart.current.left - dx;
+    pdfScrollRef.current.scrollTop = dragStart.current.top - dy;
+  }, [isDraggingPdf]);
+
+  const handlePdfMouseUp = useCallback(() => {
+    setIsDraggingPdf(false);
+    dragStart.current = null;
+  }, []);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
@@ -430,12 +457,16 @@ export function ProductEntryForm() {
                 value={chatgptData}
                 onChange={(e) => setChatgptData(e.target.value)}
                 placeholder="AI-generated product data (editable)"
-                className="text-sm min-h-[320px]"
+                className="text-sm min-h-[360px]"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium">Supplier PDFs</Label>
+                <Label className="text-xs font-medium">
+                  {datasheetPreviewUrl || websitePreviewUrl
+                    ? `PDF: ${pdfView === "website" ? "Website" : "Datasheet"}`
+                    : "PDF"}
+                </Label>
                 <div className="flex items-center gap-2">
                   {datasheetPreviewUrl && websitePreviewUrl && (
                     <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
@@ -494,7 +525,17 @@ export function ProductEntryForm() {
                     );
                   }
                   return (
-                    <div className="h-full w-full overflow-auto bg-white">
+                    <div
+                      ref={pdfScrollRef}
+                      className={cn(
+                        "h-full w-full overflow-auto bg-white",
+                        isDraggingPdf ? "cursor-grabbing" : "cursor-grab"
+                      )}
+                      onMouseDown={handlePdfMouseDown}
+                      onMouseMove={handlePdfMouseMove}
+                      onMouseLeave={handlePdfMouseUp}
+                      onMouseUp={handlePdfMouseUp}
+                    >
                       <iframe
                         title="PDF Preview"
                         src={activeUrl}
