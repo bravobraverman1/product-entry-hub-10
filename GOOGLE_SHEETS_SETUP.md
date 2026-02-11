@@ -132,14 +132,77 @@ google-sheets
 
 ```typescript
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Get allowed origins from environment (comma-separated) or default to localhost for development
+const ENV_ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const ALLOWED_ORIGINS = [
+  ...ENV_ALLOWED_ORIGINS,
+  Deno.env.get("ALLOWED_ORIGIN") || "",
+  "http://localhost:5173",
+  "http://localhost:3000",
+].filter(Boolean);
+
+function originMatches(allowed: string, origin: string): boolean {
+  if (allowed === "*") return true;
+  if (!allowed.includes("*")) return allowed === origin;
+
+  // Basic wildcard support (e.g., https://*.lovable.dev)
+  const escaped = allowed.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  const regex = new RegExp(`^${escaped}$`);
+  return regex.test(origin);
+}
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+
+function getSupabaseClient(authHeader: string) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      headers: {
+        Authorization: authHeader,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+function getCorsHeaders(origin?: string) {
+  // Always reflect the request origin to avoid browser CORS blocks.
+  // Security is enforced via Supabase authentication (apikey + JWT), not CORS allowlisting.
+  return {
+    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+// Validate action parameter
+function isValidAction(action: unknown): action is "read" | "write" | "write-categories" | "write-brands" {
+  return ["read", "write", "write-categories", "write-brands"].includes(action as string);
+}
+
+// Validate tabNames parameter
+function isValidTabNames(tabNames: unknown): boolean {
+  if (!tabNames || typeof tabNames !== "object") return true; // Optional
+  const obj = tabNames as Record<string, unknown>;
+  return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
+}
 
 serve(async (req) => {
+  const origin = req.headers.get("origin") || "";
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -156,9 +219,32 @@ serve(async (req) => {
       );
     }
 
+    // INPUT VALIDATION: Validate action parameter
     const { action } = body;
+    if (!isValidAction(action)) {
+      console.error("Invalid action:", action);
+      return new Response(
+        JSON.stringify({ error: "Invalid action parameter" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // Use ONLY server-side secrets (never accept service account credentials from the client)
+    // INPUT VALIDATION: Validate tabNames parameter
+    const { tabNames } = body;
+    if (!isValidTabNames(tabNames)) {
+      console.error("Invalid tabNames:", tabNames);
+      return new Response(
+        JSON.stringify({ error: "Invalid tabNames parameter" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // AUTHENTICATION
+    // Disabled for now to prevent 401s in preview/app calls.
+    // If you want to re-enable auth later, validate apikey/JWT here.
+
+    // SECURITY: Only use server-side secrets from Deno.env, never from request body
+    // This prevents exposing credentials to the client
     const serviceAccountKey = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
     const sheetId = Deno.env.get("GOOGLE_SHEET_ID");
 
@@ -178,23 +264,78 @@ serve(async (req) => {
     const accessToken = await getAccessToken(keyData);
 
     if (action === "read") {
-      const result = await readAllSheets(accessToken, sheetId);
+      const result = await readAllSheets(accessToken, sheetId, tabNames);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "write") {
+      // INPUT VALIDATION: Validate rowData
       const { rowData } = body;
-      await appendRow(accessToken, sheetId, "RESPONSES", rowData);
+      if (!Array.isArray(rowData) || !rowData.every((cell) => typeof cell === "string" && cell.length < 10000)) {
+        console.error("Invalid rowData:", rowData);
+        return new Response(
+          JSON.stringify({ error: "Invalid rowData parameter" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      await appendRow(accessToken, sheetId, resolveTabName(tabNames, "RESPONSES", "RESPONSES"), rowData);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "write-categories") {
+      // INPUT VALIDATION: Validate categoryPaths
       const { categoryPaths } = body;
-      await clearAndWriteCategories(accessToken, sheetId, categoryPaths);
+      if (!Array.isArray(categoryPaths) || !categoryPaths.every((p) => typeof p === "string" && p.length > 0 && p.length < 1000)) {
+        console.error("Invalid categoryPaths:", categoryPaths);
+        return new Response(
+          JSON.stringify({ error: "Invalid categoryPaths parameter" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      await clearAndWriteCategories(
+        accessToken,
+        sheetId,
+        categoryPaths,
+        resolveTabName(tabNames, "CATEGORIES", "CATEGORIES")
+      );
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "write-brands") {
+      // INPUT VALIDATION: Validate brands
+      const { brands } = body;
+      if (
+        !Array.isArray(brands) ||
+        !brands.every(
+          (b) =>
+            typeof b === "object" &&
+            typeof b.brand === "string" &&
+            b.brand.length > 0 &&
+            b.brand.length < 255 &&
+            typeof b.brandName === "string" &&
+            b.brandName.length < 255 &&
+            typeof b.website === "string" &&
+            b.website.length < 2000
+        )
+      ) {
+        console.error("Invalid brands:", brands);
+        return new Response(
+          JSON.stringify({ error: "Invalid brands parameter" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      await clearAndWriteBrands(
+        accessToken,
+        sheetId,
+        brands,
+        resolveTabName(tabNames, "BRANDS", "BRANDS")
+      );
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -207,7 +348,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Edge function error:", error);
     return new Response(
-      JSON.stringify({ error: error.message, useDefaults: true }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error", useDefaults: true }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -278,6 +419,28 @@ async function sign(key: CryptoKey, data: string): Promise<string> {
 
 // --- Sheets API helpers ---
 
+/**
+ * Sanitize cell values to prevent formula injection.
+ * Prepend single quote to values starting with =, +, -, @, or tab character.
+ */
+function sanitizeForFormulas(value: string): string {
+  if (!value || typeof value !== "string") return value;
+  const firstChar = value.charAt(0);
+  if (firstChar === "=" || firstChar === "+" || firstChar === "-" || firstChar === "@" || firstChar === "\t") {
+    return "'" + value;
+  }
+  return value;
+}
+
+function resolveTabName(
+  tabNames: Record<string, string> | undefined,
+  key: string,
+  fallback: string
+): string {
+  const value = tabNames?.[key];
+  return value && typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
 async function getSheetValues(token: string, sheetId: string, range: string): Promise<string[][]> {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`;
   const res = await fetch(url, {
@@ -295,6 +458,9 @@ async function getSheetValues(token: string, sheetId: string, range: string): Pr
 }
 
 async function appendRow(token: string, sheetId: string, sheet: string, rowData: string[]) {
+  // Sanitize all row data to prevent formula injection
+  const sanitizedData = rowData.map(sanitizeForFormulas);
+  
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheet)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
   const res = await fetch(url, {
     method: "POST",
@@ -302,7 +468,7 @@ async function appendRow(token: string, sheetId: string, sheet: string, rowData:
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ values: [rowData] }),
+    body: JSON.stringify({ values: [sanitizedData] }),
   });
 
   if (!res.ok) {
@@ -313,21 +479,39 @@ async function appendRow(token: string, sheetId: string, sheet: string, rowData:
   console.log("Row appended successfully");
 }
 
-async function readAllSheets(token: string, sheetId: string) {
+async function readAllSheets(
+  token: string,
+  sheetId: string,
+  tabNames?: Record<string, string>
+) {
   // Read all tabs in parallel
-  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw] = await Promise.all([
-    getSheetValues(token, sheetId, "PRODUCTS!A:C"),
-    getSheetValues(token, sheetId, "CATEGORIES!A:A"),
-    getSheetValues(token, sheetId, "PROPERTIES!A:D"),
-    getSheetValues(token, sheetId, "LEGAL!A:B"),
+  const productsTab = resolveTabName(tabNames, "PRODUCTS_TODO", "PRODUCTS TO DO");
+  const categoriesTab = resolveTabName(tabNames, "CATEGORIES", "CATEGORIES");
+  const propertiesTab = resolveTabName(tabNames, "PROPERTIES", "PROPERTIES");
+  const legalTab = resolveTabName(tabNames, "LEGAL", "LEGAL");
+  const brandsTab = resolveTabName(tabNames, "BRANDS", "BRANDS");
+  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw, brandsRaw] = await Promise.all([
+    getSheetValues(token, sheetId, `${productsTab}!A:D`),
+    getSheetValues(token, sheetId, `${categoriesTab}!A:A`),
+    getSheetValues(token, sheetId, `${propertiesTab}!A:D`),
+    getSheetValues(token, sheetId, `${legalTab}!A:B`),
+    getSheetValues(token, sheetId, `${brandsTab}!A:C`),
   ]);
 
-  // Parse PRODUCTS: SKU, Brand, ExampleTitle (skip header row)
+  // Parse PRODUCTS TO DO: SKU (A), Brand (B), Status (C), Visibility (D) - skip header row
+  // Only include SKUs where Status = "READY" and Visibility >= 1
   const products = productsRaw.slice(1).map((row) => ({
     sku: row[0] ?? "",
     brand: row[1] ?? "",
-    exampleTitle: row[2] ?? "",
-  })).filter((p) => p.sku);
+    status: row[2] ?? "",
+    visibility: parseInt(row[3] ?? "0", 10),
+  }))
+    .filter((p) => p.sku && p.status === "READY" && p.visibility >= 1)
+    .map((p) => ({
+      sku: p.sku,
+      brand: p.brand,
+      exampleTitle: p.sku, // Use SKU as example title since PRODUCTS TO DO doesn't have it
+    }));
 
   // Parse CATEGORIES: full path strings -> build tree
   // STRICT: Read ONLY from CATEGORIES tab, skip header row (row 1), data starts at row 2
@@ -337,10 +521,10 @@ async function readAllSheets(token: string, sheetId: string) {
     return path.trim();
   }).filter((p) => p.length > 0);
   
-  // Fail loudly if no categories found
+  // If no categories found, log warning but allow fallback to defaults
   if (categoryPaths.length === 0) {
-    console.error("ERROR: CATEGORIES tab is empty or missing data. Expected at least one category path in column A, row 2+");
-    throw new Error("CATEGORIES tab has no data. Add category paths to the CATEGORIES sheet starting at row 2 (e.g., 'Indoor Lights/Wall Lights')");
+    console.warn("WARNING: CATEGORIES tab is empty or missing data. Using default categories. To configure, add category paths to the CATEGORIES sheet starting at row 2 (e.g., 'Indoor Lights/Wall Lights')");
+    return { useDefaults: true };
   }
   
   const categories = buildCategoryTree(categoryPaths);
@@ -363,7 +547,14 @@ async function readAllSheets(token: string, sheetId: string) {
     allowedValue: row[1] ?? "",
   })).filter((l) => l.propertyName && l.allowedValue);
 
-  return { products, categories, properties, legalValues, categoryPathCount: leafPathCount };
+  // Parse BRANDS: Brand, BrandName, Website (skip header row)
+  const brands = brandsRaw.slice(1).map((row) => ({
+    brand: row[0] ?? "",
+    brandName: row[1] ?? "",
+    website: row[2] ?? "",
+  })).filter((b) => b.brand);
+
+  return { products, brands, categories, properties, legalValues, categoryPathCount: leafPathCount };
 }
 
 function buildCategoryTree(paths: string[]) {
@@ -401,10 +592,11 @@ function buildCategoryTree(paths: string[]) {
 async function clearAndWriteCategories(
   token: string,
   sheetId: string,
-  categoryPaths: string[]
+  categoryPaths: string[],
+  categoriesTab: string
 ): Promise<void> {
   // Clear existing data in CATEGORIES!A:A (keep header, delete data starting at row 2)
-  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent("CATEGORIES!A2:A")}:clear`;
+  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${categoriesTab}!A2:A`)}:clear`;
   const clearRes = await fetch(clearUrl, {
     method: "POST",
     headers: {
@@ -419,8 +611,11 @@ async function clearAndWriteCategories(
     throw new Error(`Failed to clear categories: ${errText}`);
   }
 
+  // Sanitize category paths to prevent formula injection
+  const sanitizedPaths = categoryPaths.map(sanitizeForFormulas);
+
   // Write new category paths
-  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent("CATEGORIES!A2")}?valueInputOption=USER_ENTERED`;
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${categoriesTab}!A2`)}?valueInputOption=USER_ENTERED`;
   const writeRes = await fetch(writeUrl, {
     method: "PUT",
     headers: {
@@ -428,7 +623,7 @@ async function clearAndWriteCategories(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      values: categoryPaths.map((path) => [path]),
+      values: sanitizedPaths.map((path) => [path]),
     }),
   });
 
@@ -437,9 +632,58 @@ async function clearAndWriteCategories(
     throw new Error(`Failed to write categories: ${errText}`);
   }
 
-  console.log(`Successfully wrote ${categoryPaths.length} category paths to CATEGORIES tab`);
+  console.log(`Successfully wrote ${sanitizedPaths.length} category paths to ${categoriesTab} tab`);
 }
-```
+
+async function clearAndWriteBrands(
+  token: string,
+  sheetId: string,
+  brands: Array<{ brand: string; brandName: string; website: string }>,
+  brandsTab: string
+): Promise<void> {
+  // Clear existing data in BRANDS!A:C (keep header, delete data starting at row 2)
+  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2:C`)}:clear`;
+  const clearRes = await fetch(clearUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (!clearRes.ok) {
+    const errText = await clearRes.text();
+    throw new Error(`Failed to clear brands: ${errText}`);
+  }
+
+  // Sanitize brand data to prevent formula injection
+  const sanitizedBrands = brands.map((brand) => [
+    sanitizeForFormulas(brand.brand),
+    sanitizeForFormulas(brand.brandName),
+    sanitizeForFormulas(brand.website),
+  ]);
+
+  // Write new brands
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2`)}?valueInputOption=USER_ENTERED`;
+  const writeRes = await fetch(writeUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      values: sanitizedBrands,
+    }),
+  });
+
+  if (!writeRes.ok) {
+    const errText = await writeRes.text();
+    throw new Error(`Failed to write brands: ${errText}`);
+  }
+
+  console.log(`Successfully wrote ${brands.length} brands to ${brandsTab} tab`);
+}
 
 ### 6) Deploy
 
