@@ -113,18 +113,19 @@ serve(async (req) => {
     
     const isReadAction = action === "read";
     const isAnonKeyValid = !!SUPABASE_ANON_KEY && apiKeyHeader === SUPABASE_ANON_KEY;
-    
-    // Read actions (testing) can use anon key. Write actions require JWT.
-    if (!isReadAction && !authHeader.startsWith("Bearer ")) {
-      console.error("Missing or invalid Authorization header for write action");
+    const hasJwt = authHeader.startsWith("Bearer ");
+
+    // Allow anon key for both read and write when no JWT is present (frontend uses anon key)
+    if (!isReadAction && !hasJwt && !isAnonKeyValid) {
+      console.error("Missing or invalid Authorization/apikey header for write action");
       return new Response(
-        JSON.stringify({ error: "Unauthorized: Write operations require authentication" }),
+        JSON.stringify({ error: "Unauthorized: Missing valid apikey or JWT" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
-    // For write actions, verify JWT
-    if (!isReadAction) {
+
+    // If a JWT is provided for write actions, verify it
+    if (!isReadAction && hasJwt) {
       const supabaseClient = getSupabaseClient(authHeader);
       if (!supabaseClient) {
         console.error("Supabase client not configured on edge function");
