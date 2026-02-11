@@ -7,12 +7,15 @@ const PLACEHOLDER_URL = 'https://placeholder.supabase.co';
 const PLACEHOLDER_KEY = 'placeholder-key';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  "";
 
 // Validate that both URL and key are provided
 const missingVars = [
   { name: 'VITE_SUPABASE_URL', value: SUPABASE_URL },
-  { name: 'VITE_SUPABASE_PUBLISHABLE_KEY', value: SUPABASE_PUBLISHABLE_KEY }
+  { name: 'VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY', value: SUPABASE_PUBLISHABLE_KEY }
 ].filter(v => !v.value).map(v => v.name);
 
 if (missingVars.length > 0) {
