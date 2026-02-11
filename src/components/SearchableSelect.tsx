@@ -51,6 +51,8 @@ export function SearchableSelect({
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
       setSearch("");
+      setShowOtherInput(false);
+      setOtherText("");
     }
   }, [open]);
 
@@ -110,7 +112,7 @@ export function SearchableSelect({
             <p className="text-sm text-muted-foreground text-center py-3">No results</p>
           ) : (
             <div className="p-1">
-              {filtered.map((opt) => (
+              {!showOtherInput && filtered.map((opt) => (
                 <button
                   key={opt || "__none__"}
                   type="button"
