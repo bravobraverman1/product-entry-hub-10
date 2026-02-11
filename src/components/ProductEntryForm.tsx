@@ -482,15 +482,15 @@ export function ProductEntryForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex justify-center">
+      <div className="flex items-center justify-center rounded-xl border border-border bg-muted/30 px-4 py-3">
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           onClick={handleClearInput}
-          className="h-12 px-6 text-base font-semibold rounded-full shadow-sm border-2 border-border bg-background hover:bg-muted/40"
+          className="h-11 px-7 text-sm font-semibold rounded-full shadow-sm border border-border bg-background hover:bg-accent/60"
           onBlur={() => setClearConfirm(false)}
         >
-          <Trash2 className="mr-2 h-5 w-5" />
+          <Trash2 className="mr-2 h-4 w-4" />
           {clearConfirm ? "Are you sure?" : "Clear Input"}
         </Button>
       </div>
