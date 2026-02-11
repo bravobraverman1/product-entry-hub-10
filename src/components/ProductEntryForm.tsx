@@ -388,7 +388,7 @@ export function ProductEntryForm() {
     return () => {
       cancelled = true;
     };
-  }, [pdfRenderZoom, pdfIsZooming, activePdfUrl]);
+  }, [pdfRenderZoom, pdfIsZooming, activePdfData]);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
