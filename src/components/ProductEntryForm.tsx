@@ -33,6 +33,12 @@ interface FormErrors {
   images?: string;
 }
 
+declare global {
+  interface Window {
+    pdfjsLib?: any;
+  }
+}
+
 export function ProductEntryForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -80,9 +86,13 @@ export function ProductEntryForm() {
   const [datasheetPreviewUrl, setDatasheetPreviewUrl] = useState<string | null>(null);
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
   const [pdfZoom, setPdfZoom] = useState(100);
+  const [pdfjsReady, setPdfjsReady] = useState(false);
+  const [pdfRenderError, setPdfRenderError] = useState<string | null>(null);
+  const [pdfIsRendering, setPdfIsRendering] = useState(false);
   const pdfScrollRef = useRef<HTMLDivElement | null>(null);
   const [isDraggingPdf, setIsDraggingPdf] = useState(false);
   const dragStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const pdfCanvasRef = useRef<HTMLDivElement | null>(null);
 
   // Random example title as placeholder
   const exampleTitle = useMemo(() => {
@@ -171,6 +181,28 @@ export function ProductEntryForm() {
     }
   }, [datasheetPreviewUrl, websitePreviewUrl]);
 
+  useEffect(() => {
+    if (window.pdfjsLib) {
+      setPdfjsReady(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js";
+    script.async = true;
+    script.onload = () => {
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
+        setPdfjsReady(true);
+      }
+    };
+    script.onerror = () => setPdfRenderError("Failed to load PDF viewer");
+    document.body.appendChild(script);
+    return () => {
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+  }, []);
+
   const handlePdfMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!pdfScrollRef.current) return;
     setIsDraggingPdf(true);
@@ -194,6 +226,60 @@ export function ProductEntryForm() {
     setIsDraggingPdf(false);
     dragStart.current = null;
   }, []);
+
+  const activePdfUrl = useMemo(() => {
+    return pdfView === "website" ? websitePreviewUrl : datasheetPreviewUrl;
+  }, [pdfView, websitePreviewUrl, datasheetPreviewUrl]);
+
+  useEffect(() => {
+    const container = pdfCanvasRef.current;
+    if (!container) return;
+    container.innerHTML = "";
+    setPdfRenderError(null);
+
+    if (!activePdfUrl || !pdfjsReady) return;
+
+    let cancelled = false;
+    let loadingTask: any;
+    setPdfIsRendering(true);
+
+    (async () => {
+      try {
+        const pdfjs = window.pdfjsLib;
+        if (!pdfjs) throw new Error("PDF viewer not available");
+
+        loadingTask = pdfjs.getDocument(activePdfUrl);
+        const pdf = await loadingTask.promise;
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+          if (cancelled) break;
+          const page = await pdf.getPage(pageNum);
+          const viewport = page.getViewport({ scale: pdfZoom / 100 });
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          if (!context) continue;
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.className = "mb-3 last:mb-0";
+          container.appendChild(canvas);
+          const renderTask = page.render({ canvasContext: context, viewport });
+          await renderTask.promise;
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setPdfRenderError("PDF preview unavailable");
+        }
+      } finally {
+        if (!cancelled) setPdfIsRendering(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (loadingTask?.destroy) loadingTask.destroy();
+      if (container) container.innerHTML = "";
+    };
+  }, [activePdfUrl, pdfjsReady, pdfZoom]);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
@@ -524,11 +610,18 @@ export function ProductEntryForm() {
                       </div>
                     );
                   }
+                  if (!pdfjsReady) {
+                    return (
+                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                        Loading PDF viewer…
+                      </div>
+                    );
+                  }
                   return (
                     <div
                       ref={pdfScrollRef}
                       className={cn(
-                        "h-full w-full overflow-auto bg-white",
+                        "relative h-full w-full overflow-auto bg-white select-none",
                         isDraggingPdf ? "cursor-grabbing" : "cursor-grab"
                       )}
                       onMouseDown={handlePdfMouseDown}
@@ -536,18 +629,17 @@ export function ProductEntryForm() {
                       onMouseLeave={handlePdfMouseUp}
                       onMouseUp={handlePdfMouseUp}
                     >
-                      <iframe
-                        title="PDF Preview"
-                        src={activeUrl}
-                        className="block"
-                        style={{
-                          transform: `scale(${pdfZoom / 100})`,
-                          transformOrigin: "top left",
-                          width: `${100 / (pdfZoom / 100)}%`,
-                          height: `${100 / (pdfZoom / 100)}%`,
-                          border: "none",
-                        }}
-                      />
+                      <div ref={pdfCanvasRef} className="p-3" />
+                      {pdfIsRendering && (
+                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+                          Rendering…
+                        </div>
+                      )}
+                      {pdfRenderError && (
+                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+                          {pdfRenderError}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
