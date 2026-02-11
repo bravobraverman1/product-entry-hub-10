@@ -9,7 +9,6 @@ import { CategoryTreeDropdown } from "@/components/CategoryTreeDropdown";
 import { DynamicImageInputs } from "@/components/DynamicImageInputs";
 import { DynamicSpecifications } from "@/components/DynamicSpecifications";
 import { SkuSelector } from "@/components/SkuSelector";
-import { ReopenSku } from "@/components/ReopenSku";
 import { CheckCircle, Loader2, Send, FileText, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -17,11 +16,9 @@ import {
   fetchSkus,
   fetchCategories,
   fetchProperties,
-  fetchRecentSubmissions,
   submitProduct,
   addLegalValue,
   type SkuEntry,
-  type ReopenedProduct,
   type ProductPayload,
 } from "@/lib/api";
 import { config } from "@/config";
@@ -53,12 +50,6 @@ export function ProductEntryForm() {
     queryKey: ["categories"],
     queryFn: fetchCategories,
     staleTime: 5 * 60_000,
-  });
-
-  const { data: submissions = [] } = useQuery({
-    queryKey: ["recent-submissions"],
-    queryFn: fetchRecentSubmissions,
-    staleTime: 30_000,
   });
 
   const { data: propData } = useQuery({
@@ -110,11 +101,6 @@ export function ProductEntryForm() {
     return titles[Math.floor(Math.random() * titles.length)];
   }, [skus]);
 
-  // Dock SKUs for reopen dropdown
-  const dockSkus = useMemo(() => {
-    return submissions.map((sub) => sub.sku).filter(Boolean);
-  }, [submissions]);
-
   // Categories
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [mainCategory, setMainCategory] = useState("");
@@ -131,7 +117,6 @@ export function ProductEntryForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isReopened, setIsReopened] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
 
   const handleSkuSelect = useCallback((selectedSku: string, selectedBrand: string) => {
@@ -145,23 +130,6 @@ export function ProductEntryForm() {
 
   const handleOtherValue = useCallback((propertyName: string, value: string) => {
     setOtherValues((prev) => ({ ...prev, [propertyName]: value }));
-  }, []);
-
-  const handleReopened = useCallback((data: ReopenedProduct) => {
-    setSku(data.sku);
-    setBrand(data.brand);
-    setTitle(data.title);
-    setMainCategory(data.mainCategory);
-    setSelectedCategories(
-      data.additionalCategories.length > 0
-        ? [data.mainCategory, ...data.additionalCategories]
-        : [data.mainCategory]
-    );
-    setImageUrls(data.imageUrls.length > 0 ? data.imageUrls : [""]);
-    setSpecValues(data.specifications);
-    setChatgptData(data.chatgptData || "");
-    setChatgptDescription(data.chatgptDescription || "");
-    setIsReopened(true);
   }, []);
 
   useEffect(() => {
@@ -446,7 +414,6 @@ export function ProductEntryForm() {
     setSpecValues({});
     setOtherValues({});
     setErrors({});
-    setIsReopened(false);
   };
 
   const handleClearInput = useCallback(() => {
@@ -515,10 +482,18 @@ export function ProductEntryForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Reopen SKU */}
-      <FormSection title="Reopen SKU" defaultOpen={false}>
-        <ReopenSku onReopened={handleReopened} dockSkus={dockSkus} />
-      </FormSection>
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleClearInput}
+          className="h-10"
+          onBlur={() => setClearConfirm(false)}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          {clearConfirm ? "Are you sure?" : "Clear Input"}
+        </Button>
+      </div>
 
       {/* Basic Info */}
       <FormSection title="Basic Info" required defaultOpen>
@@ -831,10 +806,6 @@ export function ProductEntryForm() {
 
       {/* Submit */}
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={handleClearInput} className="h-10" onBlur={() => setClearConfirm(false)}>
-          <Trash2 className="mr-2 h-4 w-4" />
-          {clearConfirm ? "Are you sure?" : "Clear Input"}
-        </Button>
         <Button type="submit" disabled={isSubmitting || showSuccess} className="min-w-[160px] h-10">
           {showSuccess ? (
             <><CheckCircle className="mr-2 h-4 w-4" /> Submitted!</>

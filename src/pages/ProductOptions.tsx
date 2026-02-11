@@ -156,8 +156,8 @@ const ProductOptions = () => {
         </div>
       </FormSection>
 
-      {/* Mark SKU Complete */}
-      <FormSection title="Mark SKU Complete" defaultOpen>
+      {/* Mark SKU COMPLETE */}
+      <FormSection title="Mark SKU COMPLETE" defaultOpen>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Use when Eran or another employee has already completed this SKU outside the system. Changes the status to COMPLETE without requiring data entry.
@@ -184,13 +184,13 @@ const ProductOptions = () => {
             ) : (
               <CheckCircle className="h-4 w-4 mr-1.5" />
             )}
-            Mark Complete
+            Mark COMPLETE
           </Button>
         </div>
       </FormSection>
 
-      {/* Mark SKU Incomplete */}
-      <FormSection title="Mark SKU Incomplete" defaultOpen>
+      {/* Mark SKU READY */}
+      <FormSection title="Mark SKU READY" defaultOpen>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Resets a SKU's status to READY, returning it to the products to-do list for processing.
@@ -217,13 +217,13 @@ const ProductOptions = () => {
             ) : (
               <XCircle className="h-4 w-4 mr-1.5" />
             )}
-            Mark Incomplete
+            Mark READY
           </Button>
         </div>
       </FormSection>
 
-      {/* Mark Not For Sale */}
-      <FormSection title="Mark SKU Not For Sale" defaultOpen>
+      {/* Mark SKU DEAD */}
+      <FormSection title="Mark SKU DEAD" defaultOpen>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Changes the SKU status to DEAD and updates the system. Eran is notified when this occurs.
@@ -252,7 +252,7 @@ const ProductOptions = () => {
                 ) : (
                   <Ban className="h-4 w-4 mr-1.5" />
                 )}
-                Mark Not For Sale
+                Mark DEAD
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
