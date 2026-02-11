@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -13,94 +13,64 @@ const UNIT_OVERRIDES: Record<string, string> = {
 };
 
 function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [mode, setMode] = useState<"pair" | "diameter">("diameter");
-  
-  // Detect mode from value
-  useEffect(() => {
-    if (value.includes("X") || value.includes("x")) {
-      setMode("pair");
-    } else if (value) {
-      setMode("diameter");
-    }
-  }, [value]);
+  const pairMatch = value.match(/^(\d+)X(\d+)$/i);
+  const pairValue1 = pairMatch ? pairMatch[1] : "";
+  const pairValue2 = pairMatch ? pairMatch[2] : "";
+  const diameterValue = pairMatch ? "" : value;
+  const isPairMode = !!pairMatch;
+  const isDiameterMode = !!diameterValue;
 
   const handlePairChange = (num1: string, num2: string) => {
-    if (num1 && num2) {
+    if (num1 || num2) {
       onChange(`${num1}X${num2}`);
-    } else if (!num1 && !num2) {
+    } else {
       onChange("");
     }
   };
 
   const handleDiameterChange = (num: string) => {
-    onChange(num);
+    if (num) {
+      onChange(num);
+    } else {
+      onChange("");
+    }
   };
-
-  const pairMatch = value.match(/^(\d+)X(\d+)$/i);
-  const diameterValue = pairMatch ? "" : value;
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-1">
-        <button
-          type="button"
-          onClick={() => {
-            setMode("pair");
-            onChange("");
-          }}
-          className={`text-xs px-2 py-1 rounded border ${
-            mode === "pair" ? "bg-muted border-primary" : "border-border"
-          }`}
-        >
-          W×H
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode("diameter");
-            onChange("");
-          }}
-          className={`text-xs px-2 py-1 rounded border ${
-            mode === "diameter" ? "bg-muted border-primary" : "border-border"
-          }`}
-        >
-          ⌀
-        </button>
+      {/* W×H Mode - greyed out if diameter is active */}
+      <div className={`flex gap-1 ${isDiameterMode ? "opacity-40 pointer-events-none" : ""}`}>
+        <Input
+          type="number"
+          placeholder="W"
+          value={pairValue1}
+          onChange={(e) => handlePairChange(e.target.value, pairValue2)}
+          className="h-9 text-sm flex-1"
+        />
+        <span className="flex items-center text-xs font-semibold">×</span>
+        <Input
+          type="number"
+          placeholder="H"
+          value={pairValue2}
+          onChange={(e) => handlePairChange(pairValue1, e.target.value)}
+          className="h-9 text-sm flex-1"
+        />
+        <span className="flex items-center text-xs text-muted-foreground">cm</span>
       </div>
-      {mode === "pair" && (
-        <div className="flex gap-1">
-          <Input
-            type="number"
-            placeholder="W"
-            value={pairMatch ? pairMatch[1] : ""}
-            onChange={(e) => handlePairChange(e.target.value, pairMatch ? pairMatch[2] : "")}
-            className="h-9 text-sm flex-1"
-          />
-          <span className="flex items-center text-xs font-semibold">×</span>
-          <Input
-            type="number"
-            placeholder="H"
-            value={pairMatch ? pairMatch[2] : ""}
-            onChange={(e) => handlePairChange(pairMatch ? pairMatch[1] : "", e.target.value)}
-            className="h-9 text-sm flex-1"
-          />
-          <span className="flex items-center text-xs text-muted-foreground">cm</span>
-        </div>
-      )}
-      {mode === "diameter" && (
-        <div className="relative">
-          <Input
-            type="number"
-            placeholder="Diameter"
-            value={diameterValue}
-            onChange={(e) => handleDiameterChange(e.target.value)}
-            className="h-9 text-sm pr-10"
-          />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-            cm
-          </span>
-        </div>
-      )}
+
+      {/* Diameter Mode - greyed out if W×H is active */}
+      <div className={`relative ${isPairMode ? "opacity-40 pointer-events-none" : ""}`}>
+        <Input
+          type="number"
+          placeholder="Diameter"
+          value={diameterValue}
+          onChange={(e) => handleDiameterChange(e.target.value)}
+          className="h-9 text-sm pr-10"
+        />
+        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+          cm
+        </span>
+      </div>
     </div>
   );
 }
@@ -183,9 +153,14 @@ export function DynamicSpecifications({
             {sectionName}
           </p>
           {sectionName.toLowerCase() === "filters" && (
-            <p className="text-xs text-destructive mb-2">
-              Please avoid “Other.” Exhaust all existing options first and use it only when no listed value applies.
-            </p>
+            <>
+              <p className="text-xs text-destructive mb-2">
+                Please avoid "Other." Exhaust all existing options first and use it only when no listed value applies.
+              </p>
+              <p className="text-xs text-destructive mb-3">
+                ⚠️ Ensure all entered values match the stated units (e.g., mm, °, cm, m³/h).
+              </p>
+            </>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {props.map((prop) => {

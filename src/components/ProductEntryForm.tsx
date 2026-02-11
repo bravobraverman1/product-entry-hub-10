@@ -793,7 +793,7 @@ export function ProductEntryForm() {
       </FormSection>
 
       {/* Filters */}
-      <FormSection title="Filters" defaultOpen={false}>
+      <FormSection title="Filters" defaultOpen={true}>
         <div className="space-y-2">
           <DynamicSpecifications
             properties={properties}
