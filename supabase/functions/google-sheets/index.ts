@@ -453,20 +453,7 @@ async function readAllSheets(
   }));
 
   if (properties.length === 0) {
-    // Fallback to PROPERTIES tab if LEGAL is empty
-    const fallbackProperties = propertiesRaw.slice(1).map((row) => ({
-      name: row[0] ?? "",
-      key: row[1] ?? "",
-      inputType: (row[2] ?? "text") as "dropdown" | "text" | "number" | "boolean",
-      section: row[3] ?? "Other",
-    })).filter((p) => p.name && p.key);
-
-    const fallbackLegalValues = legalRaw.slice(1).map((row) => ({
-      propertyName: row[0] ?? "",
-      allowedValue: row[1] ?? "",
-    })).filter((l) => l.propertyName && l.allowedValue);
-
-    return { products, brands, categories, properties: fallbackProperties, legalValues: fallbackLegalValues, categoryPathCount: leafPathCount };
+    return { products, brands, categories, properties: [], legalValues: [], categoryPathCount: leafPathCount };
   }
 
   // Parse BRANDS: Brand, BrandName, Website (skip header row)

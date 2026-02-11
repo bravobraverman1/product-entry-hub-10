@@ -193,6 +193,9 @@ export async function fetchProperties(): Promise<{
           legalValues: data.legalValues,
         };
       }
+      if (data.useDefaults) {
+        return { properties: [], legalValues: [] };
+      }
     } catch (error) {
       console.error("Error fetching properties from Supabase Google Sheets:", error);
     }
@@ -200,10 +203,7 @@ export async function fetchProperties(): Promise<{
 
   // Fall back to Apps Script or defaults
   if (!isConfigured()) {
-    return {
-      properties: defaultProperties,
-      legalValues: defaultLegalValues,
-    };
+    return { properties: [], legalValues: [] };
   }
   return apiFetch("/properties");
 }
