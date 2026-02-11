@@ -10,7 +10,7 @@ import { DynamicImageInputs } from "@/components/DynamicImageInputs";
 import { DynamicSpecifications } from "@/components/DynamicSpecifications";
 import { SkuSelector } from "@/components/SkuSelector";
 import { ReopenSku } from "@/components/ReopenSku";
-import { CheckCircle, Loader2, Send, FileText, Trash2 } from "lucide-react";
+import { CheckCircle, Loader2, Send, FileText, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -79,6 +79,7 @@ export function ProductEntryForm() {
   const [pdfView, setPdfView] = useState<"datasheet" | "website">("datasheet");
   const [datasheetPreviewUrl, setDatasheetPreviewUrl] = useState<string | null>(null);
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
+  const [pdfZoom, setPdfZoom] = useState(100);
 
   // Random example title as placeholder
   const exampleTitle = useMemo(() => {
@@ -435,32 +436,54 @@ export function ProductEntryForm() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-medium">Supplier PDFs</Label>
-                {datasheetPreviewUrl && websitePreviewUrl && (
-                  <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
-                    <button
+                <div className="flex items-center gap-2">
+                  {datasheetPreviewUrl && websitePreviewUrl && (
+                    <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setPdfView("datasheet")}
+                        className={cn(
+                          "px-2 py-1 text-[11px] rounded",
+                          pdfView === "datasheet" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Datasheet
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPdfView("website")}
+                        className={cn(
+                          "px-2 py-1 text-[11px] rounded",
+                          pdfView === "website" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Website
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <Button
                       type="button"
-                      onClick={() => setPdfView("datasheet")}
-                      className={cn(
-                        "px-2 py-1 text-[11px] rounded",
-                        pdfView === "datasheet" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                      )}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => setPdfZoom((z) => Math.max(50, z - 10))}
                     >
-                      Datasheet
-                    </button>
-                    <button
+                      <ZoomOut className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
                       type="button"
-                      onClick={() => setPdfView("website")}
-                      className={cn(
-                        "px-2 py-1 text-[11px] rounded",
-                        pdfView === "website" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                      )}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => setPdfZoom((z) => Math.min(200, z + 10))}
                     >
-                      Website
-                    </button>
+                      <ZoomIn className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
-                )}
+                </div>
               </div>
-              <div className="border border-border rounded-lg bg-muted/20 h-[320px] overflow-hidden">
+              <div className="border border-border rounded-lg bg-muted/20 h-[360px] overflow-hidden">
                 {(() => {
                   const activeUrl = pdfView === "website" ? websitePreviewUrl : datasheetPreviewUrl;
                   if (!activeUrl) {
@@ -471,15 +494,20 @@ export function ProductEntryForm() {
                     );
                   }
                   return (
-                    <object
-                      data={activeUrl}
-                      type="application/pdf"
-                      className="h-full w-full"
-                    >
-                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                        PDF preview unavailable
-                      </div>
-                    </object>
+                    <div className="h-full w-full overflow-auto bg-white">
+                      <iframe
+                        title="PDF Preview"
+                        src={activeUrl}
+                        className="block"
+                        style={{
+                          transform: `scale(${pdfZoom / 100})`,
+                          transformOrigin: "top left",
+                          width: `${100 / (pdfZoom / 100)}%`,
+                          height: `${100 / (pdfZoom / 100)}%`,
+                          border: "none",
+                        }}
+                      />
+                    </div>
                   );
                 })()}
               </div>
