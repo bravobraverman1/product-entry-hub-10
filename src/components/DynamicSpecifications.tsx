@@ -25,6 +25,11 @@ const isNumericProperty = (propertyName: string): boolean => {
   return NUMERIC_PROPERTIES.has(propertyName);
 };
 
+// Helper to sanitize numeric input - only allows digits and decimals
+const sanitizeNumericInput = (input: string): string => {
+  return input.replace(/[^\d.]/g, "");
+};
+
 function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   // Determine which mode we're in based on presence of X
   const hasPairMode = value.includes("X") || value.includes("x");
@@ -37,17 +42,20 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
   // Extract diameter value only if not in pair mode
   const diameterValue = !hasPairMode ? value : "";
   
-  // Check if each mode has a complete value
-  const hasPairValue = !!(pairValue1 && pairValue2);
+  // Check if each mode has any value started (grey diameter as soon as either W or H has value)
+  const hasPairValue = !!(pairValue1 || pairValue2);
   const hasDiameterValue = diameterValue && diameterValue.length > 0;
 
   const handlePairChange = (num1: string, num2: string) => {
-    // Always format as NUM1XNUM2 while typing
-    onChange(`${num1}X${num2}`);
+    // Sanitize both values and format as NUM1XNUM2
+    const sanitized1 = sanitizeNumericInput(num1);
+    const sanitized2 = sanitizeNumericInput(num2);
+    onChange(`${sanitized1}X${sanitized2}`);
   };
 
   const handleDiameterChange = (num: string) => {
-    onChange(num);
+    const sanitized = sanitizeNumericInput(num);
+    onChange(sanitized);
   };
 
   return (
@@ -61,6 +69,7 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
           onChange={(e) => handlePairChange(e.target.value, pairValue2)}
           className="h-6 text-xs flex-1 min-w-8"
           disabled={hasDiameterValue}
+          step="0.01"
         />
         <span className="text-xs font-semibold">×</span>
         <Input
@@ -70,11 +79,12 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
           onChange={(e) => handlePairChange(pairValue1, e.target.value)}
           className="h-6 text-xs flex-1 min-w-8"
           disabled={hasDiameterValue}
+          step="0.01"
         />
         <span className="text-xs text-muted-foreground whitespace-nowrap">cm</span>
       </div>
 
-      {/* Diameter Mode - greyed out only if W and H both have values */}
+      {/* Diameter Mode - greyed out as soon as either W or H has any value */}
       <div className={`relative ${hasPairValue ? "opacity-50 pointer-events-none" : ""}`}>
         <Input
           type="number"
@@ -83,6 +93,7 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
           onChange={(e) => handleDiameterChange(e.target.value)}
           className="h-6 text-xs pr-7"
           disabled={hasPairValue}
+          step="0.01"
         />
         <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
           cm
@@ -158,8 +169,10 @@ export function DynamicSpecifications({
   }, [legalValues]);
 
   const handleOtherSubmit = useCallback((propertyName: string, key: string, value: string) => {
-    onChange(key, value);
-    onOtherValue?.(propertyName, value);
+    // Sanitize numeric properties
+    const sanitizedValue = isNumericProperty(propertyName) ? sanitizeNumericInput(value) : value;
+    onChange(key, sanitizedValue);
+    onOtherValue?.(propertyName, sanitizedValue);
   }, [onChange, onOtherValue]);
 
   return (
@@ -204,7 +217,12 @@ export function DynamicSpecifications({
                       <Input
                         type={isNumericProperty(prop.name) ? "number" : "text"}
                         value={values[prop.key] || ""}
-                        onChange={(e) => onChange(prop.key, e.target.value)}
+                        onChange={(e) => {
+                          const newValue = isNumericProperty(prop.name)
+                            ? sanitizeNumericInput(e.target.value)
+                            : e.target.value;
+                          onChange(prop.key, newValue);
+                        }}
                         placeholder={`Enter ${prop.name.toLowerCase()}`}
                         className={displayUnit ? "h-9 text-sm pr-10" : "h-9 text-sm"}
                         step={isNumericProperty(prop.name) ? "0.01" : undefined}
@@ -224,9 +242,13 @@ export function DynamicSpecifications({
                       <Input
                         type="number"
                         value={values[prop.key] || ""}
-                        onChange={(e) => onChange(prop.key, e.target.value)}
+                        onChange={(e) => {
+                          const sanitized = sanitizeNumericInput(e.target.value);
+                          onChange(prop.key, sanitized);
+                        }}
                         placeholder="0"
                         className={displayUnit ? "h-9 text-sm pr-10" : "h-9 text-sm"}
+                        step="0.01"
                       />
                       {displayUnit && (
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">

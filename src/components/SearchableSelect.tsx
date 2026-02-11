@@ -26,6 +26,11 @@ const NUMERIC_PROPERTIES = new Set([
   "Fan Cutout",
 ]);
 
+// Helper to sanitize numeric input
+const sanitizeNumericInput = (input: string): string => {
+  return input.replace(/[^\d.]/g, "");
+};
+
 export function SearchableSelect({
   value,
   onValueChange,
@@ -75,14 +80,14 @@ export function SearchableSelect({
     if (otherText.trim()) {
       // If this is a numeric property, validate numeric input
       if (propertyName && NUMERIC_PROPERTIES.has(propertyName)) {
-        const numValue = parseFloat(otherText.trim());
-        if (isNaN(numValue)) {
+        const sanitized = sanitizeNumericInput(otherText.trim());
+        const numValue = parseFloat(sanitized);
+        if (isNaN(numValue) || sanitized === "") {
           alert(`Invalid value. ${propertyName} requires a numeric value only.`);
           return;
         }
-        const normalized = numValue.toString();
-        onOtherSubmit?.(normalized);
-        onValueChange(normalized);
+        onOtherSubmit?.(sanitized);
+        onValueChange(sanitized);
       } else {
         const normalized = otherText.trim().toUpperCase();
         onOtherSubmit?.(normalized);
