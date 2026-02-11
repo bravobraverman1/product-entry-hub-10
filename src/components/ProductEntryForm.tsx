@@ -613,8 +613,8 @@ export function ProductEntryForm() {
                 className="text-sm min-h-[360px]"
               />
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between min-h-[20px]">
                 <Label className="text-xs font-medium">
                   {datasheetPreviewUrl || websitePreviewUrl
                     ? `PDF: ${pdfView === "website" ? "Website" : "Datasheet"}`
