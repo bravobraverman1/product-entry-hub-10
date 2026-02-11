@@ -14,17 +14,17 @@ export interface SheetTabConfig {
 // Default sheet tab names — all configurable in Admin
 export const DEFAULT_SHEET_TABS: SheetTabConfig[] = [
   { key: "SHEET_OUTPUT", label: "OUTPUT", value: "OUTPUT" },
-  { key: "SHEET_PRODUCTS", label: "PRODUCTS", value: "PRODUCTS" },
+  { key: "SHEET_PRODUCTS", label: "PRODUCTS", value: "Products" },
   { key: "SHEET_PRODUCTS_TODO", label: "PRODUCTS TO DO", value: "PRODUCTS TO DO" },
   { key: "SHEET_TEMP", label: "TEMP", value: "TEMP" },
-  { key: "SHEET_BRANDS", label: "Brands", value: "BRANDS" },
+  { key: "SHEET_BRANDS", label: "Brands", value: "Brands" },
   { key: "SHEET_FILTER", label: "FILTER", value: "FILTER" },
   { key: "SHEET_LEGAL", label: "LEGAL", value: "LEGAL" },
   { key: "SHEET_PROPERTIES", label: "PROPERTIES", value: "PROPERTIES" },
   { key: "SHEET_EXISTING_PRODS", label: "ExistingProds", value: "ExistingProds" },
   { key: "SHEET_NEW_NAMES", label: "NewNames", value: "NewNames" },
   { key: "SHEET_UPLOAD", label: "UPLOAD", value: "UPLOAD" },
-  { key: "SHEET_CATEGORIES", label: "CATEGORIES", value: "CATEGORIES" },
+  { key: "SHEET_CATEGORIES", label: "CATEGORIES", value: "Categories" },
 ];
 
 // Stored config — persisted in localStorage for now, can be moved to backend
