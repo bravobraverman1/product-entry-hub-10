@@ -482,12 +482,12 @@ export function ProductEntryForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex items-center justify-center rounded-xl border border-border bg-muted/30 px-4 py-3">
+      <div className="flex items-center justify-center">
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           onClick={handleClearInput}
-          className="h-11 px-7 text-sm font-semibold rounded-full shadow-sm border border-border bg-background hover:bg-accent/60"
+          className="h-12 px-8 text-sm font-semibold rounded-full border-2 border-border bg-white shadow-md hover:shadow-lg hover:bg-muted/40 transition-all"
           onBlur={() => setClearConfirm(false)}
         >
           <Trash2 className="mr-2 h-4 w-4" />
