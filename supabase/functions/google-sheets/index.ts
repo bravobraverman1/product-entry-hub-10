@@ -106,9 +106,22 @@ serve(async (req) => {
       );
     }
 
-    // AUTHENTICATION
-    // Disabled for now to prevent 401s in preview/app calls.
-    // If you want to re-enable auth later, validate apikey/JWT here.
+    // AUTHENTICATION: Verify request is from authorized origin or has valid Supabase token
+    const authHeader = req.headers.get("authorization");
+    const originHeader = req.headers.get("origin") || "";
+    
+    // Check if origin is allowed (for browser requests)
+    const isOriginAllowed = ALLOWED_ORIGINS.some((allowed) => originMatches(allowed, originHeader));
+    
+    // Check if auth header is valid (for API requests)
+    const hasValidAuth = authHeader && authHeader.startsWith("Bearer ");
+    
+    if (!isOriginAllowed && !hasValidAuth) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Missing valid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // SECURITY: Only use server-side secrets from Deno.env, never from request body
     // This prevents exposing credentials to the client

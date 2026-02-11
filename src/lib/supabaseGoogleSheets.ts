@@ -82,8 +82,15 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
       tabNames: getSheetTabNamesPayload(),
     };
 
+    // Get the current session for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
+
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,
+      headers,
     });
 
     if (error) {
@@ -115,8 +122,15 @@ export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
       tabNames: getSheetTabNamesPayload(),
     };
 
+    // Get the current session for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
+
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,
+      headers,
     });
 
     if (error) {
@@ -144,8 +158,15 @@ export async function writeCategoriesToGoogleSheets(
       tabNames: getSheetTabNamesPayload(),
     };
 
+    // Get the current session for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
+
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,
+      headers,
     });
 
     if (error) {
@@ -186,8 +207,15 @@ export async function writeBrandsToGoogleSheets(
       tabNames: getSheetTabNamesPayload(),
     };
 
+    // Get the current session for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
+
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,
+      headers,
     });
 
     if (error) {
@@ -229,8 +257,15 @@ export async function writeLegalValueToGoogleSheets(
       tabNames: getSheetTabNamesPayload(),
     };
 
+    // Get the current session for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
+
     const { data, error } = await supabase.functions.invoke("google-sheets", {
       body: requestBody,
+      headers,
     });
 
     if (error) {
