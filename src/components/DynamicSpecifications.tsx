@@ -35,7 +35,7 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
   };
 
   return (
-    <div className="flex gap-1 items-center">
+    <div className="space-y-1.5">
       {/* W×H Mode - greyed out only if diameter has value */}
       <div className={`flex gap-0.5 items-center ${hasDiameterValue ? "opacity-40 pointer-events-none" : ""}`}>
         <Input
@@ -56,17 +56,14 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
         <span className="text-xs text-muted-foreground whitespace-nowrap">cm</span>
       </div>
 
-      {/* Divider */}
-      <span className="text-xs text-muted-foreground">|</span>
-
       {/* Diameter Mode - greyed out only if W or H has value */}
-      <div className={`relative flex-1 ${hasPairValue ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className={`relative ${hasPairValue ? "opacity-40 pointer-events-none" : ""}`}>
         <Input
           type="number"
-          placeholder="⌀"
+          placeholder="Diameter"
           value={diameterValue}
           onChange={(e) => handleDiameterChange(e.target.value)}
-          className="h-6 text-xs w-full pr-7"
+          className="h-6 text-xs pr-7"
         />
         <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
           cm
