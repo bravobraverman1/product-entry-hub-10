@@ -62,8 +62,9 @@ export function SearchableSelect({
 
   const handleOtherConfirm = () => {
     if (otherText.trim()) {
-      onOtherSubmit?.(otherText.trim());
-      onValueChange(otherText.trim());
+      const normalized = otherText.trim().toUpperCase();
+      onOtherSubmit?.(normalized);
+      onValueChange(normalized);
       setShowOtherInput(false);
       setOtherText("");
       setOpen(false);

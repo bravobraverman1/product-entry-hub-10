@@ -52,6 +52,11 @@ export function DynamicSpecifications({
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             {sectionName}
           </p>
+          {sectionName.toLowerCase() === "filters" && (
+            <p className="text-xs text-destructive mb-2">
+              Other is not the default. Use it only when no existing option fits.
+            </p>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {props.map((prop) => (
               <div key={prop.key} className="space-y-1.5">
