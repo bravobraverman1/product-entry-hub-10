@@ -20,9 +20,18 @@ const NUMERIC_PROPERTIES = new Set([
   ...Object.keys(UNIT_OVERRIDES),
 ]);
 
-// Helper to validate numeric input
-const isNumericProperty = (propertyName: string): boolean => {
-  return NUMERIC_PROPERTIES.has(propertyName);
+// Unit suffixes that indicate numeric values
+const NUMERIC_UNIT_SUFFIXES = new Set(["mm", "cm", "°", "m³/h", "°C", "lm", "K", "W", "cd"]);
+
+// Helper to validate if property should be numeric based on name or unit
+const isNumericProperty = (propertyName: string, unitSuffix?: string): boolean => {
+  // Check explicit numeric properties
+  if (NUMERIC_PROPERTIES.has(propertyName)) return true;
+  
+  // Check if it has a numeric unit suffix
+  if (unitSuffix && NUMERIC_UNIT_SUFFIXES.has(unitSuffix)) return true;
+  
+  return false;
 };
 
 // Helper to sanitize numeric input - only allows digits and decimals
@@ -201,9 +210,9 @@ export function DynamicSpecifications({
     return map;
   }, [legalValues]);
 
-  const handleOtherSubmit = useCallback((propertyName: string, key: string, value: string) => {
-    // Sanitize numeric properties
-    const sanitizedValue = isNumericProperty(propertyName) ? sanitizeNumericInput(value) : value;
+  const handleOtherSubmit = useCallback((propertyName: string, key: string, value: string, unitSuffix?: string) => {
+    // Sanitize numeric properties based on name or unit
+    const sanitizedValue = isNumericProperty(propertyName, unitSuffix) ? sanitizeNumericInput(value) : value;
     onChange(key, sanitizedValue);
     onOtherValue?.(propertyName, sanitizedValue);
   }, [onChange, onOtherValue]);
@@ -242,7 +251,7 @@ export function DynamicSpecifications({
                       placeholder="Select..."
                       allowOther
                       propertyName={prop.name}
-                      onOtherSubmit={(v) => handleOtherSubmit(prop.name, prop.key, v)}
+                      onOtherSubmit={(v) => handleOtherSubmit(prop.name, prop.key, v, displayUnit)}
                     />
                   )}
                   {prop.inputType === "text" && !isFanCutout && (
@@ -252,7 +261,7 @@ export function DynamicSpecifications({
                         inputMode="decimal"
                         value={values[prop.key] || ""}
                         onChange={(e) => {
-                          if (isNumericProperty(prop.name)) {
+                          if (isNumericProperty(prop.name, displayUnit)) {
                             const newValue = sanitizeNumericInput(e.target.value);
                             onChange(prop.key, newValue);
                           } else {
@@ -260,7 +269,7 @@ export function DynamicSpecifications({
                           }
                         }}
                         onKeyPress={(e) => {
-                          if (isNumericProperty(prop.name)) {
+                          if (isNumericProperty(prop.name, displayUnit)) {
                             const char = e.key;
                             if (!/[\d.]/.test(char)) {
                               e.preventDefault();
@@ -268,7 +277,7 @@ export function DynamicSpecifications({
                           }
                         }}
                         onPaste={(e) => {
-                          if (isNumericProperty(prop.name)) {
+                          if (isNumericProperty(prop.name, displayUnit)) {
                             e.preventDefault();
                             const pastedText = e.clipboardData.getData("text");
                             const sanitized = sanitizeNumericInput(pastedText);
