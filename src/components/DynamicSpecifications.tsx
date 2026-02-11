@@ -54,7 +54,7 @@ export function DynamicSpecifications({
           </p>
           {sectionName.toLowerCase() === "filters" && (
             <p className="text-xs text-destructive mb-2">
-              Other is not the default. Use it only when no existing option fits.
+              Please avoid “Other.” Exhaust all existing options first and use it only when no listed value applies.
             </p>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
