@@ -313,7 +313,12 @@ const Admin = () => {
     for (const [key, value] of Object.entries(tabValues)) {
       setSheetTabName(key, value);
     }
-    toast({ title: "Saved", description: "Sheet tab names updated." });
+    // Invalidate all data queries to force refresh with new tab names
+    queryClient.invalidateQueries({ queryKey: ["skus"] });
+    queryClient.invalidateQueries({ queryKey: ["categories"] });
+    queryClient.invalidateQueries({ queryKey: ["properties"] });
+    queryClient.invalidateQueries({ queryKey: ["recent-submissions"] });
+    toast({ title: "Synced!", description: "Sheet tab names saved and all data refreshed from Google Sheets." });
   };
 
   // ── Connection Settings ──
