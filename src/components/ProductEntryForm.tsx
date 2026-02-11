@@ -115,6 +115,9 @@ export function ProductEntryForm() {
   // Track "Other" values to persist on submit
   const [otherValues, setOtherValues] = useState<Record<string, string>>({});
 
+  // Email Notes
+  const [emailNotes, setEmailNotes] = useState("");
+
   // Form state
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -415,6 +418,7 @@ export function ProductEntryForm() {
     setImageUrls([""]);
     setSpecValues({});
     setOtherValues({});
+    setEmailNotes("");
     setErrors({});
   };
 
@@ -472,7 +476,7 @@ export function ProductEntryForm() {
 
       setTimeout(() => {
         setShowSuccess(false);
-        resetForm();
+        // Keep form data - don't clear on submit, only "Clear Input" button clears
       }, 2000);
     } catch (error) {
       console.error("Submission error:", error);
@@ -806,6 +810,21 @@ export function ProductEntryForm() {
             filterDefaultMap={filterDefaultMap}
           />
           <p className="text-xs text-muted-foreground">💡 Units: Dimensions in mm, angles in °, air movement in m³/h, Fan Cutout diameter/dimensions in cm. Indoor with no IP → default IP20.</p>
+        </div>
+      </FormSection>
+
+      {/* Email Notes */}
+      <FormSection title="Email Notes" defaultOpen={false}>
+        <div className="space-y-2">
+          <Label htmlFor="email-notes" className="text-sm font-medium">Notes for Email Body</Label>
+          <Textarea
+            id="email-notes"
+            value={emailNotes}
+            onChange={(e) => setEmailNotes(e.target.value)}
+            placeholder="Add any notes or special instructions for the email communication..."
+            className="min-h-24 text-sm"
+          />
+          <p className="text-xs text-muted-foreground">These notes will be included in email communications about this product.</p>
         </div>
       </FormSection>
 
