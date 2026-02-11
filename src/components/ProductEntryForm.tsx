@@ -548,6 +548,14 @@ export function ProductEntryForm() {
         />
       </FormSection>
 
+      {/* Images */}
+      <FormSection title="Images" required defaultOpen>
+        <div className="space-y-2">
+          <DynamicImageInputs imageUrls={imageUrls} onChange={setImageUrls} error={errors.images} />
+          <p className="text-xs text-muted-foreground">💡 Order: lifestyle/product images first, dimension image last. Min 700px wide.</p>
+        </div>
+      </FormSection>
+
       {/* AI and Data */}
       <FormSection title="AI and Data" defaultOpen>
         <div className="space-y-4">
@@ -804,14 +812,6 @@ export function ProductEntryForm() {
           <Button type="button" variant="outline" size="sm" className="h-9" onClick={handleVerifyAiEntries}>
             Verify AI Entries
           </Button>
-        </div>
-      </FormSection>
-
-      {/* Images */}
-      <FormSection title="Images" required defaultOpen>
-        <div className="space-y-2">
-          <DynamicImageInputs imageUrls={imageUrls} onChange={setImageUrls} error={errors.images} />
-          <p className="text-xs text-muted-foreground">💡 Order: lifestyle/product images first, dimension image last. Min 700px wide.</p>
         </div>
       </FormSection>
 
