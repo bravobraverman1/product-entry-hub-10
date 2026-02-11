@@ -73,6 +73,12 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
               e.preventDefault();
             }
           }}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pastedText = e.clipboardData.getData("text");
+            const sanitized = sanitizeNumericInput(pastedText);
+            handlePairChange(sanitized, pairValue2);
+          }}
           className="h-6 text-xs flex-1 min-w-8"
           disabled={hasDiameterValue}
         />
@@ -87,6 +93,12 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
             if (!/[\d.]/.test(e.key)) {
               e.preventDefault();
             }
+          }}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pastedText = e.clipboardData.getData("text");
+            const sanitized = sanitizeNumericInput(pastedText);
+            handlePairChange(pairValue1, sanitized);
           }}
           className="h-6 text-xs flex-1 min-w-8"
           disabled={hasDiameterValue}
@@ -106,6 +118,12 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
             if (!/[\d.]/.test(e.key)) {
               e.preventDefault();
             }
+          }}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pastedText = e.clipboardData.getData("text");
+            const sanitized = sanitizeNumericInput(pastedText);
+            handleDiameterChange(sanitized);
           }}
           className="h-6 text-xs pr-7"
           disabled={hasPairValue}
@@ -249,6 +267,14 @@ export function DynamicSpecifications({
                             }
                           }
                         }}
+                        onPaste={(e) => {
+                          if (isNumericProperty(prop.name)) {
+                            e.preventDefault();
+                            const pastedText = e.clipboardData.getData("text");
+                            const sanitized = sanitizeNumericInput(pastedText);
+                            onChange(prop.key, sanitized);
+                          }
+                        }}
                         placeholder={`Enter ${prop.name.toLowerCase()}`}
                         className={displayUnit ? "h-9 text-sm pr-10" : "h-9 text-sm"}
                       />
@@ -276,6 +302,12 @@ export function DynamicSpecifications({
                           if (!/[\d.]/.test(e.key)) {
                             e.preventDefault();
                           }
+                        }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pastedText = e.clipboardData.getData("text");
+                          const sanitized = sanitizeNumericInput(pastedText);
+                          onChange(prop.key, sanitized);
                         }}
                         placeholder="0"
                         className={displayUnit ? "h-9 text-sm pr-10" : "h-9 text-sm"}
