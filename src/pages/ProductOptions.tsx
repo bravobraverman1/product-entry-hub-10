@@ -193,7 +193,7 @@ const ProductOptions = () => {
       <FormSection title="Mark SKU READY" defaultOpen>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Resets a SKU's status to READY, returning it to the products to-do list for processing.
+            Sets the SKU status to READY so it appears in the SKU dropdown menu and can be selected, filled in, and completed.
           </p>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">
