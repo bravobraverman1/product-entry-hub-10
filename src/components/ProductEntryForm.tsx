@@ -86,6 +86,7 @@ export function ProductEntryForm() {
   const [datasheetPreviewUrl, setDatasheetPreviewUrl] = useState<string | null>(null);
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
   const [pdfZoom, setPdfZoom] = useState(100);
+  const [pdfRenderZoom, setPdfRenderZoom] = useState(100);
   const [pdfjsReady, setPdfjsReady] = useState(false);
   const [pdfRenderError, setPdfRenderError] = useState<string | null>(null);
   const [pdfIsRendering, setPdfIsRendering] = useState(false);
@@ -212,6 +213,11 @@ export function ProductEntryForm() {
     return () => window.clearTimeout(timer);
   }, [pdfjsReady]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setPdfRenderZoom(pdfZoom), 150);
+    return () => window.clearTimeout(timer);
+  }, [pdfZoom]);
+
   const handlePdfMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!pdfScrollRef.current) return;
     setIsDraggingPdf(true);
@@ -263,7 +269,7 @@ export function ProductEntryForm() {
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
           if (cancelled) break;
           const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale: pdfZoom / 100 });
+          const viewport = page.getViewport({ scale: pdfRenderZoom / 100 });
           const canvas = document.createElement("canvas");
           const context = canvas.getContext("2d");
           if (!context) continue;
@@ -288,7 +294,7 @@ export function ProductEntryForm() {
       if (loadingTask?.destroy) loadingTask.destroy();
       if (container) container.innerHTML = "";
     };
-  }, [activePdfUrl, pdfjsReady, pdfZoom]);
+  }, [activePdfUrl, pdfjsReady, pdfRenderZoom]);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
