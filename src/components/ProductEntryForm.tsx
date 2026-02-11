@@ -307,11 +307,11 @@ export function ProductEntryForm() {
       try {
         const pdfjs = window.pdfjsLib;
         if (!pdfjs) throw new Error("PDF viewer not available");
-        loadingTask = pdfjs.getDocument({ data: activePdfData });
+        loadingTask = pdfjs.getDocument({ data: activePdfData, disableWorker: true });
         const pdf = await loadingTask.promise;
         if (!cancelled) pdfDocRef.current = pdf;
       } catch (err) {
-        if (!cancelled) setPdfRenderError("PDF preview unavailable");
+        if (!cancelled) setPdfRenderError(err instanceof Error ? err.message : "PDF preview unavailable");
       } finally {
         if (!cancelled) setPdfIsRendering(false);
       }
@@ -651,7 +651,7 @@ export function ProductEntryForm() {
                 className="text-sm min-h-[360px]"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 -mt-0.5">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-medium">
                   {datasheetPreviewUrl || websitePreviewUrl
@@ -754,6 +754,11 @@ export function ProductEntryForm() {
                           <Button type="button" variant="outline" size="sm" asChild>
                             <a href={activeUrl} target="_blank" rel="noreferrer">Open PDF</a>
                           </Button>
+                        </div>
+                      )}
+                      {!pdfIsRendering && !pdfRenderError && pdfCanvasRef.current?.childElementCount === 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+                          PDF preview unavailable
                         </div>
                       )}
                     </div>
