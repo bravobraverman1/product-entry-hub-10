@@ -414,10 +414,14 @@ async function readAllSheets(
     return path.trim();
   }).filter((p) => p.length > 0);
   
-  // Fail loudly if no categories found
+  // If no categories found, log warning but allow fallback to defaults
   if (categoryPaths.length === 0) {
-    console.error("ERROR: CATEGORIES tab is empty or missing data. Expected at least one category path in column A, row 2+");
-    throw new Error("CATEGORIES tab has no data. Add category paths to the CATEGORIES sheet starting at row 2 (e.g., 'Indoor Lights/Wall Lights')");
+    console.warn("WARNING: CATEGORIES tab is empty or missing data. Using default categories. To configure, add category paths to the CATEGORIES sheet starting at row 2 (e.g., 'Indoor Lights/Wall Lights')");
+    // Return useDefaults: true to fall back to frontend defaults
+    return new Response(
+      JSON.stringify({ useDefaults: true }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
   
   const categories = buildCategoryTree(categoryPaths);
