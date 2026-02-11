@@ -10,7 +10,7 @@ import { DynamicImageInputs } from "@/components/DynamicImageInputs";
 import { DynamicSpecifications } from "@/components/DynamicSpecifications";
 import { SkuSelector } from "@/components/SkuSelector";
 import { ReopenSku } from "@/components/ReopenSku";
-import { CheckCircle, Loader2, Send, FileText, Globe, Trash2 } from "lucide-react";
+import { CheckCircle, Loader2, Send, FileText, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   fetchSkus,
@@ -70,8 +70,9 @@ export function ProductEntryForm() {
   const [chatgptData, setChatgptData] = useState("");
   const [chatgptDescription, setChatgptDescription] = useState("");
 
-  // Supplier References
+  // Supplier References (PDFs)
   const [datasheetFile, setDatasheetFile] = useState<File | null>(null);
+  const [websitePdfFile, setWebsitePdfFile] = useState<File | null>(null);
   const [datasheetUrl, setDatasheetUrl] = useState("");
   const [webpageUrl, setWebpageUrl] = useState("");
 
@@ -136,6 +137,18 @@ export function ProductEntryForm() {
     setIsReopened(true);
   }, []);
 
+  const handleGenerateTitleAndData = useCallback(() => {
+    toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
+  }, [toast]);
+
+  const handleGenerateDescription = useCallback(() => {
+    toast({ title: "Coming Soon", description: "AI description generation will be available soon." });
+  }, [toast]);
+
+  const handleVerifyAiEntries = useCallback(() => {
+    toast({ title: "Coming Soon", description: "AI verification will be available soon." });
+  }, [toast]);
+
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     if (!sku.trim()) newErrors.sku = "SKU is required";
@@ -167,6 +180,7 @@ export function ProductEntryForm() {
     setChatgptData("");
     setChatgptDescription("");
     setDatasheetFile(null);
+    setWebsitePdfFile(null);
     setDatasheetUrl("");
     setWebpageUrl("");
     setSelectedCategories([]);
@@ -251,96 +265,16 @@ export function ProductEntryForm() {
 
       {/* Basic Info */}
       <FormSection title="Basic Info" required defaultOpen>
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">
-                SKU <span className="text-destructive">*</span>
-              </Label>
-              <SkuSelector products={skus} value={sku} onSelect={handleSkuSelect} error={errors.sku} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Brand</Label>
-              <Input value={brand} readOnly placeholder="Auto-filled from SKU" className="h-9 text-sm bg-muted/50" />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="title" className="text-xs font-medium">
-              Title <span className="text-destructive">*</span>
+            <Label className="text-xs font-medium">
+              SKU <span className="text-destructive">*</span>
             </Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={exampleTitle} className="h-9 text-sm" />
-            {errors.title && <p className="text-destructive text-xs">{errors.title}</p>}
+            <SkuSelector products={skus} value={sku} onSelect={handleSkuSelect} error={errors.sku} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="chatgpt-data" className="text-xs font-medium">ChatGPT-Data</Label>
-            <Textarea
-              id="chatgpt-data"
-              value={chatgptData}
-              onChange={(e) => setChatgptData(e.target.value)}
-              placeholder="Product data for AI processing (editable now, will be auto-filled later)"
-              className="text-sm min-h-[80px]"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="chatgpt-desc" className="text-xs font-medium">ChatGPT-Description</Label>
-            <Textarea
-              id="chatgpt-desc"
-              value={chatgptDescription}
-              onChange={(e) => setChatgptDescription(e.target.value)}
-              placeholder="AI-generated product description (editable now, will be auto-filled later)"
-              className="text-sm min-h-[80px]"
-            />
-            <p className="text-xs text-muted-foreground">⚠ Do not blindly rely on AI descriptions — always verify against supplier data.</p>
-          </div>
-        </div>
-      </FormSection>
-
-      {/* Supplier References */}
-      <FormSection title="Supplier References" defaultOpen={false}>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> Supplier Datasheet (PDF)
-            </Label>
-            <div className="flex items-center gap-2">
-              <label className="flex-1">
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setDatasheetFile(file);
-                      setDatasheetUrl(file.name);
-                    }
-                  }}
-                />
-                <div className="flex items-center gap-2 border border-border rounded-md px-3 h-9 text-sm cursor-pointer hover:bg-muted/30 transition-colors">
-                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className={datasheetFile ? "text-foreground" : "text-muted-foreground"}>
-                    {datasheetFile ? datasheetFile.name : "Choose PDF file…"}
-                  </span>
-                </div>
-              </label>
-              {datasheetFile && (
-                <Button type="button" variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setDatasheetFile(null); setDatasheetUrl(""); }}>
-                  Clear
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium flex items-center gap-1.5">
-              <Globe className="h-3.5 w-3.5" /> Supplier Webpage URL
-            </Label>
-            <Input
-              type="url"
-              value={webpageUrl}
-              onChange={(e) => setWebpageUrl(e.target.value)}
-              placeholder="https://supplier.com/product-page"
-              className="h-9 text-sm"
-            />
+            <Label className="text-xs font-medium">Brand</Label>
+            <Input value={brand} readOnly placeholder="Auto-filled from SKU" className="h-9 text-sm bg-muted/50" />
           </div>
         </div>
       </FormSection>
@@ -357,6 +291,138 @@ export function ProductEntryForm() {
         />
       </FormSection>
 
+      {/* AI and Data */}
+      <FormSection title="AI and Data" defaultOpen>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" /> Supplier Datasheet (PDF)
+              </Label>
+              <div className="flex items-center gap-2">
+                <label className="flex-1">
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setDatasheetFile(file);
+                        setDatasheetUrl(file.name);
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2 border border-border rounded-md px-3 h-9 text-sm cursor-pointer hover:bg-muted/30 transition-colors">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className={datasheetFile ? "text-foreground" : "text-muted-foreground"}>
+                      {datasheetFile ? datasheetFile.name : "Choose PDF file…"}
+                    </span>
+                  </div>
+                </label>
+                {datasheetFile && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 text-xs"
+                    onClick={() => {
+                      setDatasheetFile(null);
+                      setDatasheetUrl("");
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" /> Supplier Website (PDF)
+              </Label>
+              <div className="flex items-center gap-2">
+                <label className="flex-1">
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setWebsitePdfFile(file);
+                        setWebpageUrl(file.name);
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2 border border-border rounded-md px-3 h-9 text-sm cursor-pointer hover:bg-muted/30 transition-colors">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className={websitePdfFile ? "text-foreground" : "text-muted-foreground"}>
+                      {websitePdfFile ? websitePdfFile.name : "Choose PDF file…"}
+                    </span>
+                  </div>
+                </label>
+                {websitePdfFile && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 text-xs"
+                    onClick={() => {
+                      setWebsitePdfFile(null);
+                      setWebpageUrl("");
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Button type="button" variant="outline" size="sm" className="h-9" onClick={handleGenerateTitleAndData}>
+            Generate Title and Data
+          </Button>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="title" className="text-xs font-medium">
+              Title <span className="text-destructive">*</span>
+            </Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={exampleTitle} className="h-9 text-sm" />
+            {errors.title && <p className="text-destructive text-xs">{errors.title}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="ai-data" className="text-xs font-medium">AI-Data</Label>
+            <Textarea
+              id="ai-data"
+              value={chatgptData}
+              onChange={(e) => setChatgptData(e.target.value)}
+              placeholder="AI-generated product data (editable)"
+              className="text-sm min-h-[80px]"
+            />
+          </div>
+
+          <Button type="button" variant="outline" size="sm" className="h-9" onClick={handleGenerateDescription}>
+            Generate Description
+          </Button>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="ai-description" className="text-xs font-medium">AI-Description</Label>
+            <Textarea
+              id="ai-description"
+              value={chatgptDescription}
+              onChange={(e) => setChatgptDescription(e.target.value)}
+              placeholder="AI-generated product description (editable)"
+              className="text-sm min-h-[80px]"
+            />
+          </div>
+
+          <Button type="button" variant="outline" size="sm" className="h-9" onClick={handleVerifyAiEntries}>
+            Verify AI Entries
+          </Button>
+        </div>
+      </FormSection>
+
       {/* Images */}
       <FormSection title="Images" required defaultOpen>
         <div className="space-y-2">
@@ -365,8 +431,8 @@ export function ProductEntryForm() {
         </div>
       </FormSection>
 
-      {/* Fields / Specifications */}
-      <FormSection title="Fields" defaultOpen={false}>
+      {/* Filters */}
+      <FormSection title="Filters" defaultOpen={false}>
         <div className="space-y-2">
           <DynamicSpecifications
             properties={properties}
