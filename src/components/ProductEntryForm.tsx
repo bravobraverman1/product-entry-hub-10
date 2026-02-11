@@ -89,6 +89,7 @@ export function ProductEntryForm() {
   const [pdfjsReady, setPdfjsReady] = useState(false);
   const [pdfRenderError, setPdfRenderError] = useState<string | null>(null);
   const [pdfIsRendering, setPdfIsRendering] = useState(false);
+  const [pdfLoadTimedOut, setPdfLoadTimedOut] = useState(false);
   const pdfScrollRef = useRef<HTMLDivElement | null>(null);
   const [isDraggingPdf, setIsDraggingPdf] = useState(false);
   const dragStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
@@ -202,6 +203,13 @@ export function ProductEntryForm() {
       if (script.parentNode) script.parentNode.removeChild(script);
     };
   }, []);
+
+  useEffect(() => {
+    if (pdfjsReady) return;
+    setPdfLoadTimedOut(false);
+    const timer = window.setTimeout(() => setPdfLoadTimedOut(true), 3000);
+    return () => window.clearTimeout(timer);
+  }, [pdfjsReady]);
 
   const handlePdfMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!pdfScrollRef.current) return;
@@ -555,13 +563,15 @@ export function ProductEntryForm() {
                 </Label>
                 <div className="flex items-center gap-2">
                   {datasheetPreviewUrl && websitePreviewUrl && (
-                    <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+                    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-background/70 p-0.5 shadow-sm">
                       <button
                         type="button"
                         onClick={() => setPdfView("datasheet")}
                         className={cn(
-                          "px-2 py-1 text-[11px] rounded",
-                          pdfView === "datasheet" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                          "px-3 py-1 text-[11px] rounded-full transition-colors",
+                          pdfView === "datasheet"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
                         )}
                       >
                         Datasheet
@@ -570,8 +580,10 @@ export function ProductEntryForm() {
                         type="button"
                         onClick={() => setPdfView("website")}
                         className={cn(
-                          "px-2 py-1 text-[11px] rounded",
-                          pdfView === "website" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                          "px-3 py-1 text-[11px] rounded-full transition-colors",
+                          pdfView === "website"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
                         )}
                       >
                         Website
@@ -612,8 +624,11 @@ export function ProductEntryForm() {
                   }
                   if (!pdfjsReady) {
                     return (
-                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                        Loading PDF viewer…
+                      <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <span>{pdfLoadTimedOut ? "PDF viewer blocked by browser" : "Loading PDF viewer…"}</span>
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <a href={activeUrl} target="_blank" rel="noreferrer">Open PDF</a>
+                        </Button>
                       </div>
                     );
                   }
@@ -636,8 +651,11 @@ export function ProductEntryForm() {
                         </div>
                       )}
                       {pdfRenderError && (
-                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-                          {pdfRenderError}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                          <span>{pdfRenderError}</span>
+                          <Button type="button" variant="outline" size="sm" asChild>
+                            <a href={activeUrl} target="_blank" rel="noreferrer">Open PDF</a>
+                          </Button>
                         </div>
                       )}
                     </div>
