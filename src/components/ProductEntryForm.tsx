@@ -94,6 +94,7 @@ export function ProductEntryForm() {
   const [pdfIsRendering, setPdfIsRendering] = useState(false);
   const [pdfLoadTimedOut, setPdfLoadTimedOut] = useState(false);
   const [pdfIsZooming, setPdfIsZooming] = useState(false);
+  const [pdfDocumentKey, setPdfDocumentKey] = useState(0);
   const pdfScrollRef = useRef<HTMLDivElement | null>(null);
   const datasheetInputRef = useRef<HTMLInputElement | null>(null);
   const websiteInputRef = useRef<HTMLInputElement | null>(null);
@@ -321,6 +322,7 @@ export function ProductEntryForm() {
         const pdf = await loadingTask.promise;
         if (!cancelled) {
           pdfDocRef.current = pdf;
+          setPdfDocumentKey(prev => prev + 1);
         }
       } catch (err) {
         console.error("PDF loading error:", err);
@@ -388,7 +390,7 @@ export function ProductEntryForm() {
     return () => {
       cancelled = true;
     };
-  }, [pdfRenderZoom, pdfIsZooming, activePdfData]);
+  }, [pdfRenderZoom, pdfIsZooming, pdfDocumentKey]);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
