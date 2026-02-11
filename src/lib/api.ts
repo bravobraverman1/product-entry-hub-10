@@ -350,6 +350,36 @@ export async function tempMakeVisible(
   });
 }
 
+// ── Mark SKU Complete ───────────────────────────────────────
+
+export async function markSkuComplete(
+  sku: string
+): Promise<{ success: boolean }> {
+  if (!isConfigured()) {
+    console.log("[mock] markSkuComplete:", sku);
+    return { success: true };
+  }
+  return apiFetch("/markSkuComplete", {
+    method: "POST",
+    body: JSON.stringify({ sku }),
+  });
+}
+
+// ── Mark SKU Incomplete ─────────────────────────────────────
+
+export async function markSkuIncomplete(
+  sku: string
+): Promise<{ success: boolean }> {
+  if (!isConfigured()) {
+    console.log("[mock] markSkuIncomplete:", sku);
+    return { success: true };
+  }
+  return apiFetch("/markSkuIncomplete", {
+    method: "POST",
+    body: JSON.stringify({ sku }),
+  });
+}
+
 // ── Mark Not For Sale ───────────────────────────────────────
 
 export async function markNotForSale(
