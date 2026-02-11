@@ -613,7 +613,52 @@ Now let's make sure it all works:
 
 ---
 
-## ✅ Final Checklist
+## PART 5: Enable Database Security (RLS)
+
+### Step 5.1: Enable Row Level Security
+
+Supabase shows a warning about Row Level Security (RLS). You should enable this for proper security:
+
+1. In your Supabase project, go to **Authentication** → **Policies** (left sidebar)
+2. Click on a table in the list
+3. In the **Policies** section at the bottom right, click **"Generate starting policies"**
+4. Click the **"Generate policies"** button
+5. Supabase will create RLS policies automatically with these:
+   - **Authenticated select** - Users can read data
+   - **Authenticated insert** - Users can add data
+   - **Authenticated update** - Users can modify data
+   - **Authenticated delete** - Users can delete data
+6. Click **"Save"** to apply the policies
+7. **Repeat for each table** in your database (if you have multiple tables)
+
+**That's it!** No SQL to paste, no complex configuration. Supabase handles everything automatically.
+
+### What You'll See
+
+After generating policies, you'll see a list of policies like:
+- `Authenticated select` ✅ NEW
+- `Authenticated insert` ✅ NEW
+- `Authenticated update` ✅ NEW
+- `Authenticated delete` ✅ NEW
+
+These policies allow:
+- ✅ Your Edge Functions to work (they use `service_role`)
+- ✅ Authenticated users to access data securely
+- ✅ Proper security lockdown of your database
+
+### Why This Matters
+
+Even though your app uses Edge Functions (not direct database queries), enabling RLS ensures:
+- ✅ Proper defense-in-depth security
+- ✅ No accidental data exposure if code changes later
+- ✅ Supabase best practices followed
+- ✅ Your app continues to work exactly the same
+
+**Your app will work exactly as before** - this is just adding a security layer!
+
+---
+
+## Final Checklist
 
 Go through this list to make sure you've completed everything:
 
@@ -628,6 +673,7 @@ Go through this list to make sure you've completed everything:
 - [ ] Secrets added to Edge Function (GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_SHEET_ID)
 - [ ] Edge Function redeployed after adding secrets
 - [ ] GitHub secrets added (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD)
+- [ ] **Row Level Security (RLS) enabled on all tables** ⬅️ NEW
 - [ ] Project Check shows all green checkmarks
 - [ ] Test Connection button works and shows "Connected ✅"
 
