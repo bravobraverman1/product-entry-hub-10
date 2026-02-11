@@ -113,13 +113,15 @@ serve(async (req) => {
     
     const isReadAction = action === "read";
     const isAnonKeyValid = !!SUPABASE_ANON_KEY && apiKeyHeader === SUPABASE_ANON_KEY;
-    const hasJwt = authHeader.startsWith("Bearer ");
+    // Check if the Bearer token is actually the anon key (frontend sends anon key as Bearer)
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : "";
+    const isBearerAnonKey = !!SUPABASE_ANON_KEY && bearerToken === SUPABASE_ANON_KEY;
+    const hasRealJwt = authHeader.startsWith("Bearer ") && !isBearerAnonKey;
 
-    // Allow anon key for both read and write when no JWT is present (frontend uses anon key)
-    // Some environments may omit auth headers entirely (e.g., previews). Allow those calls too.
-    if (!isReadAction && !hasJwt && !isAnonKeyValid && !apiKeyHeader) {
+    // Allow anon key (via apikey header or Bearer token) for all actions
+    if (!isReadAction && !hasRealJwt && !isAnonKeyValid && !isBearerAnonKey && !apiKeyHeader) {
       console.warn("Proceeding without auth headers for write action");
-    } else if (!isReadAction && !hasJwt && !isAnonKeyValid) {
+    } else if (!isReadAction && !hasRealJwt && !isAnonKeyValid && !isBearerAnonKey) {
       console.error("Missing or invalid Authorization/apikey header for write action");
       return new Response(
         JSON.stringify({ error: "Unauthorized: Missing valid apikey or JWT" }),
@@ -127,8 +129,8 @@ serve(async (req) => {
       );
     }
 
-    // If a JWT is provided for write actions, verify it
-    if (!isReadAction && hasJwt) {
+    // If a real JWT (not anon key) is provided for write actions, verify it
+    if (!isReadAction && hasRealJwt) {
       const supabaseClient = getSupabaseClient(authHeader);
       if (!supabaseClient) {
         console.error("Supabase client not configured on edge function");
@@ -253,7 +255,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Edge function error:", error);
     return new Response(
-      JSON.stringify({ error: error.message, useDefaults: true }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error", useDefaults: true }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
