@@ -805,7 +805,7 @@ export function ProductEntryForm() {
             categoryFilterMap={categoryFilterMap}
             filterDefaultMap={filterDefaultMap}
           />
-          <p className="text-xs text-muted-foreground">💡 Measurements: no units — all lengths in mm (e.g. 1m = 1000). Indoor with no IP → default IP20.</p>
+          <p className="text-xs text-muted-foreground">💡 Units: Dimensions in mm, angles in °, air movement in m³/h, Fan Cutout diameter/dimensions in cm. Indoor with no IP → default IP20.</p>
         </div>
       </FormSection>
 
