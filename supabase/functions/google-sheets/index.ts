@@ -456,10 +456,6 @@ async function readAllSheets(
     unitSuffix: row.values.length > 0 ? undefined : "mm",
   }));
 
-  if (properties.length === 0) {
-    return { products, brands, categories, properties: [], legalValues: [], categoryPathCount: leafPathCount };
-  }
-
   // Parse FILTER: Category Keywords (A2+) -> Filter Default Names (B2+)
   const categoryFilterMap = filterRaw.slice(1).map((row) => ({
     categoryKeyword: (row[0] ?? "").trim(),
@@ -487,6 +483,10 @@ async function readAllSheets(
     brandName: row[1] ?? "",
     website: row[2] ?? "",
   })).filter((b) => b.brand);
+
+  if (properties.length === 0) {
+    return { products, brands, categories, properties: [], legalValues: [], categoryPathCount: leafPathCount, categoryFilterMap, filterDefaultMap };
+  }
 
   return { 
     products, 
