@@ -11,8 +11,6 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
-    // Allow Lovable iframe embedding
-    middlewareMode: true,
     headers: {
       "Content-Security-Policy": "frame-ancestors 'self' https://lovable.dev https://*.lovable.dev;",
     },
