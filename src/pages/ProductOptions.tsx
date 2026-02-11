@@ -226,7 +226,7 @@ const ProductOptions = () => {
       <FormSection title="Mark SKU Not For Sale" defaultOpen>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Changes the SKU status to DEAD (not for sale) and updates the system. Eran is notified when this occurs.
+            Changes the SKU status to DEAD and updates the system. Eran is notified when this occurs.
           </p>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">
