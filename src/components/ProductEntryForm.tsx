@@ -12,6 +12,7 @@ import { SkuSelector } from "@/components/SkuSelector";
 import { ReopenSku } from "@/components/ReopenSku";
 import { CheckCircle, Loader2, Send, FileText, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   fetchSkus,
   fetchCategories,
@@ -459,7 +460,7 @@ export function ProductEntryForm() {
                   </div>
                 )}
               </div>
-              <div className="border border-border rounded-lg bg-muted/20 h-[220px] overflow-hidden">
+              <div className="border border-border rounded-lg bg-muted/20 h-[320px] overflow-hidden">
                 {(() => {
                   const activeUrl = pdfView === "website" ? websitePreviewUrl : datasheetPreviewUrl;
                   if (!activeUrl) {
@@ -470,11 +471,15 @@ export function ProductEntryForm() {
                     );
                   }
                   return (
-                    <iframe
-                      title="PDF Preview"
-                      src={activeUrl}
+                    <object
+                      data={activeUrl}
+                      type="application/pdf"
                       className="h-full w-full"
-                    />
+                    >
+                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                        PDF preview unavailable
+                      </div>
+                    </object>
                   );
                 })()}
               </div>

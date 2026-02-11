@@ -425,11 +425,7 @@ async function readAllSheets(
   // If no categories found, log warning but allow fallback to defaults
   if (categoryPaths.length === 0) {
     console.warn("WARNING: CATEGORIES tab is empty or missing data. Using default categories. To configure, add category paths to the CATEGORIES sheet starting at row 2 (e.g., 'Indoor Lights/Wall Lights')");
-    // Return useDefaults: true to fall back to frontend defaults
-    return new Response(
-      JSON.stringify({ useDefaults: true }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return { useDefaults: true };
   }
   
   const categories = buildCategoryTree(categoryPaths);
