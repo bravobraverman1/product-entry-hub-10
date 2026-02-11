@@ -10,7 +10,7 @@ import { DynamicImageInputs } from "@/components/DynamicImageInputs";
 import { DynamicSpecifications } from "@/components/DynamicSpecifications";
 import { SkuSelector } from "@/components/SkuSelector";
 import { ReopenSku } from "@/components/ReopenSku";
-import { CheckCircle, Loader2, Send, FileText, Globe } from "lucide-react";
+import { CheckCircle, Loader2, Send, FileText, Globe, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   fetchSkus,
@@ -104,6 +104,7 @@ export function ProductEntryForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isReopened, setIsReopened] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState(false);
 
   const handleSkuSelect = useCallback((selectedSku: string, selectedBrand: string) => {
     setSku(selectedSku);
@@ -176,6 +177,17 @@ export function ProductEntryForm() {
     setErrors({});
     setIsReopened(false);
   };
+
+  const handleClearInput = useCallback(() => {
+    if (!clearConfirm) {
+      setClearConfirm(true);
+      return;
+    }
+    // Clear all inputs
+    resetForm();
+    setClearConfirm(false);
+    toast({ title: "Cleared", description: "All input fields have been cleared." });
+  }, [clearConfirm, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -368,7 +380,11 @@ export function ProductEntryForm() {
       </FormSection>
 
       {/* Submit */}
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={handleClearInput} className="h-10" onBlur={() => setClearConfirm(false)}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          {clearConfirm ? "Are you sure?" : "Clear Input"}
+        </Button>
         <Button type="submit" disabled={isSubmitting || showSuccess} className="min-w-[160px] h-10">
           {showSuccess ? (
             <><CheckCircle className="mr-2 h-4 w-4" /> Submitted!</>
