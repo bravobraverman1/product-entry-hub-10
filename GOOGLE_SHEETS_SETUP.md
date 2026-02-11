@@ -684,6 +684,7 @@ async function clearAndWriteBrands(
 
   console.log(`Successfully wrote ${brands.length} brands to ${brandsTab} tab`);
 }
+```
 
 ### 6) Deploy
 
