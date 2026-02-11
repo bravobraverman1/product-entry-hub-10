@@ -85,8 +85,8 @@ export function ProductEntryForm() {
   const [pdfView, setPdfView] = useState<"datasheet" | "website">("datasheet");
   const [datasheetPreviewUrl, setDatasheetPreviewUrl] = useState<string | null>(null);
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
-  const [datasheetPdfData, setDatasheetPdfData] = useState<Uint8Array | null>(null);
-  const [websitePdfData, setWebsitePdfData] = useState<Uint8Array | null>(null);
+  const [datasheetPdfData, setDatasheetPdfData] = useState<ArrayBuffer | null>(null);
+  const [websitePdfData, setWebsitePdfData] = useState<ArrayBuffer | null>(null);
   const [pdfZoom, setPdfZoom] = useState(100);
   const [pdfRenderZoom, setPdfRenderZoom] = useState(100);
   const [pdfjsReady, setPdfjsReady] = useState(false);
@@ -179,7 +179,7 @@ export function ProductEntryForm() {
     }
     let cancelled = false;
     datasheetFile.arrayBuffer().then((buf) => {
-      if (!cancelled) setDatasheetPdfData(new Uint8Array(buf));
+      if (!cancelled) setDatasheetPdfData(buf);
     }).catch(() => {
       if (!cancelled) setDatasheetPdfData(null);
     });
@@ -204,7 +204,7 @@ export function ProductEntryForm() {
     }
     let cancelled = false;
     websitePdfFile.arrayBuffer().then((buf) => {
-      if (!cancelled) setWebsitePdfData(new Uint8Array(buf));
+      if (!cancelled) setWebsitePdfData(buf);
     }).catch(() => {
       if (!cancelled) setWebsitePdfData(null);
     });
@@ -307,7 +307,8 @@ export function ProductEntryForm() {
       try {
         const pdfjs = window.pdfjsLib;
         if (!pdfjs) throw new Error("PDF viewer not available");
-        loadingTask = pdfjs.getDocument({ data: activePdfData, disableWorker: true });
+        const dataCopy = new Uint8Array(activePdfData.slice(0));
+        loadingTask = pdfjs.getDocument({ data: dataCopy, disableWorker: true });
         const pdf = await loadingTask.promise;
         if (!cancelled) pdfDocRef.current = pdf;
       } catch (err) {
