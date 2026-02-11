@@ -55,8 +55,8 @@ function getCorsHeaders(origin?: string) {
 }
 
 // Validate action parameter
-function isValidAction(action: unknown): action is "read" | "write" | "write-categories" | "write-brands" {
-  return ["read", "write", "write-categories", "write-brands"].includes(action as string);
+function isValidAction(action: unknown): action is "read" | "write" | "write-categories" | "write-brands" | "write-legal" {
+  return ["read", "write", "write-categories", "write-brands", "write-legal"].includes(action as string);
 }
 
 // Validate tabNames parameter
@@ -203,6 +203,36 @@ serve(async (req) => {
         brands,
         resolveTabName(tabNames, "BRANDS", "BRANDS")
       );
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "write-legal") {
+      const { propertyName, value } = body;
+      if (
+        typeof propertyName !== "string" ||
+        typeof value !== "string" ||
+        propertyName.trim().length === 0 ||
+        value.trim().length === 0 ||
+        propertyName.length > 255 ||
+        value.length > 255
+      ) {
+        console.error("Invalid legal value payload:", { propertyName, value });
+        return new Response(
+          JSON.stringify({ error: "Invalid legal value payload" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      await addLegalValueToLegalTab(
+        accessToken,
+        sheetId,
+        resolveTabName(tabNames, "LEGAL", "LEGAL"),
+        propertyName,
+        value
+      );
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -361,7 +391,7 @@ async function readAllSheets(
     getSheetValues(token, sheetId, `${productsTab}!A:D`),
     getSheetValues(token, sheetId, `${categoriesTab}!A:A`),
     getSheetValues(token, sheetId, `${propertiesTab}!A:D`),
-    getSheetValues(token, sheetId, `${legalTab}!A:B`),
+    getSheetValues(token, sheetId, `${legalTab}!A:AZ`),
     getSheetValues(token, sheetId, `${brandsTab}!A:C`),
   ]);
 
@@ -400,19 +430,44 @@ async function readAllSheets(
   const leafPathCount = categoryPaths.length;
   console.log(`Successfully read ${leafPathCount} category paths from CATEGORIES tab`);
 
-  // Parse PROPERTIES: PropertyName, Key, InputType, Section
-  const properties = propertiesRaw.slice(1).map((row) => ({
-    name: row[0] ?? "",
-    key: row[1] ?? "",
-    inputType: (row[2] ?? "text") as "dropdown" | "text" | "number" | "boolean",
-    section: row[3] ?? "Other",
-  })).filter((p) => p.name && p.key);
+  // Parse LEGAL (row-based): Column A = PropertyName, Columns B+ = Allowed Values
+  const legalRows = legalRaw.slice(1).map((row) => {
+    const name = (row[0] ?? "").trim();
+    const values = row.slice(1).map((v) => (v ?? "").toString().trim()).filter(Boolean);
+    return { name, values };
+  }).filter((r) => r.name);
 
-  // Parse LEGAL: PropertyName, AllowedValue
-  const legalValues = legalRaw.slice(1).map((row) => ({
-    propertyName: row[0] ?? "",
-    allowedValue: row[1] ?? "",
-  })).filter((l) => l.propertyName && l.allowedValue);
+  const legalValues = legalRows.flatMap((row) =>
+    row.values.map((value) => ({
+      propertyName: row.name,
+      allowedValue: value,
+    }))
+  );
+
+  const properties = legalRows.map((row) => ({
+    name: row.name,
+    key: toPropertyKey(row.name),
+    inputType: row.values.length > 0 ? "dropdown" : "text",
+    section: "Filters",
+    unitSuffix: row.values.length > 0 ? undefined : "mm",
+  }));
+
+  if (properties.length === 0) {
+    // Fallback to PROPERTIES tab if LEGAL is empty
+    const fallbackProperties = propertiesRaw.slice(1).map((row) => ({
+      name: row[0] ?? "",
+      key: row[1] ?? "",
+      inputType: (row[2] ?? "text") as "dropdown" | "text" | "number" | "boolean",
+      section: row[3] ?? "Other",
+    })).filter((p) => p.name && p.key);
+
+    const fallbackLegalValues = legalRaw.slice(1).map((row) => ({
+      propertyName: row[0] ?? "",
+      allowedValue: row[1] ?? "",
+    })).filter((l) => l.propertyName && l.allowedValue);
+
+    return { products, brands, categories, properties: fallbackProperties, legalValues: fallbackLegalValues, categoryPathCount: leafPathCount };
+  }
 
   // Parse BRANDS: Brand, BrandName, Website (skip header row)
   const brands = brandsRaw.slice(1).map((row) => ({
@@ -422,6 +477,79 @@ async function readAllSheets(
   })).filter((b) => b.brand);
 
   return { products, brands, categories, properties, legalValues, categoryPathCount: leafPathCount };
+}
+
+function toPropertyKey(name: string): string {
+  const cleaned = name
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .toLowerCase();
+  if (!cleaned) return "";
+  const parts = cleaned.split(" ");
+  return parts[0] + parts.slice(1).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+}
+
+function columnLetter(index: number): string {
+  let n = index + 1;
+  let result = "";
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    result = String.fromCharCode(65 + rem) + result;
+    n = Math.floor((n - 1) / 26);
+  }
+  return result;
+}
+
+async function addLegalValueToLegalTab(
+  token: string,
+  sheetId: string,
+  legalTab: string,
+  propertyName: string,
+  value: string
+): Promise<void> {
+  const trimmedName = propertyName.trim();
+  const trimmedValue = value.trim();
+  if (!trimmedName || !trimmedValue) return;
+
+  const rows = await getSheetValues(token, sheetId, `${legalTab}!A:AZ`);
+  let rowIndex = -1;
+  let rowValues: string[] = [];
+
+  for (let i = 1; i < rows.length; i += 1) {
+    const name = (rows[i]?.[0] ?? "").toString().trim();
+    if (name === trimmedName) {
+      rowIndex = i + 1; // 1-based for sheets
+      rowValues = rows[i] ?? [];
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    await appendRow(token, sheetId, legalTab, [trimmedName, trimmedValue]);
+    return;
+  }
+
+  const existingValues = rowValues.slice(1).map((v) => (v ?? "").toString().trim()).filter(Boolean);
+  if (existingValues.includes(trimmedValue)) return;
+
+  const nextColIndex = Math.max(rowValues.length, 1);
+  const col = columnLetter(nextColIndex);
+  const range = `${legalTab}!${col}${rowIndex}`;
+
+  const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+  const res = await fetch(updateUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ values: [[sanitizeForFormulas(trimmedValue)]] }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to update LEGAL value: ${errText}`);
+  }
 }
 
 function buildCategoryTree(paths: string[]) {

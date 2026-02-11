@@ -201,3 +201,39 @@ export async function writeBrandsToGoogleSheets(
       : new Error("Failed to write brands to Google Sheets");
   }
 }
+
+/**
+ * Writes a legal value to the LEGAL tab (row-based layout) via Supabase Edge Function
+ */
+export async function writeLegalValueToGoogleSheets(
+  propertyName: string,
+  value: string
+): Promise<boolean> {
+  try {
+    const requestBody: any = {
+      action: "write-legal",
+      propertyName,
+      value,
+      tabNames: getSheetTabNamesPayload(),
+    };
+
+    const { data, error } = await supabase.functions.invoke("google-sheets", {
+      body: requestBody,
+    });
+
+    if (error) {
+      console.error("Error writing legal value to google-sheets function:", error);
+      return false;
+    }
+
+    if (data?.useDefaults) {
+      console.error("Edge function cannot read Supabase secrets. Redeploy after setting secrets.");
+      return false;
+    }
+
+    return data?.success ?? false;
+  } catch (error) {
+    console.error("Exception writing legal value to google-sheets function:", error);
+    return false;
+  }
+}

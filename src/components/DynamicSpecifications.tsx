@@ -67,21 +67,35 @@ export function DynamicSpecifications({
                   />
                 )}
                 {prop.inputType === "text" && (
-                  <Input
-                    value={values[prop.key] || ""}
-                    onChange={(e) => onChange(prop.key, e.target.value)}
-                    placeholder={`Enter ${prop.name.toLowerCase()}`}
-                    className="h-9 text-sm"
-                  />
+                  <div className="relative">
+                    <Input
+                      value={values[prop.key] || ""}
+                      onChange={(e) => onChange(prop.key, e.target.value)}
+                      placeholder={`Enter ${prop.name.toLowerCase()}`}
+                      className={prop.unitSuffix ? "h-9 text-sm pr-10" : "h-9 text-sm"}
+                    />
+                    {prop.unitSuffix && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                        {prop.unitSuffix}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {prop.inputType === "number" && (
-                  <Input
-                    type="number"
-                    value={values[prop.key] || ""}
-                    onChange={(e) => onChange(prop.key, e.target.value)}
-                    placeholder="0 (mm, no units)"
-                    className="h-9 text-sm"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={values[prop.key] || ""}
+                      onChange={(e) => onChange(prop.key, e.target.value)}
+                      placeholder="0 (mm, no units)"
+                      className={prop.unitSuffix ? "h-9 text-sm pr-10" : "h-9 text-sm"}
+                    />
+                    {prop.unitSuffix && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                        {prop.unitSuffix}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {prop.inputType === "boolean" && (
                   <div className="flex items-center gap-2 h-9">

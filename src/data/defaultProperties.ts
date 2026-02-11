@@ -7,6 +7,7 @@ export interface PropertyDefinition {
   key: string; // camelCase key for form data
   inputType: PropertyInputType;
   section: string;
+  unitSuffix?: string;
   required?: boolean;
 }
 

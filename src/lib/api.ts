@@ -20,6 +20,7 @@ import {
   readGoogleSheets,
   writeCategoriesToGoogleSheets,
   writeBrandsToGoogleSheets,
+  writeLegalValueToGoogleSheets,
 } from "@/lib/supabaseGoogleSheets";
 
 const BASE = () => config.APPS_SCRIPT_BASE_URL;
@@ -213,10 +214,19 @@ export async function addLegalValue(
   propertyName: string,
   value: string
 ): Promise<void> {
+  if (isSupabaseGoogleSheetsConfigured()) {
+    const success = await writeLegalValueToGoogleSheets(propertyName, value);
+    if (!success) {
+      throw new Error("Failed to write legal value to Google Sheets");
+    }
+    return;
+  }
+
   if (!isConfigured()) {
     console.log("[mock] addLegalValue:", propertyName, value);
     return;
   }
+
   await apiFetch("/legal/add", {
     method: "POST",
     body: JSON.stringify({ propertyName, value }),
