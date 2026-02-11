@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { SearchableSelect } from "@/components/SearchableSelect";
+import { SearchableSelect } from "@/components/ui/select";
 import type { PropertyDefinition, LegalValue } from "@/data/defaultProperties";
 
 interface DynamicSpecificationsProps {
@@ -11,6 +11,9 @@ interface DynamicSpecificationsProps {
   values: Record<string, string>;
   onChange: (key: string, value: string) => void;
   onOtherValue?: (propertyName: string, value: string) => void;
+  selectedMainCategory?: string;
+  categoryFilterMap?: Array<{ categoryKeyword: string; filterDefault: string }>;
+  filterDefaultMap?: Array<{ name: string; allowedProperties: string[] }>;
 }
 
 export function DynamicSpecifications({
@@ -19,16 +22,43 @@ export function DynamicSpecifications({
   values,
   onChange,
   onOtherValue,
+  selectedMainCategory,
+  categoryFilterMap = [],
+  filterDefaultMap = [],
 }: DynamicSpecificationsProps) {
   const sections = useMemo(() => {
+    // Filter properties based on category if available
+    let filteredProperties = properties;
+    
+    if (selectedMainCategory && categoryFilterMap.length > 0 && filterDefaultMap.length > 0) {
+      // Find matching category keyword (category name must contain the keyword fully)
+      const matchedKeyword = categoryFilterMap.find((m) => {
+        const keyword = m.categoryKeyword.trim();
+        return keyword && selectedMainCategory.includes(keyword);
+      });
+
+      if (matchedKeyword) {
+        // Find corresponding filter default
+        const filterDefault = filterDefaultMap.find((f) => f.name === matchedKeyword.filterDefault);
+        if (filterDefault && filterDefault.allowedProperties.length > 0) {
+          // Only show properties that are in the allowed list
+          filteredProperties = properties.filter((p) =>
+            filterDefault.allowedProperties.some(
+              (allowed) => allowed.toLowerCase() === p.name.toLowerCase()
+            )
+          );
+        }
+      }
+    }
+
     const map = new Map<string, PropertyDefinition[]>();
-    for (const prop of properties) {
+    for (const prop of filteredProperties) {
       const group = map.get(prop.section) || [];
       group.push(prop);
       map.set(prop.section, group);
     }
     return Array.from(map.entries());
-  }, [properties]);
+  }, [properties, selectedMainCategory, categoryFilterMap, filterDefaultMap]);
 
   const optionsMap = useMemo(() => {
     const map = new Map<string, string[]>();

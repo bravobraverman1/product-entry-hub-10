@@ -25,6 +25,18 @@ interface GoogleSheetsReadResponse {
   properties?: PropertyDefinition[];
   legalValues?: LegalValue[];
   categoryPathCount?: number;
+  categoryFilterMap?: Array<{ categoryKeyword: string; filterDefault: string }>;
+  filterDefaultMap?: Array<{ name: string; allowedProperties: string[] }>;
+}
+
+export interface CategoryFilterMap {
+  categoryKeyword: string;
+  filterDefault: string;
+}
+
+export interface FilterDefaultMap {
+  name: string;
+  allowedProperties: string[];
 }
 
 interface SheetTabNamesPayload {

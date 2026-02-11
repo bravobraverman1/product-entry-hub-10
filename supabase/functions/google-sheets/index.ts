@@ -387,12 +387,16 @@ async function readAllSheets(
   const propertiesTab = resolveTabName(tabNames, "PROPERTIES", "PROPERTIES");
   const legalTab = resolveTabName(tabNames, "LEGAL", "LEGAL");
   const brandsTab = resolveTabName(tabNames, "BRANDS", "BRANDS");
-  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw, brandsRaw] = await Promise.all([
+  const filterTab = resolveTabName(tabNames, "FILTER", "FILTER");
+  const filterDefaultsTab = resolveTabName(tabNames, "FILTER_DEFAULTS", "FILTER_DEFAULTS");
+  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw, brandsRaw, filterRaw, filterDefaultsRaw] = await Promise.all([
     getSheetValues(token, sheetId, `${productsTab}!A:D`),
     getSheetValues(token, sheetId, `${categoriesTab}!A:A`),
     getSheetValues(token, sheetId, `${propertiesTab}!A:D`),
     getSheetValues(token, sheetId, `${legalTab}!A:AZ`),
     getSheetValues(token, sheetId, `${brandsTab}!A:C`),
+    getSheetValues(token, sheetId, `${filterTab}!A:B`),
+    getSheetValues(token, sheetId, `${filterDefaultsTab}!A:AZ`),
   ]);
 
   // Parse PRODUCTS TO DO: SKU (A), Brand (B), Status (C), Visibility (D) - skip header row
@@ -456,6 +460,27 @@ async function readAllSheets(
     return { products, brands, categories, properties: [], legalValues: [], categoryPathCount: leafPathCount };
   }
 
+  // Parse FILTER: Category Keywords (A2+) -> Filter Default Names (B2+)
+  const categoryFilterMap = filterRaw.slice(1).map((row) => ({
+    categoryKeyword: (row[0] ?? "").trim(),
+    filterDefault: (row[1] ?? "").trim(),
+  })).filter((m) => m.categoryKeyword && m.filterDefault);
+
+  // Parse FILTER_DEFAULTS: Row 1 = Filter Default Names, Rows 2+ = Property Names per column
+  const filterDefaultMap: Array<{ name: string; allowedProperties: string[] }> = [];
+  if (filterDefaultsRaw.length > 0) {
+    const headerRow = filterDefaultsRaw[0];
+    for (let col = 0; col < headerRow.length; col += 1) {
+      const name = (headerRow[col] ?? "").trim();
+      if (!name) continue;
+      const allowedProperties = filterDefaultsRaw
+        .slice(1)
+        .map((row) => (row[col] ?? "").toString().trim())
+        .filter(Boolean);
+      filterDefaultMap.push({ name, allowedProperties });
+    }
+  }
+
   // Parse BRANDS: Brand, BrandName, Website (skip header row)
   const brands = brandsRaw.slice(1).map((row) => ({
     brand: row[0] ?? "",
@@ -463,7 +488,16 @@ async function readAllSheets(
     website: row[2] ?? "",
   })).filter((b) => b.brand);
 
-  return { products, brands, categories, properties, legalValues, categoryPathCount: leafPathCount };
+  return { 
+    products, 
+    brands, 
+    categories, 
+    properties, 
+    legalValues, 
+    categoryPathCount: leafPathCount,
+    categoryFilterMap,
+    filterDefaultMap,
+  };
 }
 
 function toPropertyKey(name: string): string {

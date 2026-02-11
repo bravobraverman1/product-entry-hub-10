@@ -60,6 +60,8 @@ export function ProductEntryForm() {
 
   const properties = propData?.properties ?? [];
   const legalValues = propData?.legalValues ?? [];
+  const categoryFilterMap = propData?.categoryFilterMap ?? [];
+  const filterDefaultMap = propData?.filterDefaultMap ?? [];
 
   // Basic Info
   const [sku, setSku] = useState("");
@@ -799,6 +801,9 @@ export function ProductEntryForm() {
             values={specValues}
             onChange={handleSpecChange}
             onOtherValue={handleOtherValue}
+            selectedMainCategory={mainCategory}
+            categoryFilterMap={categoryFilterMap}
+            filterDefaultMap={filterDefaultMap}
           />
           <p className="text-xs text-muted-foreground">💡 Measurements: no units — all lengths in mm (e.g. 1m = 1000). Indoor with no IP → default IP20.</p>
         </div>

@@ -182,6 +182,8 @@ export async function updateCategories(
 export async function fetchProperties(): Promise<{
   properties: PropertyDefinition[];
   legalValues: LegalValue[];
+  categoryFilterMap?: Array<{ categoryKeyword: string; filterDefault: string }>;
+  filterDefaultMap?: Array<{ name: string; allowedProperties: string[] }>;
 }> {
   // Try Supabase Google Sheets first
   if (isSupabaseGoogleSheetsConfigured()) {
@@ -191,6 +193,8 @@ export async function fetchProperties(): Promise<{
         return {
           properties: data.properties,
           legalValues: data.legalValues,
+          categoryFilterMap: data.categoryFilterMap,
+          filterDefaultMap: data.filterDefaultMap,
         };
       }
       if (data.useDefaults) {
