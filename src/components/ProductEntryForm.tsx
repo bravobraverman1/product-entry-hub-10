@@ -355,24 +355,55 @@ export function ProductEntryForm() {
 
     let cancelled = false;
     setPdfIsRendering(true);
-    container.innerHTML = "";
+    
+    // Don't clear container if zooming - we'll update in place
+    if (!pdfIsZooming) {
+      container.innerHTML = "";
+    }
 
     (async () => {
       try {
-        const pagesToRender = pdfIsZooming ? 1 : pdf.numPages;
-        for (let pageNum = 1; pageNum <= pagesToRender; pageNum += 1) {
-          if (cancelled) break;
-          const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale: pdfRenderZoom / 100 });
-          const canvas = document.createElement("canvas");
-          const context = canvas.getContext("2d");
-          if (!context) continue;
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          canvas.className = "mb-3 last:mb-0";
-          container.appendChild(canvas);
-          const renderTask = page.render({ canvasContext: context, viewport });
-          await renderTask.promise;
+        const scale = pdfIsZooming ? pdfZoom / 100 : pdfRenderZoom / 100;
+        
+        if (pdfIsZooming) {
+          // During zoom: render only the first visible page at new zoom level
+          const firstPage = Math.max(1, Math.floor(prevScrollTop / 600) + 1);
+          container.innerHTML = "";
+          
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+            if (cancelled) break;
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            if (!context) continue;
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            canvas.className = "mb-3 last:mb-0";
+            container.appendChild(canvas);
+            
+            // Only render the visible page during zoom
+            if (pageNum === firstPage) {
+              const renderTask = page.render({ canvasContext: context, viewport });
+              await renderTask.promise;
+            }
+          }
+        } else {
+          // After zoom: render all pages at final zoom level
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+            if (cancelled) break;
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            if (!context) continue;
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            canvas.className = "mb-3 last:mb-0";
+            container.appendChild(canvas);
+            const renderTask = page.render({ canvasContext: context, viewport });
+            await renderTask.promise;
+          }
         }
       } catch (err) {
         if (!cancelled) setPdfRenderError("PDF preview unavailable");
@@ -390,7 +421,7 @@ export function ProductEntryForm() {
     return () => {
       cancelled = true;
     };
-  }, [pdfRenderZoom, pdfIsZooming, pdfDocumentKey]);
+  }, [pdfRenderZoom, pdfZoom, pdfIsZooming, pdfDocumentKey]);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
@@ -758,7 +789,13 @@ export function ProductEntryForm() {
                       onMouseLeave={handlePdfMouseUp}
                       onMouseUp={handlePdfMouseUp}
                     >
-                      <div ref={pdfCanvasRef} className="p-3" />
+                      <div 
+                        ref={pdfCanvasRef} 
+                        className="p-3 transition-transform origin-top-left"
+                        style={{
+                          transform: pdfIsZooming ? `scale(${pdfZoom / pdfRenderZoom})` : undefined,
+                        }}
+                      />
                       {pdfIsRendering && (
                         <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
                           Rendering…
