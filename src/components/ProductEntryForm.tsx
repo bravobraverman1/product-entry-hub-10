@@ -91,12 +91,14 @@ export function ProductEntryForm() {
   const [pdfRenderError, setPdfRenderError] = useState<string | null>(null);
   const [pdfIsRendering, setPdfIsRendering] = useState(false);
   const [pdfLoadTimedOut, setPdfLoadTimedOut] = useState(false);
+  const [pdfIsZooming, setPdfIsZooming] = useState(false);
   const pdfScrollRef = useRef<HTMLDivElement | null>(null);
   const datasheetInputRef = useRef<HTMLInputElement | null>(null);
   const websiteInputRef = useRef<HTMLInputElement | null>(null);
   const [isDraggingPdf, setIsDraggingPdf] = useState(false);
   const dragStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const pdfCanvasRef = useRef<HTMLDivElement | null>(null);
+  const pdfDocRef = useRef<any>(null);
 
   // Random example title as placeholder
   const exampleTitle = useMemo(() => {
@@ -218,6 +220,12 @@ export function ProductEntryForm() {
     return () => window.clearTimeout(timer);
   }, [pdfZoom]);
 
+  useEffect(() => {
+    setPdfIsZooming(true);
+    const timer = window.setTimeout(() => setPdfIsZooming(false), 350);
+    return () => window.clearTimeout(timer);
+  }, [pdfZoom]);
+
   const handlePdfMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!pdfScrollRef.current) return;
     setIsDraggingPdf(true);
@@ -247,26 +255,58 @@ export function ProductEntryForm() {
   }, [pdfView, websitePreviewUrl, datasheetPreviewUrl]);
 
   useEffect(() => {
-    const container = pdfCanvasRef.current;
-    if (!container) return;
-    container.innerHTML = "";
-    setPdfRenderError(null);
-
-    if (!activePdfUrl || !pdfjsReady) return;
+    if (!activePdfUrl || !pdfjsReady) {
+      pdfDocRef.current = null;
+      return;
+    }
 
     let cancelled = false;
     let loadingTask: any;
     setPdfIsRendering(true);
+    setPdfRenderError(null);
 
     (async () => {
       try {
         const pdfjs = window.pdfjsLib;
         if (!pdfjs) throw new Error("PDF viewer not available");
-
         loadingTask = pdfjs.getDocument(activePdfUrl);
         const pdf = await loadingTask.promise;
+        if (!cancelled) pdfDocRef.current = pdf;
+      } catch (err) {
+        if (!cancelled) setPdfRenderError("PDF preview unavailable");
+      } finally {
+        if (!cancelled) setPdfIsRendering(false);
+      }
+    })();
 
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+    return () => {
+      cancelled = true;
+      if (loadingTask?.destroy) loadingTask.destroy();
+      pdfDocRef.current = null;
+    };
+  }, [activePdfUrl, pdfjsReady]);
+
+  useEffect(() => {
+    const container = pdfCanvasRef.current;
+    const scrollEl = pdfScrollRef.current;
+    const pdf = pdfDocRef.current;
+    if (!container || !scrollEl || !pdf) return;
+
+    const prevScrollTop = scrollEl.scrollTop;
+    const prevScrollLeft = scrollEl.scrollLeft;
+    const prevScrollHeight = scrollEl.scrollHeight || 1;
+    const prevScrollWidth = scrollEl.scrollWidth || 1;
+    const topRatio = prevScrollTop / prevScrollHeight;
+    const leftRatio = prevScrollLeft / prevScrollWidth;
+
+    let cancelled = false;
+    setPdfIsRendering(true);
+    container.innerHTML = "";
+
+    (async () => {
+      try {
+        const pagesToRender = pdfIsZooming ? 1 : pdf.numPages;
+        for (let pageNum = 1; pageNum <= pagesToRender; pageNum += 1) {
           if (cancelled) break;
           const page = await pdf.getPage(pageNum);
           const viewport = page.getViewport({ scale: pdfRenderZoom / 100 });
@@ -281,20 +321,22 @@ export function ProductEntryForm() {
           await renderTask.promise;
         }
       } catch (err) {
-        if (!cancelled) {
-          setPdfRenderError("PDF preview unavailable");
-        }
+        if (!cancelled) setPdfRenderError("PDF preview unavailable");
       } finally {
-        if (!cancelled) setPdfIsRendering(false);
+        if (!cancelled) {
+          setPdfIsRendering(false);
+          const newScrollHeight = scrollEl.scrollHeight || 1;
+          const newScrollWidth = scrollEl.scrollWidth || 1;
+          scrollEl.scrollTop = Math.round(topRatio * newScrollHeight);
+          scrollEl.scrollLeft = Math.round(leftRatio * newScrollWidth);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
-      if (loadingTask?.destroy) loadingTask.destroy();
-      if (container) container.innerHTML = "";
     };
-  }, [activePdfUrl, pdfjsReady, pdfRenderZoom]);
+  }, [pdfRenderZoom, pdfIsZooming, activePdfUrl]);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
