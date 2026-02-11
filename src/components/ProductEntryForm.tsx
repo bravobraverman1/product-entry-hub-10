@@ -85,6 +85,8 @@ export function ProductEntryForm() {
   const [pdfView, setPdfView] = useState<"datasheet" | "website">("datasheet");
   const [datasheetPreviewUrl, setDatasheetPreviewUrl] = useState<string | null>(null);
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
+  const [datasheetPdfData, setDatasheetPdfData] = useState<Uint8Array | null>(null);
+  const [websitePdfData, setWebsitePdfData] = useState<Uint8Array | null>(null);
   const [pdfZoom, setPdfZoom] = useState(100);
   const [pdfRenderZoom, setPdfRenderZoom] = useState(100);
   const [pdfjsReady, setPdfjsReady] = useState(false);
@@ -171,12 +173,44 @@ export function ProductEntryForm() {
   }, [datasheetFile]);
 
   useEffect(() => {
+    if (!datasheetFile) {
+      setDatasheetPdfData(null);
+      return;
+    }
+    let cancelled = false;
+    datasheetFile.arrayBuffer().then((buf) => {
+      if (!cancelled) setDatasheetPdfData(new Uint8Array(buf));
+    }).catch(() => {
+      if (!cancelled) setDatasheetPdfData(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [datasheetFile]);
+
+  useEffect(() => {
     if (websitePdfFile) {
       const url = URL.createObjectURL(websitePdfFile);
       setWebsitePreviewUrl(url);
       return () => URL.revokeObjectURL(url);
     }
     setWebsitePreviewUrl(null);
+  }, [websitePdfFile]);
+
+  useEffect(() => {
+    if (!websitePdfFile) {
+      setWebsitePdfData(null);
+      return;
+    }
+    let cancelled = false;
+    websitePdfFile.arrayBuffer().then((buf) => {
+      if (!cancelled) setWebsitePdfData(new Uint8Array(buf));
+    }).catch(() => {
+      if (!cancelled) setWebsitePdfData(null);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [websitePdfFile]);
 
   useEffect(() => {
@@ -254,8 +288,12 @@ export function ProductEntryForm() {
     return pdfView === "website" ? websitePreviewUrl : datasheetPreviewUrl;
   }, [pdfView, websitePreviewUrl, datasheetPreviewUrl]);
 
+  const activePdfData = useMemo(() => {
+    return pdfView === "website" ? websitePdfData : datasheetPdfData;
+  }, [pdfView, websitePdfData, datasheetPdfData]);
+
   useEffect(() => {
-    if (!activePdfUrl || !pdfjsReady) {
+    if (!activePdfData || !pdfjsReady) {
       pdfDocRef.current = null;
       return;
     }
@@ -269,7 +307,7 @@ export function ProductEntryForm() {
       try {
         const pdfjs = window.pdfjsLib;
         if (!pdfjs) throw new Error("PDF viewer not available");
-        loadingTask = pdfjs.getDocument(activePdfUrl);
+        loadingTask = pdfjs.getDocument({ data: activePdfData });
         const pdf = await loadingTask.promise;
         if (!cancelled) pdfDocRef.current = pdf;
       } catch (err) {
@@ -284,7 +322,7 @@ export function ProductEntryForm() {
       if (loadingTask?.destroy) loadingTask.destroy();
       pdfDocRef.current = null;
     };
-  }, [activePdfUrl, pdfjsReady]);
+  }, [activePdfData, pdfjsReady]);
 
   useEffect(() => {
     const container = pdfCanvasRef.current;
@@ -614,7 +652,7 @@ export function ProductEntryForm() {
               />
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between min-h-[20px]">
+              <div className="flex items-center justify-between">
                 <Label className="text-xs font-medium">
                   {datasheetPreviewUrl || websitePreviewUrl
                     ? `PDF: ${pdfView === "website" ? "Website" : "Datasheet"}`
@@ -674,7 +712,8 @@ export function ProductEntryForm() {
               <div className="border border-border rounded-lg bg-muted/20 h-[360px] overflow-hidden">
                 {(() => {
                   const activeUrl = pdfView === "website" ? websitePreviewUrl : datasheetPreviewUrl;
-                  if (!activeUrl) {
+                  const hasData = Boolean(activePdfData);
+                  if (!activeUrl || !hasData) {
                     return (
                       <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
                         Upload a PDF to preview
