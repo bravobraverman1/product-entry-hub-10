@@ -126,7 +126,7 @@ const ProductOptions = () => {
       {/* Temp Make Visible */}
       <FormSection title="Temp Make Visible" defaultOpen>
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Temporarily changes the visibility of a single SKU so it appears in the SKU dropdown menu and can be selected, filled in, and completed.
           </p>
           <div className="space-y-1.5">
@@ -159,8 +159,8 @@ const ProductOptions = () => {
       {/* Mark SKU Complete */}
       <FormSection title="Mark SKU Complete" defaultOpen>
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Mark a SKU as complete when work has already been done outside the system. This skips the entry process and marks the SKU as finished.
+          <p className="text-xs text-muted-foreground">
+            Use when Eran or another employee has already completed this SKU outside the system. Changes the status to COMPLETE without requiring data entry.
           </p>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">
@@ -192,8 +192,8 @@ const ProductOptions = () => {
       {/* Mark SKU Incomplete */}
       <FormSection title="Mark SKU Incomplete" defaultOpen>
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Resets a SKU's status to incomplete (READY), making it available again in the products to-do list for processing.
+          <p className="text-xs text-muted-foreground">
+            Resets a SKU's status to READY, returning it to the products to-do list for processing.
           </p>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">
@@ -225,8 +225,8 @@ const ProductOptions = () => {
       {/* Mark Not For Sale */}
       <FormSection title="Mark SKU Not For Sale" defaultOpen>
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Changes the SKU status to DEAD (not for sale) and notifies the system. This action can be reversed from the Admin panel if needed.
+          <p className="text-xs text-muted-foreground">
+            Changes the SKU status to DEAD (not for sale) and updates the system. Eran is notified when this occurs.
           </p>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">
