@@ -71,48 +71,53 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
     <div className="space-y-1.5">
       {/* W×H Mode - greyed out only if diameter has a complete value */}
       <div className={`flex gap-0.5 items-center ${hasDiameterValue ? "opacity-50 pointer-events-none" : ""}`}>
-        <Input
-          type="text"
-          inputMode="decimal"
-          placeholder="W"
-          value={pairValue1}
-          onChange={(e) => handlePairChange(e.target.value, pairValue2)}
-          onKeyPress={(e) => {
-            if (!/[\d.]/.test(e.key)) {
+        <div className="relative flex-1">
+          <Input
+            type="text"
+            inputMode="decimal"
+            placeholder="W"
+            value={pairValue1}
+            onChange={(e) => handlePairChange(e.target.value, pairValue2)}
+            onKeyPress={(e) => {
+              if (!/[\d.]/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onPaste={(e) => {
               e.preventDefault();
-            }
-          }}
-          onPaste={(e) => {
-            e.preventDefault();
-            const pastedText = e.clipboardData.getData("text");
-            const sanitized = sanitizeNumericInput(pastedText);
-            handlePairChange(sanitized, pairValue2);
-          }}
-          className="h-6 text-xs flex-1 min-w-8"
-          disabled={hasDiameterValue}
-        />
+              const pastedText = e.clipboardData.getData("text");
+              const sanitized = sanitizeNumericInput(pastedText);
+              handlePairChange(sanitized, pairValue2);
+            }}
+            className="h-6 text-xs w-full pr-5"
+            disabled={hasDiameterValue}
+          />
+          <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">cm</span>
+        </div>
         <span className="text-xs font-semibold">×</span>
-        <Input
-          type="text"
-          inputMode="decimal"
-          placeholder="H"
-          value={pairValue2}
-          onChange={(e) => handlePairChange(pairValue1, e.target.value)}
-          onKeyPress={(e) => {
-            if (!/[\d.]/.test(e.key)) {
+        <div className="relative flex-1">
+          <Input
+            type="text"
+            inputMode="decimal"
+            placeholder="H"
+            value={pairValue2}
+            onChange={(e) => handlePairChange(pairValue1, e.target.value)}
+            onKeyPress={(e) => {
+              if (!/[\d.]/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onPaste={(e) => {
               e.preventDefault();
-            }
-          }}
-          onPaste={(e) => {
-            e.preventDefault();
-            const pastedText = e.clipboardData.getData("text");
-            const sanitized = sanitizeNumericInput(pastedText);
-            handlePairChange(pairValue1, sanitized);
-          }}
-          className="h-6 text-xs flex-1 min-w-8"
-          disabled={hasDiameterValue}
-        />
-        <span className="text-xs text-muted-foreground whitespace-nowrap">cm</span>
+              const pastedText = e.clipboardData.getData("text");
+              const sanitized = sanitizeNumericInput(pastedText);
+              handlePairChange(pairValue1, sanitized);
+            }}
+            className="h-6 text-xs w-full pr-5"
+            disabled={hasDiameterValue}
+          />
+          <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">cm</span>
+        </div>
       </div>
 
       {/* Diameter Mode - greyed out as soon as either W or H has any value */}
