@@ -11,6 +11,12 @@ on:
         options:
           - production
           - staging
+  push:
+    branches:
+      - main
+    paths:
+      - supabase/functions/google-sheets/**
+      - .github/workflows/deploy-google-sheets.yml
 
 env:
   REGISTRY: ghcr.io
