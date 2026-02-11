@@ -19,15 +19,11 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
   const diameterValue = pairMatch ? "" : value;
   
   // Only grey out if the other field actually has a value
-  const hasPairValue = pairValue1 || pairValue2;
-  const hasDiameterValue = diameterValue.length > 0;
+  const hasPairValue = !!(pairValue1 && pairValue2);
+  const hasDiameterValue = diameterValue && diameterValue.length > 0;
 
   const handlePairChange = (num1: string, num2: string) => {
-    if (num1 || num2) {
-      onChange(`${num1}X${num2}`);
-    } else {
-      onChange("");
-    }
+    onChange(`${num1}X${num2}`);
   };
 
   const handleDiameterChange = (num: string) => {
@@ -37,13 +33,14 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
   return (
     <div className="space-y-1.5">
       {/* W×H Mode - greyed out only if diameter has value */}
-      <div className={`flex gap-0.5 items-center ${hasDiameterValue ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className={`flex gap-0.5 items-center ${hasDiameterValue ? "opacity-50 pointer-events-none" : ""}`}>
         <Input
           type="number"
           placeholder="W"
           value={pairValue1}
           onChange={(e) => handlePairChange(e.target.value, pairValue2)}
           className="h-6 text-xs flex-1 min-w-8"
+          disabled={hasDiameterValue}
         />
         <span className="text-xs font-semibold">×</span>
         <Input
@@ -52,18 +49,20 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
           value={pairValue2}
           onChange={(e) => handlePairChange(pairValue1, e.target.value)}
           className="h-6 text-xs flex-1 min-w-8"
+          disabled={hasDiameterValue}
         />
         <span className="text-xs text-muted-foreground whitespace-nowrap">cm</span>
       </div>
 
       {/* Diameter Mode - greyed out only if W or H has value */}
-      <div className={`relative ${hasPairValue ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className={`relative ${hasPairValue ? "opacity-50 pointer-events-none" : ""}`}>
         <Input
           type="number"
           placeholder="Diameter"
           value={diameterValue}
           onChange={(e) => handleDiameterChange(e.target.value)}
           className="h-6 text-xs pr-7"
+          disabled={hasPairValue}
         />
         <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
           cm
