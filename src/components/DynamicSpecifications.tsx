@@ -35,15 +35,15 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
   };
 
   return (
-    <div className="space-y-2">
+    <div className="flex gap-1 items-center">
       {/* W×H Mode - greyed out only if diameter has value */}
-      <div className={`flex gap-1 items-center ${hasDiameterValue ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className={`flex gap-0.5 items-center ${hasDiameterValue ? "opacity-40 pointer-events-none" : ""}`}>
         <Input
           type="number"
           placeholder="W"
           value={pairValue1}
           onChange={(e) => handlePairChange(e.target.value, pairValue2)}
-          className="h-7 text-xs flex-1"
+          className="h-6 text-xs flex-1 min-w-8"
         />
         <span className="text-xs font-semibold">×</span>
         <Input
@@ -51,21 +51,24 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
           placeholder="H"
           value={pairValue2}
           onChange={(e) => handlePairChange(pairValue1, e.target.value)}
-          className="h-7 text-xs flex-1"
+          className="h-6 text-xs flex-1 min-w-8"
         />
         <span className="text-xs text-muted-foreground whitespace-nowrap">cm</span>
       </div>
 
+      {/* Divider */}
+      <span className="text-xs text-muted-foreground">|</span>
+
       {/* Diameter Mode - greyed out only if W or H has value */}
-      <div className={`relative ${hasPairValue ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className={`relative flex-1 ${hasPairValue ? "opacity-40 pointer-events-none" : ""}`}>
         <Input
           type="number"
-          placeholder="Diameter"
+          placeholder="⌀"
           value={diameterValue}
           onChange={(e) => handleDiameterChange(e.target.value)}
-          className="h-7 text-xs pr-10"
+          className="h-6 text-xs w-full pr-7"
         />
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+        <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
           cm
         </span>
       </div>
