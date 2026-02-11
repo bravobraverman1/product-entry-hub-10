@@ -63,23 +63,33 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
       {/* W×H Mode - greyed out only if diameter has a complete value */}
       <div className={`flex gap-0.5 items-center ${hasDiameterValue ? "opacity-50 pointer-events-none" : ""}`}>
         <Input
-          type="number"
+          type="text"
+          inputMode="decimal"
           placeholder="W"
           value={pairValue1}
           onChange={(e) => handlePairChange(e.target.value, pairValue2)}
+          onKeyPress={(e) => {
+            if (!/[\d.]/.test(e.key)) {
+              e.preventDefault();
+            }
+          }}
           className="h-6 text-xs flex-1 min-w-8"
           disabled={hasDiameterValue}
-          step="0.01"
         />
         <span className="text-xs font-semibold">×</span>
         <Input
-          type="number"
+          type="text"
+          inputMode="decimal"
           placeholder="H"
           value={pairValue2}
           onChange={(e) => handlePairChange(pairValue1, e.target.value)}
+          onKeyPress={(e) => {
+            if (!/[\d.]/.test(e.key)) {
+              e.preventDefault();
+            }
+          }}
           className="h-6 text-xs flex-1 min-w-8"
           disabled={hasDiameterValue}
-          step="0.01"
         />
         <span className="text-xs text-muted-foreground whitespace-nowrap">cm</span>
       </div>
@@ -87,13 +97,18 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
       {/* Diameter Mode - greyed out as soon as either W or H has any value */}
       <div className={`relative ${hasPairValue ? "opacity-50 pointer-events-none" : ""}`}>
         <Input
-          type="number"
+          type="text"
+          inputMode="decimal"
           placeholder="Diameter"
           value={diameterValue}
           onChange={(e) => handleDiameterChange(e.target.value)}
+          onKeyPress={(e) => {
+            if (!/[\d.]/.test(e.key)) {
+              e.preventDefault();
+            }
+          }}
           className="h-6 text-xs pr-7"
           disabled={hasPairValue}
-          step="0.01"
         />
         <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
           cm
@@ -216,18 +231,20 @@ export function DynamicSpecifications({
                     <div className="relative">
                       <Input
                         type="text"
-                        inputMode={isNumericProperty(prop.name) ? "decimal" : "text"}
+                        inputMode="decimal"
                         value={values[prop.key] || ""}
                         onChange={(e) => {
-                          const newValue = isNumericProperty(prop.name)
-                            ? sanitizeNumericInput(e.target.value)
-                            : e.target.value;
-                          onChange(prop.key, newValue);
+                          if (isNumericProperty(prop.name)) {
+                            const newValue = sanitizeNumericInput(e.target.value);
+                            onChange(prop.key, newValue);
+                          } else {
+                            onChange(prop.key, e.target.value);
+                          }
                         }}
                         onKeyPress={(e) => {
-                          // For numeric properties, only allow digits and decimal point
                           if (isNumericProperty(prop.name)) {
-                            if (!/[0-9.]/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete") {
+                            const char = e.key;
+                            if (!/[\d.]/.test(char)) {
                               e.preventDefault();
                             }
                           }
@@ -256,7 +273,7 @@ export function DynamicSpecifications({
                           onChange(prop.key, sanitized);
                         }}
                         onKeyPress={(e) => {
-                          if (!/[0-9.]/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete") {
+                          if (!/[\d.]/.test(e.key)) {
                             e.preventDefault();
                           }
                         }}
