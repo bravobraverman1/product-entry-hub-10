@@ -251,14 +251,18 @@ export function CategoryTreeDropdown({
               <Badge
                 key={path}
                 variant={isMain ? "default" : "secondary"}
+                onClick={() => handleSetMain(path)}
                 className={cn(
-                  "flex items-center gap-1 text-xs py-0.5 px-2",
+                  "flex items-center gap-1 text-xs py-0.5 px-2 cursor-pointer",
                   isMain && "bg-primary text-primary-foreground"
                 )}
               >
                 <button
                   type="button"
-                  onClick={() => handleSetMain(path)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSetMain(path);
+                  }}
                   title={isMain ? "Main category" : "Set as main"}
                   className="shrink-0"
                 >
@@ -281,7 +285,10 @@ export function CategoryTreeDropdown({
                 )}
                 <button
                   type="button"
-                  onClick={() => handleRemove(path)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(path);
+                  }}
                   className="shrink-0 hover:text-destructive"
                 >
                   <X className="h-3 w-3" />
