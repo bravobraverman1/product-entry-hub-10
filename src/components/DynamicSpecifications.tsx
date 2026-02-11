@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { SearchableSelect } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/SearchableSelect";
 import type { PropertyDefinition, LegalValue } from "@/data/defaultProperties";
 
 interface DynamicSpecificationsProps {
