@@ -105,7 +105,7 @@ const LoadingDock = () => {
         <div className="space-y-3">
           <Alert variant="destructive" className="bg-destructive/5 border-destructive/30">
             <AlertDescription className="text-xs text-destructive/90">
-              CSV uploads reset submitted entries to READY status. Use "Send All & Clear Dock" to finalize all entries together in the dock.
+              CSV uploads reset entries to READY status. Use "Send All & Clear Dock" to send entries and mark them as COMPLETE.
             </AlertDescription>
           </Alert>
           <div
