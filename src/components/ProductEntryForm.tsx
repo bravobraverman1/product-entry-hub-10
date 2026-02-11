@@ -91,6 +91,8 @@ export function ProductEntryForm() {
   const [pdfIsRendering, setPdfIsRendering] = useState(false);
   const [pdfLoadTimedOut, setPdfLoadTimedOut] = useState(false);
   const pdfScrollRef = useRef<HTMLDivElement | null>(null);
+  const datasheetInputRef = useRef<HTMLInputElement | null>(null);
+  const websiteInputRef = useRef<HTMLInputElement | null>(null);
   const [isDraggingPdf, setIsDraggingPdf] = useState(false);
   const dragStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const pdfCanvasRef = useRef<HTMLDivElement | null>(null);
@@ -188,12 +190,11 @@ export function ProductEntryForm() {
       return;
     }
     const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js";
+    script.src = "/pdfjs/pdf.min.js";
     script.async = true;
     script.onload = () => {
       if (window.pdfjsLib) {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.js";
         setPdfjsReady(true);
       }
     };
@@ -454,9 +455,13 @@ export function ProductEntryForm() {
               <div className="flex items-center gap-2">
                 <label className="flex-1">
                   <input
+                    ref={datasheetInputRef}
                     type="file"
                     accept=".pdf"
                     className="hidden"
+                    onClick={(e) => {
+                      (e.currentTarget as HTMLInputElement).value = "";
+                    }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -481,6 +486,7 @@ export function ProductEntryForm() {
                     onClick={() => {
                       setDatasheetFile(null);
                       setDatasheetUrl("");
+                      if (datasheetInputRef.current) datasheetInputRef.current.value = "";
                     }}
                   >
                     Clear
@@ -495,9 +501,13 @@ export function ProductEntryForm() {
               <div className="flex items-center gap-2">
                 <label className="flex-1">
                   <input
+                    ref={websiteInputRef}
                     type="file"
                     accept=".pdf"
                     className="hidden"
+                    onClick={(e) => {
+                      (e.currentTarget as HTMLInputElement).value = "";
+                    }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -522,6 +532,7 @@ export function ProductEntryForm() {
                     onClick={() => {
                       setWebsitePdfFile(null);
                       setWebpageUrl("");
+                      if (websiteInputRef.current) websiteInputRef.current.value = "";
                     }}
                   >
                     Clear
