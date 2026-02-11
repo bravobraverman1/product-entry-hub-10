@@ -231,8 +231,8 @@ export function ProductEntryForm() {
     script.async = true;
     script.onload = () => {
       if (window.pdfjsLib) {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.js";
-        window.pdfjsLib.disableWorker = true;
+        // Don't set worker at all - use internal fallback
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
         setPdfjsReady(true);
       }
     };
@@ -300,7 +300,6 @@ export function ProductEntryForm() {
     }
 
     let cancelled = false;
-    let loadingTask: any;
     setPdfIsRendering(true);
     setPdfRenderError(null);
 
@@ -308,18 +307,26 @@ export function ProductEntryForm() {
       try {
         const pdfjs = window.pdfjsLib;
         if (!pdfjs) throw new Error("PDF viewer not available");
-        const dataCopy = new Uint8Array(activePdfData.slice(0));
-        loadingTask = pdfjs.getDocument({
-          data: dataCopy,
-          disableWorker: true,
-          disableRange: true,
-          disableStream: true,
-          worker: null,
+        
+        // Create a fresh copy of the ArrayBuffer to avoid detachment
+        const buffer = activePdfData.slice(0);
+        const uint8Array = new Uint8Array(buffer);
+        
+        // Use getDocument with minimal options - let PDF.js handle internally
+        const loadingTask = pdfjs.getDocument({
+          data: uint8Array,
+          // Don't specify any worker options - use internal handling
         });
+        
         const pdf = await loadingTask.promise;
-        if (!cancelled) pdfDocRef.current = pdf;
+        if (!cancelled) {
+          pdfDocRef.current = pdf;
+        }
       } catch (err) {
-        if (!cancelled) setPdfRenderError(err instanceof Error ? err.message : "PDF preview unavailable");
+        console.error("PDF loading error:", err);
+        if (!cancelled) {
+          setPdfRenderError(err instanceof Error ? err.message : "PDF preview unavailable");
+        }
       } finally {
         if (!cancelled) setPdfIsRendering(false);
       }
@@ -327,7 +334,6 @@ export function ProductEntryForm() {
 
     return () => {
       cancelled = true;
-      if (loadingTask?.destroy) loadingTask.destroy();
       pdfDocRef.current = null;
     };
   }, [activePdfData, pdfjsReady]);
