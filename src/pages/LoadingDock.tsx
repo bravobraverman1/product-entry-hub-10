@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const PAGE_SIZE = 10;
 
@@ -100,23 +101,30 @@ const LoadingDock = () => {
   return (
     <div className="space-y-6">
       {/* CSV Upload */}
-      <FormSection title="CSV Upload" defaultOpen>
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            dragOver ? "border-primary bg-muted/60" : "border-muted-foreground/30"
-          }`}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-        >
-          <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-          <p className="text-sm text-muted-foreground mb-2">Drag & drop a CSV file here, or click to browse</p>
-          <label>
-            <input type="file" accept=".csv" className="hidden" onChange={handleFileInput} />
-            <Button type="button" variant="outline" size="sm" asChild>
-              <span><FileText className="h-3.5 w-3.5 mr-1" /> Choose File</span>
-            </Button>
-          </label>
+      <FormSection title="CSV Upload" defaultOpen={false}>
+        <div className="space-y-3">
+          <Alert variant="destructive" className="bg-destructive/5 border-destructive/30">
+            <AlertDescription className="text-xs text-destructive/90">
+              CSV uploads reset the spreadsheet to READY status. Use "Send All & Clear Dock" to finalize entries with the rest of your submissions.
+            </AlertDescription>
+          </Alert>
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              dragOver ? "border-primary bg-muted/60" : "border-muted-foreground/30"
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground mb-2">Drag & drop a CSV file here, or click to browse</p>
+            <label>
+              <input type="file" accept=".csv" className="hidden" onChange={handleFileInput} />
+              <Button type="button" variant="outline" size="sm" asChild>
+                <span><FileText className="h-3.5 w-3.5 mr-1" /> Choose File</span>
+              </Button>
+            </label>
+          </div>
         </div>
       </FormSection>
 

@@ -24,7 +24,7 @@ export const DEFAULT_SHEET_TABS: SheetTabConfig[] = [
   { key: "SHEET_EXISTING_PRODS", label: "ExistingProds", value: "ExistingProds" },
   { key: "SHEET_NEW_NAMES", label: "NewNames", value: "NewNames" },
   { key: "SHEET_UPLOAD", label: "UPLOAD", value: "UPLOAD" },
-  { key: "SHEET_CATEGORIES", label: "CATEGORIES", value: "CATEGORIES" },
+  { key: "SHEET_CATEGORIES", label: "CATEGORIES", value: "Categories" },
 ];
 
 // Stored config — persisted in localStorage for now, can be moved to backend
