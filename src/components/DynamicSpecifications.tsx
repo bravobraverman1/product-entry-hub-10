@@ -17,8 +17,10 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
   const pairValue1 = pairMatch ? pairMatch[1] : "";
   const pairValue2 = pairMatch ? pairMatch[2] : "";
   const diameterValue = pairMatch ? "" : value;
-  const isPairMode = !!pairMatch;
-  const isDiameterMode = !!diameterValue;
+  
+  // Only grey out if the other field actually has a value
+  const hasPairValue = pairValue1 || pairValue2;
+  const hasDiameterValue = diameterValue.length > 0;
 
   const handlePairChange = (num1: string, num2: string) => {
     if (num1 || num2) {
@@ -29,43 +31,39 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
   };
 
   const handleDiameterChange = (num: string) => {
-    if (num) {
-      onChange(num);
-    } else {
-      onChange("");
-    }
+    onChange(num);
   };
 
   return (
     <div className="space-y-2">
-      {/* W×H Mode - greyed out if diameter is active */}
-      <div className={`flex gap-1 ${isDiameterMode ? "opacity-40 pointer-events-none" : ""}`}>
+      {/* W×H Mode - greyed out only if diameter has value */}
+      <div className={`flex gap-1 items-center ${hasDiameterValue ? "opacity-40 pointer-events-none" : ""}`}>
         <Input
           type="number"
           placeholder="W"
           value={pairValue1}
           onChange={(e) => handlePairChange(e.target.value, pairValue2)}
-          className="h-9 text-sm flex-1"
+          className="h-7 text-xs flex-1"
         />
-        <span className="flex items-center text-xs font-semibold">×</span>
+        <span className="text-xs font-semibold">×</span>
         <Input
           type="number"
           placeholder="H"
           value={pairValue2}
           onChange={(e) => handlePairChange(pairValue1, e.target.value)}
-          className="h-9 text-sm flex-1"
+          className="h-7 text-xs flex-1"
         />
-        <span className="flex items-center text-xs text-muted-foreground">cm</span>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">cm</span>
       </div>
 
-      {/* Diameter Mode - greyed out if W×H is active */}
-      <div className={`relative ${isPairMode ? "opacity-40 pointer-events-none" : ""}`}>
+      {/* Diameter Mode - greyed out only if W or H has value */}
+      <div className={`relative ${hasPairValue ? "opacity-40 pointer-events-none" : ""}`}>
         <Input
           type="number"
           placeholder="Diameter"
           value={diameterValue}
           onChange={(e) => handleDiameterChange(e.target.value)}
-          className="h-9 text-sm pr-10"
+          className="h-7 text-xs pr-10"
         />
         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
           cm
