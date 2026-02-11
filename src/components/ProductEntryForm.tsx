@@ -805,8 +805,12 @@ export function ProductEntryForm() {
       </FormSection>
 
       {/* Submit */}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={isSubmitting || showSuccess} className="min-w-[160px] h-10">
+      <div className="flex justify-center pt-4">
+        <Button
+          type="submit"
+          disabled={isSubmitting || showSuccess}
+          className="h-12 px-8 text-sm font-semibold rounded-full shadow-md hover:shadow-lg transition-all"
+        >
           {showSuccess ? (
             <><CheckCircle className="mr-2 h-4 w-4" /> Submitted!</>
           ) : isSubmitting ? (
