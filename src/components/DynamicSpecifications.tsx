@@ -215,7 +215,8 @@ export function DynamicSpecifications({
                   {prop.inputType === "text" && !isFanCutout && (
                     <div className="relative">
                       <Input
-                        type={isNumericProperty(prop.name) ? "number" : "text"}
+                        type="text"
+                        inputMode={isNumericProperty(prop.name) ? "decimal" : "text"}
                         value={values[prop.key] || ""}
                         onChange={(e) => {
                           const newValue = isNumericProperty(prop.name)
@@ -223,9 +224,16 @@ export function DynamicSpecifications({
                             : e.target.value;
                           onChange(prop.key, newValue);
                         }}
+                        onKeyPress={(e) => {
+                          // For numeric properties, only allow digits and decimal point
+                          if (isNumericProperty(prop.name)) {
+                            if (!/[0-9.]/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete") {
+                              e.preventDefault();
+                            }
+                          }
+                        }}
                         placeholder={`Enter ${prop.name.toLowerCase()}`}
                         className={displayUnit ? "h-9 text-sm pr-10" : "h-9 text-sm"}
-                        step={isNumericProperty(prop.name) ? "0.01" : undefined}
                       />
                       {displayUnit && (
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -240,15 +248,20 @@ export function DynamicSpecifications({
                   {prop.inputType === "number" && (
                     <div className="relative">
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={values[prop.key] || ""}
                         onChange={(e) => {
                           const sanitized = sanitizeNumericInput(e.target.value);
                           onChange(prop.key, sanitized);
                         }}
+                        onKeyPress={(e) => {
+                          if (!/[0-9.]/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete") {
+                            e.preventDefault();
+                          }
+                        }}
                         placeholder="0"
                         className={displayUnit ? "h-9 text-sm pr-10" : "h-9 text-sm"}
-                        step="0.01"
                       />
                       {displayUnit && (
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
