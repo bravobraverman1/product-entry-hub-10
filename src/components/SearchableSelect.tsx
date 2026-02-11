@@ -14,9 +14,17 @@ interface SearchableSelectProps {
   allowNone?: boolean;
   allowOther?: boolean;
   onOtherSubmit?: (value: string) => void;
+  propertyName?: string; // For validation of numeric properties
 }
 
 const OTHER_SENTINEL = "__OTHER__";
+
+// Numeric property names that require numeric-only "Other" values
+const NUMERIC_PROPERTIES = new Set([
+  "Beam Angle",
+  "Air Movement",
+  "Fan Cutout",
+]);
 
 export function SearchableSelect({
   value,
@@ -27,6 +35,7 @@ export function SearchableSelect({
   allowNone = true,
   allowOther = false,
   onOtherSubmit,
+  propertyName,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -64,9 +73,21 @@ export function SearchableSelect({
 
   const handleOtherConfirm = () => {
     if (otherText.trim()) {
-      const normalized = otherText.trim().toUpperCase();
-      onOtherSubmit?.(normalized);
-      onValueChange(normalized);
+      // If this is a numeric property, validate numeric input
+      if (propertyName && NUMERIC_PROPERTIES.has(propertyName)) {
+        const numValue = parseFloat(otherText.trim());
+        if (isNaN(numValue)) {
+          alert(`Invalid value. ${propertyName} requires a numeric value only.`);
+          return;
+        }
+        const normalized = numValue.toString();
+        onOtherSubmit?.(normalized);
+        onValueChange(normalized);
+      } else {
+        const normalized = otherText.trim().toUpperCase();
+        onOtherSubmit?.(normalized);
+        onValueChange(normalized);
+      }
       setShowOtherInput(false);
       setOtherText("");
       setOpen(false);

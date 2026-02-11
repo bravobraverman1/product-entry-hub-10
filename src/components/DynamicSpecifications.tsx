@@ -12,17 +12,37 @@ const UNIT_OVERRIDES: Record<string, string> = {
   "Fan Cutout": "cm",
 };
 
+// Properties that require numeric values only
+const NUMERIC_PROPERTIES = new Set([
+  "Beam Angle",
+  "Air Movement",
+  "Fan Cutout",
+  ...Object.keys(UNIT_OVERRIDES),
+]);
+
+// Helper to validate numeric input
+const isNumericProperty = (propertyName: string): boolean => {
+  return NUMERIC_PROPERTIES.has(propertyName);
+};
+
 function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const pairMatch = value.match(/^(\d+)X(\d+)$/i);
+  // Determine which mode we're in based on presence of X
+  const hasPairMode = value.includes("X") || value.includes("x");
+  
+  // Extract pair values if in pair mode
+  const pairMatch = value.match(/^(\d*)X(\d*)$/i);
   const pairValue1 = pairMatch ? pairMatch[1] : "";
   const pairValue2 = pairMatch ? pairMatch[2] : "";
-  const diameterValue = pairMatch ? "" : value;
   
-  // Only grey out if the other field actually has a value
+  // Extract diameter value only if not in pair mode
+  const diameterValue = !hasPairMode ? value : "";
+  
+  // Check if each mode has a complete value
   const hasPairValue = !!(pairValue1 && pairValue2);
   const hasDiameterValue = diameterValue && diameterValue.length > 0;
 
   const handlePairChange = (num1: string, num2: string) => {
+    // Always format as NUM1XNUM2 while typing
     onChange(`${num1}X${num2}`);
   };
 
@@ -32,7 +52,7 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
 
   return (
     <div className="space-y-1.5">
-      {/* W×H Mode - greyed out only if diameter has value */}
+      {/* W×H Mode - greyed out only if diameter has a complete value */}
       <div className={`flex gap-0.5 items-center ${hasDiameterValue ? "opacity-50 pointer-events-none" : ""}`}>
         <Input
           type="number"
@@ -54,7 +74,7 @@ function FanCutoutInput({ value, onChange }: { value: string; onChange: (v: stri
         <span className="text-xs text-muted-foreground whitespace-nowrap">cm</span>
       </div>
 
-      {/* Diameter Mode - greyed out only if W or H has value */}
+      {/* Diameter Mode - greyed out only if W and H both have values */}
       <div className={`relative ${hasPairValue ? "opacity-50 pointer-events-none" : ""}`}>
         <Input
           type="number"
@@ -175,16 +195,19 @@ export function DynamicSpecifications({
                       options={optionsMap.get(prop.name) || []}
                       placeholder="Select..."
                       allowOther
+                      propertyName={prop.name}
                       onOtherSubmit={(v) => handleOtherSubmit(prop.name, prop.key, v)}
                     />
                   )}
                   {prop.inputType === "text" && !isFanCutout && (
                     <div className="relative">
                       <Input
+                        type={isNumericProperty(prop.name) ? "number" : "text"}
                         value={values[prop.key] || ""}
                         onChange={(e) => onChange(prop.key, e.target.value)}
                         placeholder={`Enter ${prop.name.toLowerCase()}`}
                         className={displayUnit ? "h-9 text-sm pr-10" : "h-9 text-sm"}
+                        step={isNumericProperty(prop.name) ? "0.01" : undefined}
                       />
                       {displayUnit && (
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
