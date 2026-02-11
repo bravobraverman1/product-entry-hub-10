@@ -8,7 +8,7 @@ A comprehensive product data entry and management system built with React, TypeS
 
 ## 🔗 Google Sheets Integration
 
-This application connects to Google Sheets to manage product data.
+This application connects to Google Sheets using a **Supabase Edge Function** (backend). Lovable only hosts the frontend UI.
 
 ### 🆕 New to Setup? Start Here!
 
@@ -28,7 +28,7 @@ This guide is designed for **non-technical users** and covers:
 2. **STEP 3:** [Create and Deploy the Edge Function](./GOOGLE_SHEETS_SETUP.md#step-3-create-and-deploy-the-edge-function)
 3. **STEP 4:** [Add credentials to Supabase](./GOOGLE_SHEETS_SETUP.md#step-4-add-credentials-to-supabase)
 4. **STEP 5:** [Activate via GitHub Actions](./GOOGLE_SHEETS_SETUP.md#step-5-activate-the-google-sheets-connection-github-actions)
-5. **STEP 6:** [Test Your Connection](./GOOGLE_SHEETS_SETUP.md#step-6-test-your-connection)
+5. **STEP 7:** [Test Your Connection](./GOOGLE_SHEETS_SETUP.md#step-7-test-your-connection)
 
 ### All Documentation
 

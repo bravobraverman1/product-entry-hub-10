@@ -323,7 +323,10 @@ const Admin = () => {
 
   // ── Connection Settings ──
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  const supabaseAnonKey =
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    import.meta.env.VITE_SUPABASE_ANON_KEY ||
+    "";
   
   // Regex pattern for validating and extracting project ref from Supabase URL
   const SUPABASE_URL_PATTERN = /https:\/\/([a-z0-9-]+)\.supabase\.co/i;
@@ -456,7 +459,7 @@ const Admin = () => {
           <div className="space-y-3 rounded-lg border border-muted bg-muted/50 p-4">
             <h5 className="text-sm font-semibold">Project Check (Important)</h5>
             <p className="text-xs text-muted-foreground">
-              Verify your Supabase project configuration before testing the connection.
+              Frontend is hosted on Lovable, but the backend runs on your Supabase Edge Function. Verify your Supabase project configuration before testing the connection.
             </p>
             <div className="space-y-2 text-sm font-mono">
               <div className="flex items-start gap-2">
@@ -491,13 +494,13 @@ const Admin = () => {
                     Environment Variables Not Configured
                   </h5>
                     <p className="text-xs text-red-800 dark:text-red-200">
-                    Your Supabase credentials are not set up yet. This is why the Test Connection button is disabled.
+                    Your Supabase credentials are not set up in Lovable. This is why the Test Connection button is disabled.
                   </p>
                   <div className="text-xs text-red-900 dark:text-red-100 space-y-2 bg-white/50 dark:bg-black/20 p-3 rounded border border-red-300 dark:border-red-700">
                     <p className="font-semibold">Quick Fix (Most Common Issue):</p>
                     <ol className="list-decimal list-inside space-y-1 ml-1">
-                      <li>Go to your hosting platform (Lovable/Vercel/Netlify)</li>
-                      <li>Add environment variables: <code className="bg-red-100 dark:bg-red-900 px-1 py-0.5 rounded">VITE_SUPABASE_URL</code> and <code className="bg-red-100 dark:bg-red-900 px-1 py-0.5 rounded">VITE_SUPABASE_PUBLISHABLE_KEY</code></li>
+                      <li>Go to Lovable → Environment Variables</li>
+                      <li>Add: <code className="bg-red-100 dark:bg-red-900 px-1 py-0.5 rounded">VITE_SUPABASE_URL</code> and <code className="bg-red-100 dark:bg-red-900 px-1 py-0.5 rounded">VITE_SUPABASE_PUBLISHABLE_KEY</code> (or <code className="bg-red-100 dark:bg-red-900 px-1 py-0.5 rounded">VITE_SUPABASE_ANON_KEY</code>)</li>
                       <li><strong>CRITICAL: Redeploy/Republish your site</strong> (environment variables are embedded at build time)</li>
                       <li>Wait 2-3 minutes, then <strong>hard refresh</strong> this page (Ctrl+Shift+R)</li>
                     </ol>

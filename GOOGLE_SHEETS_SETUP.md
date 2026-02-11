@@ -21,7 +21,7 @@ Follow these steps in order:
 3. **STEP 3:** Create and Deploy the Edge Function (Required for new projects)
 4. **STEP 4:** Add credentials to Supabase (server-side security)
 5. **STEP 5:** Activate the Google Sheets Connection (GitHub Actions) **← REQUIRED after adding secrets**
-6. **STEP 6:** Update your .env file (required for Supabase URL/key)
+6. **STEP 6:** Update hosting environment variables (Lovable) for Supabase URL/key
 7. **STEP 7:** Test your connection
 
 ## Table of Contents
@@ -30,7 +30,7 @@ Follow these steps in order:
 3. [STEP 3: Create and Deploy the Edge Function](#step-3-create-and-deploy-the-edge-function)
 4. [STEP 4: Add Credentials to Supabase](#step-4-add-credentials-to-supabase)
 5. [STEP 5: Activate the Google Sheets Connection (GitHub Actions)](#step-5-activate-the-google-sheets-connection-github-actions)
-6. [STEP 6: Update your .env file](#step-6-update-your-env-file)
+6. [STEP 6: Update hosting environment variables (Lovable)](#step-6-update-hosting-environment-variables-lovable)
 7. [STEP 7: Test Your Connection](#step-7-test-your-connection)
 7. [New Project Checklist](#new-project-checklist)
 8. [Sheet Structure Requirements](#sheet-structure-requirements)
@@ -88,13 +88,13 @@ You will now create the Edge Function by pasting ready-made code directly into S
 - Go to [supabase.com/dashboard](https://supabase.com/dashboard)
 - Select your project
 
-### 1.1) Grab your Project URL and Publishable Key (for the Admin .env fields)
+### 1.1) Grab your Project URL and Publishable Key (for Lovable env vars + Admin panel)
 
 On your **project home page** in Supabase (not the user profile page):
 - Hover over the **Project URL** row and click **Copy**
 - Hover over the **Publishable Key** row and click **Copy**
 
-You’ll paste these into the Admin panel later under **Google Sheets Connection** → “Paste .env entries”.
+You’ll paste these into the Admin panel later under **Google Sheets Connection** → “Paste .env entries”, and into Lovable’s Environment Variables.
 
 ### 1.2) Open the Edge Function editor
 
@@ -636,16 +636,22 @@ Before running the workflow, you need to add three GitHub secrets. These allow t
 
 ---
 
-## STEP 6: Update your .env file
+## STEP 6: Update hosting environment variables (Lovable)
 
-In your project **root directory**, open or create a `.env` file and add:
+### ✅ Lovable (required)
+
+In **Lovable → Environment Variables**, add:
 
 ```
 VITE_SUPABASE_URL=your_project_url_here
 VITE_SUPABASE_PUBLISHABLE_KEY=your_publishable_key_here
 ```
 
-Save the file, then **restart/rebuild** your app so Vite picks up the values.
+Then **Redeploy** in Lovable so the values are embedded in the build.
+
+### ✅ Local development (optional)
+
+If running locally, add the same values to your `.env` or `.env.local` and restart your dev server.
 
 ---
 
@@ -692,7 +698,7 @@ Setting up Google Sheets integration on a brand-new Supabase project? Follow thi
 ### ✅ Activation & Testing Checklist
 - [ ] GitHub Actions workflow "Deploy Google Sheets Connection" run successfully (Step 5)
 - [ ] Workflow shows green checkmark ✓ in Actions tab
-- [ ] Connection test passed in Admin panel (Step 6)
+- [ ] Connection test passed in Admin panel (Step 7)
 - [ ] SKU Selector shows actual products (not mock data)
 
 ### 🔍 Quick Troubleshooting
