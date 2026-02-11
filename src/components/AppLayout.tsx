@@ -19,7 +19,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3 justify-center">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3 justify-center">
           <Coffee className="h-5 w-5 text-primary shrink-0" />
           <div>
             <h1 className="text-lg font-semibold text-foreground">
@@ -31,7 +31,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
         {/* Tab Navigation */}
-        <nav className="max-w-5xl mx-auto px-4 flex gap-0 border-t border-border overflow-x-auto">
+        <nav className="max-w-6xl mx-auto px-4 flex gap-0 border-t border-border overflow-x-auto">
           {tabs.map((tab) => (
             <NavLink
               key={tab.to}
@@ -54,11 +54,11 @@ export function AppLayout({ children }: AppLayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>
+      <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
 
       {/* Footer */}
       <footer className="border-t border-border bg-card mt-8">
-        <div className="max-w-5xl mx-auto px-4 py-3 text-center">
+        <div className="max-w-6xl mx-auto px-4 py-3 text-center">
           <p className="text-xs text-muted-foreground">
             One SKU per submission • Required fields marked with *
           </p>

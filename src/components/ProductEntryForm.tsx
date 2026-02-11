@@ -421,7 +421,7 @@ export function ProductEntryForm() {
             {errors.title && <p className="text-destructive text-xs">{errors.title}</p>}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             <div className="space-y-1.5">
               <Label htmlFor="ai-data" className="text-xs font-medium">AI-Data</Label>
               <Textarea
@@ -429,7 +429,7 @@ export function ProductEntryForm() {
                 value={chatgptData}
                 onChange={(e) => setChatgptData(e.target.value)}
                 placeholder="AI-generated product data (editable)"
-                className="text-sm min-h-[180px]"
+                className="text-sm min-h-[320px]"
               />
             </div>
             <div className="space-y-2">
