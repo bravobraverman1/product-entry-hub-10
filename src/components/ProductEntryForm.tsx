@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +75,9 @@ export function ProductEntryForm() {
   const [websitePdfFile, setWebsitePdfFile] = useState<File | null>(null);
   const [datasheetUrl, setDatasheetUrl] = useState("");
   const [webpageUrl, setWebpageUrl] = useState("");
+  const [pdfView, setPdfView] = useState<"datasheet" | "website">("datasheet");
+  const [datasheetPreviewUrl, setDatasheetPreviewUrl] = useState<string | null>(null);
+  const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
 
   // Random example title as placeholder
   const exampleTitle = useMemo(() => {
@@ -136,6 +139,32 @@ export function ProductEntryForm() {
     setChatgptDescription(data.chatgptDescription || "");
     setIsReopened(true);
   }, []);
+
+  useEffect(() => {
+    if (datasheetFile) {
+      const url = URL.createObjectURL(datasheetFile);
+      setDatasheetPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setDatasheetPreviewUrl(null);
+  }, [datasheetFile]);
+
+  useEffect(() => {
+    if (websitePdfFile) {
+      const url = URL.createObjectURL(websitePdfFile);
+      setWebsitePreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setWebsitePreviewUrl(null);
+  }, [websitePdfFile]);
+
+  useEffect(() => {
+    if (datasheetPreviewUrl && !websitePreviewUrl) {
+      setPdfView("datasheet");
+    } else if (!datasheetPreviewUrl && websitePreviewUrl) {
+      setPdfView("website");
+    }
+  }, [datasheetPreviewUrl, websitePreviewUrl]);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
@@ -391,15 +420,65 @@ export function ProductEntryForm() {
             {errors.title && <p className="text-destructive text-xs">{errors.title}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="ai-data" className="text-xs font-medium">AI-Data</Label>
-            <Textarea
-              id="ai-data"
-              value={chatgptData}
-              onChange={(e) => setChatgptData(e.target.value)}
-              placeholder="AI-generated product data (editable)"
-              className="text-sm min-h-[80px]"
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="ai-data" className="text-xs font-medium">AI-Data</Label>
+              <Textarea
+                id="ai-data"
+                value={chatgptData}
+                onChange={(e) => setChatgptData(e.target.value)}
+                placeholder="AI-generated product data (editable)"
+                className="text-sm min-h-[180px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Supplier PDFs</Label>
+                {datasheetPreviewUrl && websitePreviewUrl && (
+                  <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setPdfView("datasheet")}
+                      className={cn(
+                        "px-2 py-1 text-[11px] rounded",
+                        pdfView === "datasheet" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Datasheet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPdfView("website")}
+                      className={cn(
+                        "px-2 py-1 text-[11px] rounded",
+                        pdfView === "website" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Website
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="border border-border rounded-lg bg-muted/20 h-[220px] overflow-hidden">
+                {(() => {
+                  const activeUrl = pdfView === "website" ? websitePreviewUrl : datasheetPreviewUrl;
+                  if (!activeUrl) {
+                    return (
+                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                        Upload a PDF to preview
+                      </div>
+                    );
+                  }
+                  return (
+                    <iframe
+                      title="PDF Preview"
+                      src={activeUrl}
+                      className="h-full w-full"
+                    />
+                  );
+                })()}
+              </div>
+            </div>
           </div>
 
           <Button type="button" variant="outline" size="sm" className="h-9" onClick={handleGenerateDescription}>
