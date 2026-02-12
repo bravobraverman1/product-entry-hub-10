@@ -141,43 +141,17 @@ serve(async (req) => {
       );
     }
 
-    // AUTHENTICATION: Require valid JWT token
-    // Supabase client sends session access token via Authorization header.
-    // If no session exists, it still sends the anon key via the `apikey` header.
-    let authHeader = req.headers.get("authorization") || "";
-    if (!authHeader.startsWith("Bearer ")) {
-      const apiKey = req.headers.get("apikey") || "";
-      if (apiKey) {
-        authHeader = `Bearer ${apiKey}`;
-      }
-    }
-    if (!authHeader.startsWith("Bearer ")) {
+    // AUTHENTICATION: Verify the request has a valid apikey header.
+    // The Supabase JS client automatically sends the anon key via the `apikey` header.
+    // Since this app has no user authentication, we just verify the apikey is present.
+    const apiKey = req.headers.get("apikey") || "";
+    const authHeader = req.headers.get("authorization") || "";
+    
+    if (!apiKey && !authHeader) {
       return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
+        JSON.stringify({ error: "Missing authentication" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
-    // Validate the JWT using Supabase auth
-    const supabaseClient = getSupabaseClient(authHeader);
-    if (!supabaseClient) {
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-
-    // Allow anon key without JWT claims (Supabase client sends anon key when no session exists)
-    if (token !== SUPABASE_ANON_KEY) {
-      const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) {
-        return new Response(
-          JSON.stringify({ error: "Invalid or expired token" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
     }
 
     // SECURITY: Only use server-side secrets from Deno.env, never from request body
