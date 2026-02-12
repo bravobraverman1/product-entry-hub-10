@@ -106,19 +106,29 @@ serve(async (req) => {
       );
     }
 
-    // AUTHENTICATION: Verify request is from authorized origin or has valid Supabase token
+    // AUTHENTICATION: Require valid JWT token
     const authHeader = req.headers.get("authorization");
-    const originHeader = req.headers.get("origin") || "";
-    
-    // Check if origin is allowed (for browser requests)
-    const isOriginAllowed = ALLOWED_ORIGINS.some((allowed) => originMatches(allowed, originHeader));
-    
-    // Check if auth header is valid (for API requests)
-    const hasValidAuth = authHeader && authHeader.startsWith("Bearer ");
-    
-    if (!isOriginAllowed && !hasValidAuth) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized: Missing valid authentication" }),
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate the JWT using Supabase auth
+    const supabaseClient = getSupabaseClient(authHeader);
+    if (!supabaseClient) {
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
