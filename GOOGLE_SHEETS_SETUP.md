@@ -7,7 +7,7 @@ This guide explains how to link your Google Sheets file to the Product Entry Hub
 **If you get a "Cannot Read Secrets" error when testing:**
 - **Problem:** You added secrets to Supabase AFTER deploying the Edge Function
 - **Solution:** Run the GitHub Actions workflow "Deploy Google Sheets Connection" (STEP 5)
-- **Why:** Edge Functions only load secrets at deployment time - they need to be redeployed after adding secrets
+- **Why:** Edge Functions only load secrets at deployment time — they need to be redeployed after adding secrets
 
 👉 **Quick Fix:** Go to GitHub → Actions → "Deploy Google Sheets Connection" → Run workflow
 
@@ -16,6 +16,7 @@ This guide explains how to link your Google Sheets file to the Product Entry Hub
 ## Overview
 
 Follow these steps in order:
+
 1. **STEP 1:** Create a Google Service Account
 2. **STEP 2:** Share your Google Sheet with the service account
 3. **STEP 3:** Create and Deploy the Edge Function (Required for new projects)
@@ -25,6 +26,7 @@ Follow these steps in order:
 7. **STEP 7:** Test your connection
 
 ## Table of Contents
+
 1. [STEP 1: Create a Google Service Account](#step-1-create-a-google-service-account)
 2. [STEP 2: Share Your Google Sheet](#step-2-share-your-google-sheet)
 3. [STEP 3: Create and Deploy the Edge Function](#step-3-create-and-deploy-the-edge-function)
@@ -32,10 +34,10 @@ Follow these steps in order:
 5. [STEP 5: Activate the Google Sheets Connection (GitHub Actions)](#step-5-activate-the-google-sheets-connection-github-actions)
 6. [STEP 6: Update hosting environment variables (Lovable)](#step-6-update-hosting-environment-variables-lovable)
 7. [STEP 7: Test Your Connection](#step-7-test-your-connection)
-7. [New Project Checklist](#new-project-checklist)
-8. [Sheet Structure Requirements](#sheet-structure-requirements)
-9. [Configuration in Admin Panel](#configuration-in-admin-panel)
-10. [Troubleshooting](#troubleshooting)
+8. [New Project Checklist](#new-project-checklist)
+9. [Sheet Structure Requirements](#sheet-structure-requirements)
+10. [Configuration in Admin Panel](#configuration-in-admin-panel)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -44,19 +46,21 @@ Follow these steps in order:
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
 3. **Enable both APIs:**
-  - **Google Sheets API**
-  - **Google Drive API**
-  (APIs & Services → Library → search each → Enable)
-3. Navigate to **IAM & Admin** → **Service Accounts**
-4. Click **Create Service Account**
-5. Enter a name (e.g., "product-entry-hub-sheets-access")
-6. Click **Create and Continue**
-7. Grant the service account the **Editor** role (or more restrictive if preferred)
-8. Click **Done**
+   - **Google Sheets API**
+   - **Google Drive API**
+   - (APIs & Services → Library → search each → Enable)
+4. Navigate to **IAM & Admin** → **Service Accounts**
+5. Click **Create Service Account**
+6. Enter a name (e.g., "product-entry-hub-sheets-access")
+7. Click **Create and Continue**
+8. Grant the service account the **Editor** role (or more restrictive if preferred)
+9. Click **Done**
 
 ---
 
 ## STEP 2: Share Your Google Sheet
+
+### Download the Service Account Key
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Select the project you created in STEP 1
@@ -65,8 +69,8 @@ Follow these steps in order:
 5. Go to the **Keys** tab
 6. Click **Add Key** → **Create new key**
 7. Select **JSON** format
-8. Click **Create** - this downloads a JSON file to your computer
-9. **Keep this file secure** - it contains credentials to access your Google account
+8. Click **Create** — this downloads a JSON file to your computer
+9. **Keep this file secure** — it contains credentials to access your Google account
 
 ### Share your sheet with the service account
 
@@ -81,14 +85,35 @@ Follow these steps in order:
 
 ## STEP 3: Create & Deploy the `google-sheets` Edge Function
 
-**🚨 IMPORTANT: Do NOT run Lovable “Security Fixer” for Edge Functions or anything related to cloud/database/AI.**
-Lovable may reroute requests to its own services, which will break your Supabase Edge Function connection.
+> **🚨 IMPORTANT: Do NOT run Lovable "Security Fixer" for Edge Functions or anything related to cloud/database/AI.**
+> Lovable may reroute requests to its own services, which will break your Supabase Edge Function connection.
 
 You will now create the Edge Function by pasting ready-made code directly into Supabase.
 
 ### 1) Open Supabase Dashboard
 
 - Go to [supabase.com/dashboard](https://supabase.com/dashboard)
+- Log in and select your project
+
+### 2) Navigate to Edge Functions
+
+- In the left sidebar, click **"Edge Functions"**
+- Click **"Create a new function"** (or **"New Function"**)
+
+### 3) Name the function
+
+- Set the function name to: **`google-sheets`** (exact, lowercase, with hyphen)
+
+### 4) Paste the function code
+
+- Delete any boilerplate code in the editor
+- Paste the **entire** code block below into the editor
+
+### 5) The Edge Function Code
+
+Copy and paste this entire block:
+
+```typescript
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -152,15 +177,21 @@ function getCorsHeaders(origin?: string) {
 }
 
 // Validate action parameter
-function isValidAction(action: unknown): action is "read" | "write" | "write-categories" | "write-brands" | "write-legal" {
-  return ["read", "write", "write-categories", "write-brands", "write-legal"].includes(action as string);
+function isValidAction(
+  action: unknown
+): action is "read" | "write" | "write-categories" | "write-brands" | "write-legal" {
+  return ["read", "write", "write-categories", "write-brands", "write-legal"].includes(
+    action as string
+  );
 }
 
 // Validate tabNames parameter
 function isValidTabNames(tabNames: unknown): boolean {
   if (!tabNames || typeof tabNames !== "object") return true; // Optional
   const obj = tabNames as Record<string, unknown>;
-  return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
+  return Object.values(obj).every(
+    (v) => typeof v === "string" && v.length > 0 && v.length < 255
+  );
 }
 
 function parseServiceAccountKey(raw: string): ServiceAccountKey | null {
@@ -209,7 +240,10 @@ serve(async (req) => {
       console.error("Invalid JSON in request body:", parseError);
       return new Response(
         JSON.stringify({ error: "Invalid JSON in request body" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -219,7 +253,10 @@ serve(async (req) => {
       console.error("Invalid action:", action);
       return new Response(
         JSON.stringify({ error: "Invalid action parameter" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -229,7 +266,10 @@ serve(async (req) => {
       console.error("Invalid tabNames:", tabNames);
       return new Response(
         JSON.stringify({ error: "Invalid tabNames parameter" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -238,11 +278,14 @@ serve(async (req) => {
     // Since this app has no user authentication, we just verify the apikey is present.
     const apiKey = req.headers.get("apikey") || "";
     const authHeader = req.headers.get("authorization") || "";
-    
+
     if (!apiKey && !authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authentication" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -254,10 +297,9 @@ serve(async (req) => {
     // If no credentials configured, return flag to use defaults
     if (!serviceAccountKey || !sheetId) {
       console.log("Google Sheets credentials not configured, using defaults");
-      return new Response(
-        JSON.stringify({ useDefaults: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ useDefaults: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Parse service account key
@@ -266,7 +308,10 @@ serve(async (req) => {
       console.error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY: unable to parse JSON");
       return new Response(
         JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY JSON" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -275,8 +320,13 @@ serve(async (req) => {
     if (!keyData.client_email || !keyData.private_key) {
       console.error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY: missing fields");
       return new Response(
-        JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY: missing required fields" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY: missing required fields",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -293,14 +343,27 @@ serve(async (req) => {
     if (action === "write") {
       // INPUT VALIDATION: Validate rowData
       const { rowData } = body;
-      if (!Array.isArray(rowData) || !rowData.every((cell) => typeof cell === "string" && cell.length < 10000)) {
+      if (
+        !Array.isArray(rowData) ||
+        !rowData.every(
+          (cell) => typeof cell === "string" && cell.length < 10000
+        )
+      ) {
         console.error("Invalid rowData:", rowData);
         return new Response(
           JSON.stringify({ error: "Invalid rowData parameter" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
         );
       }
-      await appendRow(accessToken, sheetId, resolveTabName(tabNames, "RESPONSES", "RESPONSES"), rowData);
+      await appendRow(
+        accessToken,
+        sheetId,
+        resolveTabName(tabNames, "RESPONSES", "RESPONSES"),
+        rowData
+      );
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -309,11 +372,19 @@ serve(async (req) => {
     if (action === "write-categories") {
       // INPUT VALIDATION: Validate categoryPaths
       const { categoryPaths } = body;
-      if (!Array.isArray(categoryPaths) || !categoryPaths.every((p) => typeof p === "string" && p.length > 0 && p.length < 1000)) {
+      if (
+        !Array.isArray(categoryPaths) ||
+        !categoryPaths.every(
+          (p) => typeof p === "string" && p.length > 0 && p.length < 1000
+        )
+      ) {
         console.error("Invalid categoryPaths:", categoryPaths);
         return new Response(
           JSON.stringify({ error: "Invalid categoryPaths parameter" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
         );
       }
       await clearAndWriteCategories(
@@ -347,7 +418,10 @@ serve(async (req) => {
         console.error("Invalid brands:", brands);
         return new Response(
           JSON.stringify({ error: "Invalid brands parameter" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
         );
       }
       await clearAndWriteBrands(
@@ -374,7 +448,10 @@ serve(async (req) => {
         console.error("Invalid legal value payload:", { propertyName, value });
         return new Response(
           JSON.stringify({ error: "Invalid legal value payload" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
         );
       }
 
@@ -398,8 +475,14 @@ serve(async (req) => {
   } catch (error) {
     console.error("Edge function error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error", useDefaults: true }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+        useDefaults: true,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });
@@ -408,7 +491,9 @@ serve(async (req) => {
 
 async function getAccessToken(keyData: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const header = base64UrlEncodeUtf8(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const header = base64UrlEncodeUtf8(
+    JSON.stringify({ alg: "RS256", typ: "JWT" })
+  );
   const claim = base64UrlEncodeUtf8(
     JSON.stringify({
       iss: keyData.client_email,
@@ -433,7 +518,12 @@ async function getAccessToken(keyData: any): Promise<string> {
   const tokenData = await tokenRes.json();
   if (!tokenData.access_token) {
     const raw = JSON.stringify(tokenData);
-    if (tokenData?.error === "invalid_grant" && String(tokenData?.error_description || "").includes("Invalid JWT Signature")) {
+    if (
+      tokenData?.error === "invalid_grant" &&
+      String(tokenData?.error_description || "").includes(
+        "Invalid JWT Signature"
+      )
+    ) {
       throw new Error(
         "Invalid service account key. The private key does not match the client_email or the key is malformed. Recreate the JSON key and update GOOGLE_SERVICE_ACCOUNT_KEY, then redeploy."
       );
@@ -461,7 +551,9 @@ async function importPrivateKey(pem: string) {
     .replace(/-----END PRIVATE KEY-----/, "")
     .replace(/\s+/g, "");
 
-  const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+  const binaryDer = Uint8Array.from(atob(pemContents), (c) =>
+    c.charCodeAt(0)
+  );
 
   return await crypto.subtle.importKey(
     "pkcs8",
@@ -494,7 +586,13 @@ async function sign(key: CryptoKey, data: string): Promise<string> {
 function sanitizeForFormulas(value: string): string {
   if (!value || typeof value !== "string") return value;
   const firstChar = value.charAt(0);
-  if (firstChar === "=" || firstChar === "+" || firstChar === "-" || firstChar === "@" || firstChar === "\t") {
+  if (
+    firstChar === "=" ||
+    firstChar === "+" ||
+    firstChar === "-" ||
+    firstChar === "@" ||
+    firstChar === "\t"
+  ) {
     return "'" + value;
   }
   return value;
@@ -506,10 +604,16 @@ function resolveTabName(
   fallback: string
 ): string {
   const value = tabNames?.[key];
-  return value && typeof value === "string" && value.trim() ? value.trim() : fallback;
+  return value && typeof value === "string" && value.trim()
+    ? value.trim()
+    : fallback;
 }
 
-async function getSheetValues(token: string, sheetId: string, range: string): Promise<string[][]> {
+async function getSheetValues(
+  token: string,
+  sheetId: string,
+  range: string
+): Promise<string[][]> {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
@@ -525,10 +629,15 @@ async function getSheetValues(token: string, sheetId: string, range: string): Pr
   return data.values ?? [];
 }
 
-async function appendRow(token: string, sheetId: string, sheet: string, rowData: string[]) {
+async function appendRow(
+  token: string,
+  sheetId: string,
+  sheet: string,
+  rowData: string[]
+) {
   // Sanitize all row data to prevent formula injection
   const sanitizedData = rowData.map(sanitizeForFormulas);
-  
+
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheet)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
   const res = await fetch(url, {
     method: "POST",
@@ -559,8 +668,21 @@ async function readAllSheets(
   const legalTab = resolveTabName(tabNames, "LEGAL", "LEGAL");
   const brandsTab = resolveTabName(tabNames, "BRANDS", "BRANDS");
   const filterTab = resolveTabName(tabNames, "FILTER", "FILTER");
-  const filterDefaultsTab = resolveTabName(tabNames, "FILTER_DEFAULTS", "FILTER_DEFAULTS");
-  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw, brandsRaw, filterRaw, filterDefaultsRaw] = await Promise.all([
+  const filterDefaultsTab = resolveTabName(
+    tabNames,
+    "FILTER_DEFAULTS",
+    "FILTER_DEFAULTS"
+  );
+
+  const [
+    productsRaw,
+    categoriesRaw,
+    propertiesRaw,
+    legalRaw,
+    brandsRaw,
+    filterRaw,
+    filterDefaultsRaw,
+  ] = await Promise.all([
     getSheetValues(token, sheetId, `${productsTab}!A:D`),
     getSheetValues(token, sheetId, `${categoriesTab}!A:A`),
     getSheetValues(token, sheetId, `${propertiesTab}!A:D`),
@@ -570,47 +692,59 @@ async function readAllSheets(
     getSheetValues(token, sheetId, `${filterDefaultsTab}!A:AZ`),
   ]);
 
-  // Parse PRODUCTS TO DO: SKU (A), Brand (B), Status (C), Visibility (D) - skip header row
+  // Parse PRODUCTS TO DO: SKU (A), Brand (B), Status (C), Visibility (D) — skip header row
   // Only include SKUs where Status = "READY" and Visibility >= 1
-  const products = productsRaw.slice(1).map((row) => ({
-    sku: row[0] ?? "",
-    brand: row[1] ?? "",
-    status: row[2] ?? "",
-    visibility: parseInt(row[3] ?? "0", 10),
-  }))
+  const products = productsRaw
+    .slice(1)
+    .map((row) => ({
+      sku: row[0] ?? "",
+      brand: row[1] ?? "",
+      status: row[2] ?? "",
+      visibility: parseInt(row[3] ?? "0", 10),
+    }))
     .filter((p) => p.sku && p.status === "READY" && p.visibility >= 1)
     .map((p) => ({
       sku: p.sku,
       brand: p.brand,
-      exampleTitle: p.sku, // Use SKU as example title since PRODUCTS TO DO doesn't have it
+      exampleTitle: p.sku,
     }));
 
   // Parse CATEGORIES: full path strings -> build tree
   // STRICT: Read ONLY from CATEGORIES tab, skip header row (row 1), data starts at row 2
-  const categoryPaths = categoriesRaw.slice(1).map((row) => {
-    const path = row[0] ?? "";
-    // Trim whitespace from the entire path and from each segment
-    return path.trim();
-  }).filter((p) => p.length > 0);
-  
+  const categoryPaths = categoriesRaw
+    .slice(1)
+    .map((row) => {
+      const path = row[0] ?? "";
+      return path.trim();
+    })
+    .filter((p) => p.length > 0);
+
   // If no categories found, log warning but allow fallback to defaults
   if (categoryPaths.length === 0) {
-    console.warn("WARNING: CATEGORIES tab is empty or missing data. Using default categories. To configure, add category paths to the CATEGORIES sheet starting at row 2 (e.g., 'Indoor Lights/Wall Lights')");
+    console.warn(
+      "WARNING: CATEGORIES tab is empty or missing data. Using default categories."
+    );
     return { useDefaults: true };
   }
-  
+
   const categories = buildCategoryTree(categoryPaths);
-  
-  // Count actual leaf paths (not tree nodes) for logging
   const leafPathCount = categoryPaths.length;
-  console.log(`Successfully read ${leafPathCount} category paths from CATEGORIES tab`);
+  console.log(
+    `Successfully read ${leafPathCount} category paths from CATEGORIES tab`
+  );
 
   // Parse LEGAL (row-based): Column A = PropertyName, Columns B+ = Allowed Values
-  const legalRows = legalRaw.slice(1).map((row) => {
-    const name = (row[0] ?? "").trim();
-    const values = row.slice(1).map((v) => (v ?? "").toString().trim()).filter(Boolean);
-    return { name, values };
-  }).filter((r) => r.name);
+  const legalRows = legalRaw
+    .slice(1)
+    .map((row) => {
+      const name = (row[0] ?? "").trim();
+      const values = row
+        .slice(1)
+        .map((v) => (v ?? "").toString().trim())
+        .filter(Boolean);
+      return { name, values };
+    })
+    .filter((r) => r.name);
 
   const legalValues = legalRows.flatMap((row) =>
     row.values.map((value) => ({
@@ -628,13 +762,19 @@ async function readAllSheets(
   }));
 
   // Parse FILTER: Category Keywords (A2+) -> Filter Default Names (B2+)
-  const categoryFilterMap = filterRaw.slice(1).map((row) => ({
-    categoryKeyword: (row[0] ?? "").trim(),
-    filterDefault: (row[1] ?? "").trim(),
-  })).filter((m) => m.categoryKeyword && m.filterDefault);
+  const categoryFilterMap = filterRaw
+    .slice(1)
+    .map((row) => ({
+      categoryKeyword: (row[0] ?? "").trim(),
+      filterDefault: (row[1] ?? "").trim(),
+    }))
+    .filter((m) => m.categoryKeyword && m.filterDefault);
 
   // Parse FILTER_DEFAULTS: Row 1 = Filter Default Names, Rows 2+ = Property Names per column
-  const filterDefaultMap: Array<{ name: string; allowedProperties: string[] }> = [];
+  const filterDefaultMap: Array<{
+    name: string;
+    allowedProperties: string[];
+  }> = [];
   if (filterDefaultsRaw.length > 0) {
     const headerRow = filterDefaultsRaw[0];
     for (let col = 0; col < headerRow.length; col += 1) {
@@ -649,22 +789,34 @@ async function readAllSheets(
   }
 
   // Parse BRANDS: Brand, BrandName, Website (skip header row)
-  const brands = brandsRaw.slice(1).map((row) => ({
-    brand: row[0] ?? "",
-    brandName: row[1] ?? "",
-    website: row[2] ?? "",
-  })).filter((b) => b.brand);
+  const brands = brandsRaw
+    .slice(1)
+    .map((row) => ({
+      brand: row[0] ?? "",
+      brandName: row[1] ?? "",
+      website: row[2] ?? "",
+    }))
+    .filter((b) => b.brand);
 
   if (properties.length === 0) {
-    return { products, brands, categories, properties: [], legalValues: [], categoryPathCount: leafPathCount, categoryFilterMap, filterDefaultMap };
+    return {
+      products,
+      brands,
+      categories,
+      properties: [],
+      legalValues: [],
+      categoryPathCount: leafPathCount,
+      categoryFilterMap,
+      filterDefaultMap,
+    };
   }
 
-  return { 
-    products, 
-    brands, 
-    categories, 
-    properties, 
-    legalValues, 
+  return {
+    products,
+    brands,
+    categories,
+    properties,
+    legalValues,
     categoryPathCount: leafPathCount,
     categoryFilterMap,
     filterDefaultMap,
@@ -678,7 +830,13 @@ function toPropertyKey(name: string): string {
     .toLowerCase();
   if (!cleaned) return "";
   const parts = cleaned.split(" ");
-  return parts[0] + parts.slice(1).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+  return (
+    parts[0] +
+    parts
+      .slice(1)
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join("")
+  );
 }
 
 function columnLetter(index: number): string {
@@ -721,7 +879,10 @@ async function addLegalValueToLegalTab(
     return;
   }
 
-  const existingValues = rowValues.slice(1).map((v) => (v ?? "").toString().trim()).filter(Boolean);
+  const existingValues = rowValues
+    .slice(1)
+    .map((v) => (v ?? "").toString().trim())
+    .filter(Boolean);
   if (existingValues.includes(trimmedValue)) return;
 
   const nextColIndex = Math.max(rowValues.length, 1);
@@ -753,7 +914,10 @@ function buildCategoryTree(paths: string[]) {
   const root: TreeNode[] = [];
 
   for (const path of paths) {
-    const parts = path.split("/").map((s) => s.trim()).filter(Boolean);
+    const parts = path
+      .split("/")
+      .map((s) => s.trim())
+      .filter(Boolean);
     let current = root;
 
     for (let i = 0; i < parts.length; i++) {
@@ -782,7 +946,7 @@ async function clearAndWriteCategories(
   categoryPaths: string[],
   categoriesTab: string
 ): Promise<void> {
-  // Clear existing data in CATEGORIES!A:A (keep header, delete data starting at row 2)
+  // Clear existing data (keep header, delete data starting at row 2)
   const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${categoriesTab}!A2:A`)}:clear`;
   const clearRes = await fetch(clearUrl, {
     method: "POST",
@@ -819,7 +983,9 @@ async function clearAndWriteCategories(
     throw new Error(`Failed to write categories: ${errText}`);
   }
 
-  console.log(`Successfully wrote ${sanitizedPaths.length} category paths to ${categoriesTab} tab`);
+  console.log(
+    `Successfully wrote ${sanitizedPaths.length} category paths to ${categoriesTab} tab`
+  );
 }
 
 async function clearAndWriteBrands(
@@ -828,7 +994,7 @@ async function clearAndWriteBrands(
   brands: Array<{ brand: string; brandName: string; website: string }>,
   brandsTab: string
 ): Promise<void> {
-  // Clear existing data in BRANDS!A:C (keep header, delete data starting at row 2)
+  // Clear existing data (keep header, delete data starting at row 2)
   const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2:C`)}:clear`;
   const clearRes = await fetch(clearUrl, {
     method: "POST",
@@ -869,59 +1035,16 @@ async function clearAndWriteBrands(
     throw new Error(`Failed to write brands: ${errText}`);
   }
 
-  console.log(`Successfully wrote ${brands.length} brands to ${brandsTab} tab`);
-}
-  brandsTab: string
-): Promise<void> {
-  // Clear existing data in BRANDS!A:C (keep header, delete data starting at row 2)
-  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2:C`)}:clear`;
-  const clearRes = await fetch(clearUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({}),
-  });
-
-  if (!clearRes.ok) {
-    const errText = await clearRes.text();
-    throw new Error(`Failed to clear brands: ${errText}`);
-  }
-
-  // Sanitize brand data to prevent formula injection
-  const sanitizedBrands = brands.map((brand) => [
-    sanitizeForFormulas(brand.brand),
-    sanitizeForFormulas(brand.brandName),
-    sanitizeForFormulas(brand.website),
-  ]);
-
-  // Write new brands
-  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2`)}?valueInputOption=USER_ENTERED`;
-  const writeRes = await fetch(writeUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      values: sanitizedBrands,
-    }),
-  });
-
-  if (!writeRes.ok) {
-    const errText = await writeRes.text();
-    throw new Error(`Failed to write brands: ${errText}`);
-  }
-
-  console.log(`Successfully wrote ${brands.length} brands to ${brandsTab} tab`);
+  console.log(
+    `Successfully wrote ${brands.length} brands to ${brandsTab} tab`
+  );
 }
 ```
 
 ### 6) Deploy
 
 - Click **"Deploy function"**
-- Wait for completion (usually 10-30 seconds)
+- Wait for completion (usually 10–30 seconds)
 - Go back to **Edge Functions** → **Functions**
 - Confirm `google-sheets` appears and is clickable
 
@@ -933,9 +1056,9 @@ Your credentials will be stored securely on Supabase's server, which is more sec
 
 ### What is Supabase?
 
-Supabase is a secure backend service that hosts your application's server-side functionality. When you add secrets to Supabase, they are encrypted and stored on Supabase's servers—never exposed to the browser or to the public.
+Supabase is a secure backend service that hosts your application's server-side functionality. When you add secrets to Supabase, they are encrypted and stored on Supabase's servers — never exposed to the browser or to the public.
 
-**Security Best Practice:** For production environments, consider rotating your service account keys periodically (every 90-180 days) to maintain security. When rotating, create a new key, update the secret in Supabase, and then delete the old key from Google Cloud Console.
+> **Security Best Practice:** For production environments, consider rotating your service account keys periodically (every 90–180 days) to maintain security. When rotating, create a new key, update the secret in Supabase, and then delete the old key from Google Cloud Console.
 
 ### How to add your credentials to Supabase
 
@@ -949,66 +1072,69 @@ Supabase is a secure backend service that hosts your application's server-side f
    - Select the project you're using for this application
 
 2. **Navigate to the Edge Functions page**
-  - In the left sidebar, click **"Edge Functions"**
-  - You should see a list of deployed functions
+   - In the left sidebar, click **"Edge Functions"**
+   - You should see a list of deployed functions
 
 3. **Open the google-sheets function**
-  - In the functions list, find and click on **"google-sheets"**
-  - This opens the function details page
+   - In the functions list, find and click on **"google-sheets"**
+   - This opens the function details page
 
 4. **Open the Secrets tab**
-  - In the left sidebar under **Edge Functions**, click **Secrets**
-  - This opens the secrets page where you can add values and click **Save**
+   - In the left sidebar under **Edge Functions**, click **Secrets**
+   - This opens the secrets page where you can add values and click **Save**
 
 **Workaround / Manual Navigation:**
 If buttons or links aren't working, manually navigate using this URL pattern:
+
 ```
 https://supabase.com/dashboard/project/YOUR_PROJECT_REF/functions/google-sheets
 ```
+
 Replace `YOUR_PROJECT_REF` with your actual project reference ID (found in Settings → General).
 
 Once on the function page, look for the Secrets/Environment Variables tab in the navigation.
 
-**Important Note:** Secrets are stored per-project and per-function. The secrets you add to the `google-sheets` function are only accessible to that specific function in that specific project.
+> **Important Note:** Secrets are stored per-project and per-function. The secrets you add to the `google-sheets` function are only accessible to that specific function in that specific project.
 
-#### Step 4.2: Add the first secret: GOOGLE_SERVICE_ACCOUNT_KEY
+#### Step 4.2: Add the first secret — `GOOGLE_SERVICE_ACCOUNT_KEY`
 
-   - Click **"Add secret"** or **"New secret"** button
-   - **Name (COPY THIS EXACTLY):** `GOOGLE_SERVICE_ACCOUNT_KEY` (case-sensitive)
-   - **Value (YOUR JSON FILE):** Paste the **entire** JSON file contents from Step 2
-     - The value should start with `{` and end with `}`
-     - Copy everything—don't modify it
-     - It should look something like:
-       ```json
-       {"type":"service_account","project_id":"your-project",...}
-       ```
-   - Click **"Save"** or **"Add Secret"**
+- Click **"Add secret"** or **"New secret"** button
+- **Name (COPY THIS EXACTLY):** `GOOGLE_SERVICE_ACCOUNT_KEY` (case-sensitive)
+- **Value (YOUR JSON FILE):** Paste the **entire** JSON file contents from Step 2
+  - The value should start with `{` and end with `}`
+  - Copy everything — don't modify it
+  - It should look something like:
+    ```json
+    {"type":"service_account","project_id":"your-project",...}
+    ```
+- Click **"Save"** or **"Add Secret"**
 
-#### Step 4.3: Add the second secret: GOOGLE_SHEET_ID
+#### Step 4.3: Add the second secret — `GOOGLE_SHEET_ID`
 
-   - Click **"Add secret"** or **"New secret"** button again
-   - **Name (COPY THIS EXACTLY):** `GOOGLE_SHEET_ID` (case-sensitive)
-   - **Value (YOUR SHEET ID):** Your Google Sheet ID (found in your sheet's URL)
-     - Open your Google Sheet
-     - Look at the URL: `https://docs.google.com/spreadsheets/d/`**XXXX-YOUR-ID**`/edit`
-     - Copy only the ID part (the long string between `/d/` and `/edit`)
-     - Example: `1abc2def3ghi4jkl5mno6pqr7stu8vwxyz`
-   - Click **"Save"** or **"Add Secret"**
+- Click **"Add secret"** or **"New secret"** button again
+- **Name (COPY THIS EXACTLY):** `GOOGLE_SHEET_ID` (case-sensitive)
+- **Value (YOUR SHEET ID):** Your Google Sheet ID (found in your sheet's URL)
+  - Open your Google Sheet
+  - Look at the URL: `https://docs.google.com/spreadsheets/d/`**XXXX-YOUR-ID**`/edit`
+  - Copy only the ID part (the long string between `/d/` and `/edit`)
+  - Example: `1abc2def3ghi4jkl5mno6pqr7stu8vwxyz`
+- Click **"Save"** or **"Add Secret"**
 
-#### Step 4.4: Add the third secret: ALLOWED_ORIGINS (IMPORTANT for production)
+#### Step 4.4: Add the third secret — `ALLOWED_ORIGINS`
 
-   - Click **"Add secret"** or **"New secret"** button again
-   - **Name (COPY THIS EXACTLY):** `ALLOWED_ORIGINS` (case-sensitive)
-   - **Value (YOUR DOMAIN):** Your application's domain origin
-     - **For Lovable preview:** `https://lovable.dev`
-     - **For production (custom domain):** `https://yourdomain.com`
-     - **For multiple domains (comma-separated):** `https://lovable.dev,https://yourdomain.com`
-     - **For development (allow all):** `*` (not recommended for production)
-   - Click **"Save"** or **"Add Secret"**
-   
-   **Why this is needed:** The Edge Function uses this to set CORS headers so your application can communicate with Google Sheets. Misconfiguration will result in "CORS error" when testing the connection.
+- Click **"Add secret"** or **"New secret"** button again
+- **Name (COPY THIS EXACTLY):** `ALLOWED_ORIGINS` (case-sensitive)
+- **Value (YOUR DOMAIN):** Your application's domain origin
+  - **For Lovable preview:** `https://lovable.dev`
+  - **For production (custom domain):** `https://yourdomain.com`
+  - **For multiple domains (comma-separated):** `https://lovable.dev,https://yourdomain.com`
+  - **For development (allow all):** `*` (not recommended for production)
+- Click **"Save"** or **"Add Secret"**
 
-**Copy/Paste Tip - Secret Names (COPY EXACTLY):**
+> **Why this is needed:** The Edge Function uses this to set CORS headers so your application can communicate with Google Sheets. Misconfiguration will result in "CORS error" when testing the connection.
+
+**Copy/Paste Tip — Secret Names (COPY EXACTLY):**
+
 ```
 GOOGLE_SERVICE_ACCOUNT_KEY
 GOOGLE_SHEET_ID
@@ -1020,15 +1146,16 @@ ALLOWED_ORIGINS
 - You should see `GOOGLE_SERVICE_ACCOUNT_KEY`, `GOOGLE_SHEET_ID`, and `ALLOWED_ORIGINS` listed in the Secrets section
 - All should show a green checkmark indicating they're saved
 
-#### Step 4.4: Redeploy the Edge Function (REQUIRED)
+#### Step 4.5: Redeploy the Edge Function (REQUIRED)
 
-**🚨 CRITICAL STEP - DO NOT SKIP 🚨**
-
-**After adding or changing secrets, you MUST redeploy the Edge Function.**
+> **🚨 CRITICAL STEP — DO NOT SKIP 🚨**
+>
+> **After adding or changing secrets, you MUST redeploy the Edge Function.**
 
 This is the **#1 most common mistake** that causes "Cannot Read Secrets" errors. If you skip this step, the test connection will fail even though your secrets are correctly configured in Supabase.
 
 **Why this is necessary:**
+
 - Edge Functions load environment variables at deployment time
 - Adding secrets to an already-deployed function does not make them available
 - The function will continue to report missing secrets until redeployed
@@ -1036,19 +1163,22 @@ This is the **#1 most common mistake** that causes "Cannot Read Secrets" errors.
 
 **Choose one redeployment method:**
 
-**Option 1: Use GitHub Actions (Recommended - Easiest)**
+**Option 1: Use GitHub Actions (Recommended — Easiest)**
 The GitHub Actions workflow in Step 5 will automatically redeploy the function with your secrets. If you plan to use GitHub Actions, you can skip manual redeployment here and **proceed directly to Step 5**. This is the easiest and most reliable method.
 
 **Option 2: Redeploy via Dashboard**
+
 1. Go to Supabase Dashboard → Edge Functions
 2. Click on the **"google-sheets"** function
 3. Open the **Code** tab
 4. Click **Deploy updates** (bottom-right)
-5. Wait for deployment to complete (10-30 seconds)
+5. Wait for deployment to complete (10–30 seconds)
 6. The function will now have access to your secrets
 
 **Option 3: Redeploy via CLI**
+
 If you're using the Supabase CLI:
+
 ```bash
 supabase functions deploy google-sheets
 ```
@@ -1063,11 +1193,12 @@ supabase functions deploy google-sheets
 
 ### What this step does
 
-This step deploys your Edge Function to Supabase and activates the connection. You are **not creating or editing any code**—this is done by running a pre-built automated workflow in GitHub.
+This step deploys your Edge Function to Supabase and activates the connection. You are **not creating or editing any code** — this is done by running a pre-built automated workflow in GitHub.
 
-**Note:** This step assumes you've completed Step 3 and the `google-sheets` function is already deployed. This GitHub Actions workflow will redeploy the function with your configured secrets.
+> **Note:** This step assumes you've completed Step 3 and the `google-sheets` function is already deployed. This GitHub Actions workflow will redeploy the function with your configured secrets.
 
 The workflow will:
+
 - Deploy the Edge Function (the server file that connects to Google Sheets)
 - Activate your Google Sheets connection
 - No software installation required
@@ -1084,18 +1215,18 @@ Before running the workflow, you need to add three GitHub secrets. These allow t
 
 2. **Add three secrets** (click "New repository secret" for each):
 
-   **Secret 1: SUPABASE_ACCESS_TOKEN**
+   **Secret 1: `SUPABASE_ACCESS_TOKEN`**
    - Value: Get from [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens)
    - Log in and create a new token if needed
    - Copy the token and paste it here
 
-   **Secret 2: SUPABASE_PROJECT_REF**
+   **Secret 2: `SUPABASE_PROJECT_REF`**
    - Value: Your Supabase project ID
    - In Supabase dashboard, go to **Settings** → **General**
    - Copy the **Reference ID** (looks like: `abcdefghijklmnop`)
    - Paste it into GitHub secrets
 
-   **Secret 3: SUPABASE_DB_PASSWORD**
+   **Secret 3: `SUPABASE_DB_PASSWORD`**
    - Value: Your Supabase database password
    - This is the password you created when you set up your Supabase project
    - If you don't remember it, you can reset it in Supabase dashboard → **Settings** → **Database**
@@ -1107,7 +1238,7 @@ Before running the workflow, you need to add three GitHub secrets. These allow t
 3. Click the **"Run workflow"** button (right side, blue button)
 4. In the dropdown that appears, select **"production"** environment
 5. Click the green **"Run workflow"** button to start
-6. Wait 2-3 minutes for completion (you'll see a green checkmark ✓ when done)
+6. Wait 2–3 minutes for completion (you'll see a green checkmark ✓ when done)
 
 **That's it!** Your Google Sheets connection is now deployed and active.
 
@@ -1145,40 +1276,45 @@ If running locally, add the same values to your `.env` or `.env.local` and resta
 
 - **Success:** You'll see a message like "Connection Successful! ✓ Connected to your sheet. Found X products and Y categories."
   - This means your Google Sheet is connected and data is being read correctly
-- **Error:** You'll see an error message
-  - See the **Troubleshooting** section below for solutions
+- **Error:** You'll see an error message — see the [Troubleshooting](#troubleshooting) section below for solutions
 
 ---
 
 ## New Project Checklist
 
-Setting up Google Sheets integration on a brand-new Supabase project? Follow this checklist to ensure everything is configured correctly:
+Setting up Google Sheets integration on a brand-new Supabase project? Follow this checklist:
 
-### ✅ Pre-Deployment Checklist
+### ✅ Pre-Deployment
+
 - [ ] Google Service Account created (Step 1)
 - [ ] Service Account JSON key downloaded and saved securely
 - [ ] Google Sheet shared with service account email as Editor (Step 2)
 - [ ] Google Sheets API enabled in Google Cloud Console
 
-### ✅ Deployment Checklist
+### ✅ Deployment
+
 - [ ] Edge Function `google-sheets` created and deployed to Supabase (Step 3)
 - [ ] Function visible in Supabase Dashboard → Edge Functions list
 - [ ] Function status shows "Active" or "Deployed"
 
-### ✅ Configuration Checklist
+### ✅ Configuration
+
 - [ ] Secret `GOOGLE_SERVICE_ACCOUNT_KEY` added to the function (Step 4)
 - [ ] Secret `GOOGLE_SHEET_ID` added to the function (Step 4)
-- [ ] Both secrets show green checkmark or "Saved" status
-- [ ] **Edge Function redeployed after adding secrets** (Step 4.4 - REQUIRED)
+- [ ] Secret `ALLOWED_ORIGINS` added to the function (Step 4)
+- [ ] All secrets show green checkmark or "Saved" status
+- [ ] **Edge Function redeployed after adding secrets** (Step 4.5 — REQUIRED)
 - [ ] GitHub secrets configured: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` (Step 5)
 
-### ✅ Activation & Testing Checklist
+### ✅ Activation & Testing
+
 - [ ] GitHub Actions workflow "Deploy Google Sheets Connection" run successfully (Step 5)
 - [ ] Workflow shows green checkmark ✓ in Actions tab
 - [ ] Connection test passed in Admin panel (Step 7)
 - [ ] SKU Selector shows actual products (not mock data)
 
 ### 🔍 Quick Troubleshooting
+
 If any step fails, refer to the [Troubleshooting](#troubleshooting) section below for detailed solutions.
 
 ---
@@ -1187,9 +1323,9 @@ If any step fails, refer to the [Troubleshooting](#troubleshooting) section belo
 
 Your Google Sheet must contain the following tabs with the specified structure:
 
-**Important:** The Supabase Edge Function reads these exact tab names: `PRODUCTS`, `CATEGORIES`, `PROPERTIES`, and `LEGAL`. If your sheet uses different names, rename the tabs or update the Edge Function ranges.
+> **Important:** The Supabase Edge Function reads these exact tab names: `PRODUCTS TO DO`, `CATEGORIES`, `LEGAL`, `BRANDS`, `FILTER`, and `FILTER_DEFAULTS`. If your sheet uses different names, rename the tabs or configure custom tab names in the Admin panel.
 
-### 1. PRODUCTS (required for Edge Function)
+### 1. PRODUCTS TO DO (required)
 
 Contains products to be processed.
 
@@ -1197,16 +1333,16 @@ Contains products to be processed.
 |--------|-------|-------------|
 | A | SKU | Product SKU |
 | B | Brand | Product brand |
-| C | Status | READY, COMPLETE, or DEAD |
-| D | Visibility | 1 (visible) or 0 (hidden) |
+| C | Status | `READY`, `COMPLETE`, or `DEAD` |
+| D | Visibility | `1` (visible) or `0` (hidden) |
 
-### 2. CATEGORIES (required for Edge Function)
+### 2. CATEGORIES (required)
 
 Contains category hierarchy as full paths.
 
 | Column | Field | Description |
 |--------|-------|-------------|
-| A | Path | Full category path (e.g., "Indoor Lights/Ceiling Lights/Downlights") in column A, starting at row 2 (row 1 is a header) |
+| A | Path | Full category path (e.g., `Indoor Lights/Ceiling Lights/Downlights`). Row 1 is a header; data starts at row 2. |
 
 ### 3. BRANDS (optional)
 
@@ -1214,49 +1350,40 @@ Contains brand and supplier information.
 
 | Column | Field | Description |
 |--------|-------|-------------|
-| A | Brand | Brand name |
-| B | Supplier | Supplier name |
+| A | Brand | Brand code/identifier |
+| B | BrandName | Display name |
+| C | Website | Brand website URL |
 
-### 4. PROPERTIES (required for Edge Function)
+### 4. LEGAL (required)
 
-Defines custom properties/fields for products.
+Defines allowed values for dropdown properties (row-based format).
 
 | Column | Field | Description |
 |--------|-------|-------------|
 | A | PropertyName | Display name of the property |
-| B | Key | Internal key/identifier |
-| C | InputType | text, dropdown, number, or boolean |
-| D | Section | Grouping section name |
+| B+ | AllowedValues | Each subsequent column is an allowed value for this property |
 
-### 5. LEGAL (required for Edge Function)
+### 5. FILTER (optional)
 
-Defines allowed values for dropdown properties.
+Maps category keywords to filter default groups.
 
 | Column | Field | Description |
 |--------|-------|-------------|
-| A | PropertyName | Must match a property from PROPERTIES sheet |
-| B | AllowedValue | A valid option for this dropdown |
+| A | CategoryKeyword | Keyword to match in category paths |
+| B | FilterDefault | Name of the filter default group to apply |
 
-### 6. OUTPUT (optional)
+### 6. FILTER_DEFAULTS (optional)
 
-Where completed product data is written. Structure should match your business requirements.
+Defines which properties appear for each filter default group.
 
-### 7. FILTER (optional)
+| Row | Description |
+|-----|-------------|
+| Row 1 (header) | Filter default group names (one per column) |
+| Rows 2+ | Property names that belong to each group |
 
-Optional: Defines which fields are visible/required for specific categories.
+### 7. RESPONSES (auto-created)
 
-| Column | Field | Description |
-|--------|-------|-------------|
-| A | CategoryPath | Full category path |
-| B | VisibleFields | Comma-separated list of visible fields |
-| C | RequiredFields | Comma-separated list of required fields |
-
-### Other Optional Tabs
-
-- **TEMP** - Temporary working data
-- **ExistingProds** - Previously completed products
-- **NewNames** - Name mappings
-- **UPLOAD** - Upload staging area
+Where completed product data is written by the app. Created automatically on first write.
 
 ---
 
@@ -1267,6 +1394,7 @@ The Admin panel provides several configuration options for your application:
 ### Google Sheets Connection
 
 **Setup and Testing**
+
 - Your credentials are already stored securely in Supabase (no need to paste them in the browser)
 - Click the **"Test Connection"** button to verify everything is working
 - If the test succeeds, your Google Sheet is connected and data is being read
@@ -1297,17 +1425,21 @@ Manage dropdown options for your custom properties/fields.
 **Symptom:** When I go to Supabase Dashboard → Edge Functions, I don't see the `google-sheets` function listed.
 
 **Solution:**
+
 - You haven't deployed the function yet
-- Go back to [STEP 3: Create & Deploy the `google-sheets` Edge Function](#step-3-create--deploy-the-google-sheets-edge-function)
+- Go back to [STEP 3: Create & Deploy the Edge Function](#step-3-create--deploy-the-google-sheets-edge-function)
 - Follow the steps to create and deploy the function using the Supabase Dashboard
 - After deployment, refresh your browser and check the Functions list again
 - The function should appear within 30 seconds after successful deployment
+
+---
 
 ### I can't find the Secrets tab
 
 **Symptom:** I opened the `google-sheets` function, but I can't find where to add secrets.
 
 **Solution:**
+
 - Make sure you've clicked on the function name to open its detail page (not just viewing the list)
 - Look for these possible tab/section names:
   - **"Secrets"**
@@ -1318,11 +1450,13 @@ Manage dropdown options for your custom properties/fields.
 - Try using the manual URL navigation: `https://supabase.com/dashboard/project/YOUR_PROJECT_REF/functions/google-sheets`
 - If still not visible, ensure your Supabase plan supports Edge Functions (it's available on the free tier)
 
+---
+
 ### The Edge Function cannot read the required secrets
 
 **Symptom:** Test Connection fails with "Cannot Read Secrets" error, but when you check Supabase Dashboard → Edge Functions → google-sheets → Secrets, BOTH secrets (`GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`) clearly exist.
 
-**🎯 QUICK FIX (Works 95% of the time):**
+#### 🎯 QUICK FIX (Works 95% of the time)
 
 **The problem:** You added secrets AFTER deploying the Edge Function.
 
@@ -1331,71 +1465,73 @@ Manage dropdown options for your custom properties/fields.
 1. Go to your GitHub repository → **Actions** tab
 2. Click **"Deploy Google Sheets Connection"** in the left sidebar
 3. Click **"Run workflow"** dropdown → select "production" → click **"Run workflow"** button
-4. Wait 2-3 minutes for completion
+4. Wait 2–3 minutes for completion
 5. Go back to the Admin panel and click **"Test Connection"** again
 
 **Why this works:** Edge Functions load environment variables at deployment time only. Adding secrets to an already-running function requires redeployment to make them available.
 
 ---
 
-**Still not working?** Follow the detailed diagnostic checklist below:
+#### Detailed Diagnostic Checklist
 
-**This error does NOT always mean secrets are missing.** It can occur for several reasons:
+> **This error does NOT always mean secrets are missing.** It can occur for several reasons.
 
 **Common Causes:**
-1. **Secrets were added AFTER the Edge Function was deployed** (most common - 95% of cases)
+
+1. **Secrets were added AFTER the Edge Function was deployed** (most common — 95% of cases)
 2. **The Edge Function was not redeployed after adding secrets**
 3. **Environment variable names don't match exactly**
 4. **Function is deployed to a different environment** (preview vs production)
 5. **Frontend is calling a stale or wrong endpoint**
 
-**Diagnostic Checklist:**
+**Follow this checklist in order:**
 
-Follow this checklist in order to identify and fix the issue:
+- [ ] **Step 1: Verify secrets exist**
+  - Go to Supabase Dashboard → Edge Functions → google-sheets → Secrets
+  - Confirm both `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` are listed
+  - Both should show a green checkmark or "Saved" status
 
-☐ **Step 1: Verify secrets exist**
-   - Go to Supabase Dashboard → Edge Functions → google-sheets → Secrets
-   - Confirm both `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` are listed
-   - Both should show a green checkmark or "Saved" status
+- [ ] **Step 2: Verify secret names match exactly**
+  - Secret names are case-sensitive
+  - Must be EXACTLY: `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`
+  - No extra spaces, underscores, or typos
+  - Check for invisible characters copied from documentation
 
-☐ **Step 2: Verify secret names match exactly**
-   - Secret names are case-sensitive
-   - Must be EXACTLY: `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`
-   - No extra spaces, underscores, or typos
-   - Check for invisible characters copied from documentation
+- [ ] **Step 3: Redeploy the Edge Function** (REQUIRED — THIS IS THE FIX)
+  - **Method A (Recommended):** Use GitHub Actions workflow as described in Quick Fix above
+  - **Method B:** Go to Supabase Dashboard → Edge Functions → google-sheets → Click **"Redeploy"** → Wait 10–30 seconds
+  - **Method C:** Use Supabase CLI: `supabase functions deploy google-sheets`
+  - **Why:** Edge Functions load environment variables at deployment time and do NOT auto-refresh when secrets are added
 
-☐ **Step 3: Redeploy the Edge Function** (REQUIRED - THIS IS THE FIX)
-   - **Method A (Recommended):** Use GitHub Actions workflow as described in Quick Fix above
-   - **Method B:** Go to Supabase Dashboard → Edge Functions → google-sheets → Click **"Redeploy"** button → Wait 10-30 seconds
-   - **Method C:** Use Supabase CLI: `supabase functions deploy google-sheets`
-   - **Why:** Edge Functions load environment variables at deployment time and do NOT auto-refresh when secrets are added
+- [ ] **Step 4: Verify production deployment**
+  - Ensure the function is deployed to production (not preview)
+  - Check the deployment environment in the Functions dashboard
+  - If using multiple environments, secrets must be added to each
 
-☐ **Step 4: Verify production deployment**
-   - Ensure the function is deployed to production (not preview)
-   - Check the deployment environment in the Functions dashboard
-   - If using multiple environments, secrets must be added to each
+- [ ] **Step 5: Re-run the connection test**
+  - Go to Admin tab in the application
+  - Click "Test Connection" button
+  - Wait for the test to complete
 
-☐ **Step 5: Re-run the connection test**
-   - Go to Admin tab in the application
-   - Click "Test Connection" button
-   - Wait for the test to complete
+- [ ] **Step 6: Verify JSON key format** (if still failing)
+  - The `GOOGLE_SERVICE_ACCOUNT_KEY` value should be valid JSON
+  - Should start with `{` and end with `}`
+  - Copy the entire contents of your downloaded JSON key file
+  - No extra quotes or escape characters
 
-☐ **Step 6: Verify JSON key format** (if still failing)
-   - The `GOOGLE_SERVICE_ACCOUNT_KEY` value should be valid JSON
-   - Should start with `{` and end with `}`
-   - Copy the entire contents of your downloaded JSON key file
-   - No extra quotes or escape characters
+- [ ] **Step 7: Check function logs** (advanced)
+  - Go to Supabase Dashboard → Edge Functions → google-sheets → Logs
+  - Look for error messages that indicate the specific issue
+  - Common errors: "Invalid JSON", "Authentication failed", "Sheet not found"
 
-☐ **Step 7: Check function logs** (advanced)
-   - Go to Supabase Dashboard → Edge Functions → google-sheets → Logs
-   - Look for error messages that indicate the specific issue
-   - Common errors: "Invalid JSON", "Authentication failed", "Sheet not found"
+---
 
 ### Data Not Loading
 
-**Symptom:** Application shows mock data instead of your Google Sheets data
+**Symptom:** Application shows mock data instead of your Google Sheets data.
 
 **Solutions:**
+
 - Navigate to the Admin tab and click "Test Connection" to check if credentials are valid
 - Check that `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID` are correctly set in Supabase secrets
 - Verify the service account email is shared with Editor access on your Google Sheet
@@ -1405,32 +1541,41 @@ Follow this checklist in order to identify and fix the issue:
 - Verify the JSON key is complete and properly formatted (starts with `{` and ends with `}`)
 - Ensure the Sheet ID is correct (no extra spaces or characters)
 
+---
+
 ### Permission Errors
 
-**Symptom:** "Access denied" or "Permission denied" errors
+**Symptom:** "Access denied" or "Permission denied" errors.
 
 **Solutions:**
+
 - Ensure the service account has Editor access to the sheet
 - Verify the service account JSON key is correctly copied into Supabase secrets (the entire contents)
 - Check that Google Sheets API is enabled in your Google Cloud project
 
+---
+
 ### Sheet Structure Errors
 
-**Symptom:** Data loads but is incomplete or incorrectly formatted
+**Symptom:** Data loads but is incomplete or incorrectly formatted.
 
 **Solutions:**
+
 - Verify your sheet tabs match the names configured in Admin panel
 - Check that column orders match the requirements above
 - Ensure header rows are present and data starts from row 2
 
+---
+
 ### Supabase Secrets Not Taking Effect
 
-**Symptom:** I added secrets to Supabase but the connection still doesn't work
+**Symptom:** I added secrets to Supabase but the connection still doesn't work.
 
 **Solutions:**
+
 - Confirm both secrets are saved in Supabase: `GOOGLE_SERVICE_ACCOUNT_KEY` and `GOOGLE_SHEET_ID`
-- After adding/changing secrets, the Edge Function automatically uses them—no manual redeploy needed
-- Wait 30 seconds after adding secrets, then try "Test Connection" again
+- After adding/changing secrets, **you must redeploy** the Edge Function (see [Step 4.5](#step-45-redeploy-the-edge-function-required))
+- Wait 30 seconds after redeploying, then try "Test Connection" again
 - Check Supabase Function logs for error details
 
 ---
@@ -1441,7 +1586,7 @@ Follow this checklist in order to identify and fix the issue:
 2. Scroll to **Google Sheets Connection**
 3. Click **"Test Connection"** button
 4. If you see your actual SKU data (not mock data), the connection is working
-5. You can also check the **SKU Selector** dropdown on the main page—if it shows your actual products, everything is connected
+5. You can also check the **SKU Selector** dropdown on the main page — if it shows your actual products, everything is connected
 
 ---
 
@@ -1461,6 +1606,7 @@ Follow this checklist in order to identify and fix the issue:
 ## Need Help?
 
 If you're still having issues:
+
 1. Use the "Test Connection" button in the Admin tab to get specific error messages
 2. Review Supabase Edge Function logs in the Supabase dashboard for detailed errors
 3. Verify all sheet tab names match your configuration
