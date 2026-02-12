@@ -27,6 +27,12 @@ function originMatches(allowed: string, origin: string): boolean {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
+type ServiceAccountKey = {
+  client_email?: string;
+  private_key?: string;
+  [key: string]: unknown;
+};
+
 function getSupabaseClient(authHeader: string) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -64,6 +70,35 @@ function isValidTabNames(tabNames: unknown): boolean {
   if (!tabNames || typeof tabNames !== "object") return true; // Optional
   const obj = tabNames as Record<string, unknown>;
   return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
+}
+
+function parseServiceAccountKey(raw: string): ServiceAccountKey | null {
+  const tryParse = (value: string): ServiceAccountKey | null => {
+    try {
+      return JSON.parse(value) as ServiceAccountKey;
+    } catch {
+      return null;
+    }
+  };
+
+  const direct = tryParse(raw);
+  if (direct) return direct;
+
+  // Attempt base64 decode (common when secrets are stored encoded)
+  try {
+    const decoded = atob(raw);
+    const decodedParsed = tryParse(decoded);
+    if (decodedParsed) return decodedParsed;
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+function normalizePrivateKey(key: string | undefined): string | undefined {
+  if (!key) return key;
+  return key.includes("\\n") ? key.replace(/\\n/g, "\n") : key;
 }
 
 serve(async (req) => {
@@ -160,7 +195,24 @@ serve(async (req) => {
     }
 
     // Parse service account key
-    const keyData = JSON.parse(serviceAccountKey);
+    const keyData = parseServiceAccountKey(serviceAccountKey);
+    if (!keyData) {
+      console.error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY: unable to parse JSON");
+      return new Response(
+        JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY JSON" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    keyData.private_key = normalizePrivateKey(keyData.private_key);
+
+    if (!keyData.client_email || !keyData.private_key) {
+      console.error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY: missing fields");
+      return new Response(
+        JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY: missing required fields" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Get access token via JWT
     const accessToken = await getAccessToken(keyData);
