@@ -107,8 +107,16 @@ serve(async (req) => {
     }
 
     // AUTHENTICATION: Require valid JWT token
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // Supabase client sends session access token via Authorization header.
+    // If no session exists, it still sends the anon key via the `apikey` header.
+    let authHeader = req.headers.get("authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      const apiKey = req.headers.get("apikey") || "";
+      if (apiKey) {
+        authHeader = `Bearer ${apiKey}`;
+      }
+    }
+    if (!authHeader.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
