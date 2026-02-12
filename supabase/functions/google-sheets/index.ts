@@ -67,7 +67,15 @@ function isValidAction(action: unknown): action is "read" | "write" | "write-cat
 
 // Validate tabNames parameter
 function isValidTabNames(tabNames: unknown): boolean {
-  if (!tabNames || typeof tabNames !== "object") return true; // Optional
+  // Allow undefined, null, or empty object
+  if (
+    tabNames === undefined ||
+    tabNames === null ||
+    (typeof tabNames === "object" && Object.keys(tabNames).length === 0)
+  ) {
+    return true;
+  }
+  if (typeof tabNames !== "object") return false;
   const obj = tabNames as Record<string, unknown>;
   return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
 }
