@@ -9,9 +9,9 @@ import { CategoryTreeDropdown } from "@/components/CategoryTreeDropdown";
 import { DynamicImageInputs } from "@/components/DynamicImageInputs";
 import { DynamicSpecifications } from "@/components/DynamicSpecifications";
 import { SkuSelector } from "@/components/SkuSelector";
-import { CheckCircle, Loader2, Send, FileText, Trash2, ZoomIn, ZoomOut } from "lucide-react";
+import { PdfViewer } from "@/components/PdfViewer";
+import { CheckCircle, Loader2, Send, FileText, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import {
   fetchSkus,
   fetchCategories,
@@ -30,11 +30,6 @@ interface FormErrors {
   images?: string;
 }
 
-declare global {
-  interface Window {
-    pdfjsLib?: any;
-  }
-}
 
 export function ProductEntryForm() {
   const { toast } = useToast();
@@ -96,21 +91,8 @@ export function ProductEntryForm() {
   const [websitePreviewUrl, setWebsitePreviewUrl] = useState<string | null>(null);
   const [datasheetPdfData, setDatasheetPdfData] = useState<ArrayBuffer | null>(null);
   const [websitePdfData, setWebsitePdfData] = useState<ArrayBuffer | null>(null);
-  const [pdfZoom, setPdfZoom] = useState(100);
-  const [pdfRenderZoom, setPdfRenderZoom] = useState(100);
-  const [pdfjsReady, setPdfjsReady] = useState(false);
-  const [pdfRenderError, setPdfRenderError] = useState<string | null>(null);
-  const [pdfIsRendering, setPdfIsRendering] = useState(false);
-  const [pdfLoadTimedOut, setPdfLoadTimedOut] = useState(false);
-  const [pdfIsZooming, setPdfIsZooming] = useState(false);
-  const [pdfDocumentKey, setPdfDocumentKey] = useState(0);
-  const pdfScrollRef = useRef<HTMLDivElement | null>(null);
   const datasheetInputRef = useRef<HTMLInputElement | null>(null);
   const websiteInputRef = useRef<HTMLInputElement | null>(null);
-  const [isDraggingPdf, setIsDraggingPdf] = useState(false);
-  const dragStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
-  const pdfCanvasRef = useRef<HTMLDivElement | null>(null);
-  const pdfDocRef = useRef<any>(null);
 
   // Random example title as placeholder
   const exampleTitle = useMemo(() => {
@@ -245,177 +227,6 @@ export function ProductEntryForm() {
     }
   }, [datasheetPreviewUrl, websitePreviewUrl]);
 
-  useEffect(() => {
-    if (window.pdfjsLib) {
-      setPdfjsReady(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "/pdfjs/pdf.min.js";
-    script.async = true;
-    script.onload = () => {
-      if (window.pdfjsLib) {
-        // Don't set worker at all - use internal fallback
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-        setPdfjsReady(true);
-      }
-    };
-    script.onerror = () => setPdfRenderError("Failed to load PDF viewer");
-    document.body.appendChild(script);
-    return () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (pdfjsReady) return;
-    setPdfLoadTimedOut(false);
-    const timer = window.setTimeout(() => setPdfLoadTimedOut(true), 3000);
-    return () => window.clearTimeout(timer);
-  }, [pdfjsReady]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setPdfRenderZoom(pdfZoom), 150);
-    return () => window.clearTimeout(timer);
-  }, [pdfZoom]);
-
-  useEffect(() => {
-    setPdfIsZooming(true);
-    const timer = window.setTimeout(() => setPdfIsZooming(false), 350);
-    return () => window.clearTimeout(timer);
-  }, [pdfZoom]);
-
-  const handlePdfMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!pdfScrollRef.current) return;
-    setIsDraggingPdf(true);
-    dragStart.current = {
-      x: e.clientX,
-      y: e.clientY,
-      left: pdfScrollRef.current.scrollLeft,
-      top: pdfScrollRef.current.scrollTop,
-    };
-  }, []);
-
-  const handlePdfMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDraggingPdf || !dragStart.current || !pdfScrollRef.current) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-    pdfScrollRef.current.scrollLeft = dragStart.current.left - dx;
-    pdfScrollRef.current.scrollTop = dragStart.current.top - dy;
-  }, [isDraggingPdf]);
-
-  const handlePdfMouseUp = useCallback(() => {
-    setIsDraggingPdf(false);
-    dragStart.current = null;
-  }, []);
-
-  const activePdfUrl = useMemo(() => {
-    return pdfView === "website" ? websitePreviewUrl : datasheetPreviewUrl;
-  }, [pdfView, websitePreviewUrl, datasheetPreviewUrl]);
-
-  const activePdfData = useMemo(() => {
-    return pdfView === "website" ? websitePdfData : datasheetPdfData;
-  }, [pdfView, websitePdfData, datasheetPdfData]);
-
-  useEffect(() => {
-    if (!activePdfData || !pdfjsReady) {
-      pdfDocRef.current = null;
-      return;
-    }
-
-    let cancelled = false;
-    setPdfIsRendering(true);
-    setPdfRenderError(null);
-
-    (async () => {
-      try {
-        const pdfjs = window.pdfjsLib;
-        if (!pdfjs) throw new Error("PDF viewer not available");
-        
-        // Create a fresh copy of the ArrayBuffer to avoid detachment
-        const buffer = activePdfData.slice(0);
-        const uint8Array = new Uint8Array(buffer);
-        
-        // Use getDocument with minimal options - let PDF.js handle internally
-        const loadingTask = pdfjs.getDocument({
-          data: uint8Array,
-          // Don't specify any worker options - use internal handling
-        });
-        
-        const pdf = await loadingTask.promise;
-        if (!cancelled) {
-          pdfDocRef.current = pdf;
-          setPdfDocumentKey(prev => prev + 1);
-        }
-      } catch (err) {
-        console.error("PDF loading error:", err);
-        if (!cancelled) {
-          setPdfRenderError(err instanceof Error ? err.message : "PDF preview unavailable");
-        }
-      } finally {
-        if (!cancelled) setPdfIsRendering(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      pdfDocRef.current = null;
-    };
-  }, [activePdfData, pdfjsReady]);
-
-  useEffect(() => {
-    const container = pdfCanvasRef.current;
-    const scrollEl = pdfScrollRef.current;
-    const pdf = pdfDocRef.current;
-    if (!container || !scrollEl || !pdf) return;
-
-    const prevScrollTop = scrollEl.scrollTop;
-    const prevScrollLeft = scrollEl.scrollLeft;
-    const prevScrollHeight = scrollEl.scrollHeight || 1;
-    const prevScrollWidth = scrollEl.scrollWidth || 1;
-    const topRatio = prevScrollTop / prevScrollHeight;
-    const leftRatio = prevScrollLeft / prevScrollWidth;
-
-    let cancelled = false;
-    setPdfIsRendering(true);
-    container.innerHTML = "";
-
-    (async () => {
-      try {
-        // Always use the latest zoom value for immediate rendering
-        const scale = pdfZoom / 100;
-        
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
-          if (cancelled) break;
-          const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale });
-          const canvas = document.createElement("canvas");
-          const context = canvas.getContext("2d");
-          if (!context) continue;
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          canvas.className = "mb-3 last:mb-0";
-          container.appendChild(canvas);
-          const renderTask = page.render({ canvasContext: context, viewport });
-          await renderTask.promise;
-        }
-      } catch (err) {
-        if (!cancelled) setPdfRenderError("PDF preview unavailable");
-      } finally {
-        if (!cancelled) {
-          setPdfIsRendering(false);
-          const newScrollHeight = scrollEl.scrollHeight || 1;
-          const newScrollWidth = scrollEl.scrollWidth || 1;
-          scrollEl.scrollTop = Math.round(topRatio * newScrollHeight);
-          scrollEl.scrollLeft = Math.round(leftRatio * newScrollWidth);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pdfZoom, pdfDocumentKey]);
 
   const handleGenerateTitleAndData = useCallback(() => {
     toast({ title: "Coming Soon", description: "AI title and data generation will be available soon." });
@@ -708,120 +519,15 @@ export function ProductEntryForm() {
                 className="text-sm min-h-[360px]"
               />
             </div>
-            <div className="space-y-1.5 -mt-0.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium">
-                  {datasheetPreviewUrl || websitePreviewUrl
-                    ? `PDF: ${pdfView === "website" ? "Website" : "Datasheet"}`
-                    : "PDF"}
-                </Label>
-                <div className="flex items-center gap-2">
-                  {datasheetPreviewUrl && websitePreviewUrl && (
-                    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-background/70 p-0.5 shadow-sm">
-                      <button
-                        type="button"
-                        onClick={() => setPdfView("datasheet")}
-                        className={cn(
-                          "px-3 py-1 text-[11px] rounded-full transition-colors",
-                          pdfView === "datasheet"
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        Datasheet
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPdfView("website")}
-                        className={cn(
-                          "px-3 py-1 text-[11px] rounded-full transition-colors",
-                          pdfView === "website"
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        Website
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => setPdfZoom((z) => Math.max(50, z - 10))}
-                    >
-                      <ZoomOut className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={() => setPdfZoom((z) => Math.min(200, z + 10))}
-                    >
-                      <ZoomIn className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="border border-border rounded-lg bg-muted/20 h-[360px] overflow-hidden">
-                {(() => {
-                  const activeUrl = pdfView === "website" ? websitePreviewUrl : datasheetPreviewUrl;
-                  const hasData = Boolean(activePdfData);
-                  if (!activeUrl || !hasData) {
-                    return (
-                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                        Upload a PDF to preview
-                      </div>
-                    );
-                  }
-                  if (!pdfjsReady) {
-                    return (
-                      <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
-                        <span>{pdfLoadTimedOut ? "PDF viewer blocked by browser" : "Loading PDF viewer…"}</span>
-                        <Button type="button" variant="outline" size="sm" asChild>
-                          <a href={activeUrl} target="_blank" rel="noreferrer">Open PDF</a>
-                        </Button>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div
-                      ref={pdfScrollRef}
-                      className={cn(
-                        "relative h-full w-full overflow-auto bg-white select-none",
-                        isDraggingPdf ? "cursor-grabbing" : "cursor-grab"
-                      )}
-                      onMouseDown={handlePdfMouseDown}
-                      onMouseMove={handlePdfMouseMove}
-                      onMouseLeave={handlePdfMouseUp}
-                      onMouseUp={handlePdfMouseUp}
-                    >
-                      <div ref={pdfCanvasRef} className="p-3" />
-                      {pdfIsRendering && (
-                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-                          Rendering…
-                        </div>
-                      )}
-                      {pdfRenderError && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
-                          <span>{pdfRenderError}</span>
-                          <Button type="button" variant="outline" size="sm" asChild>
-                            <a href={activeUrl} target="_blank" rel="noreferrer">Open PDF</a>
-                          </Button>
-                        </div>
-                      )}
-                      {!pdfIsRendering && !pdfRenderError && pdfCanvasRef.current?.childElementCount === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-                          PDF preview unavailable
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
+            <div className="-mt-0.5">
+              <PdfViewer
+                datasheetData={datasheetPdfData}
+                websiteData={websitePdfData}
+                datasheetUrl={datasheetPreviewUrl}
+                websiteUrl={websitePreviewUrl}
+                pdfView={pdfView}
+                onPdfViewChange={setPdfView}
+              />
             </div>
           </div>
 
