@@ -465,17 +465,31 @@ async function appendRow(token: string, sheetId: string, sheet: string, rowData:
   console.log("Row appended successfully");
 }
 
-// Helper: get the numeric sheet ID for a tab by name
+// Helper: get the numeric sheet ID for a tab by name (with per-request caching)
+const _tabIdCache = new Map<string, number>();
+
 async function getSheetTabId(token: string, spreadsheetId: string, sheetName: string): Promise<number> {
+  const cacheKey = `${spreadsheetId}:${sheetName}`;
+  if (_tabIdCache.has(cacheKey)) return _tabIdCache.get(cacheKey)!;
+
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
-  if (!res.ok) throw new Error("Failed to get sheet metadata");
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Failed to get sheet metadata (${res.status}): ${errText}`);
+  }
   const metadata = (await res.json()) as any;
-  const sheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
-  if (!sheet) throw new Error(`Sheet tab "${sheetName}" not found`);
-  return sheet.properties.sheetId;
+  // Cache ALL tabs from this response so we never call this endpoint again
+  for (const s of metadata.sheets ?? []) {
+    if (s.properties?.title) {
+      _tabIdCache.set(`${spreadsheetId}:${s.properties.title}`, s.properties.sheetId);
+    }
+  }
+  const tabId = _tabIdCache.get(cacheKey);
+  if (tabId === undefined) throw new Error(`Sheet tab "${sheetName}" not found`);
+  return tabId;
 }
 
 // Helper: delete a single row and shift everything below up
