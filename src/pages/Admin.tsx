@@ -469,6 +469,10 @@ const Admin = () => {
             <p className="text-xs text-muted-foreground">
               Frontend is hosted on Lovable, but the backend runs on your Supabase Edge Function. Verify your Supabase project configuration before testing the connection.
             </p>
+            <p className="text-xs font-semibold text-red-600 dark:text-red-400">
+              ⚠️ Do NOT run Lovable “Security Fixer” for Edge Functions or anything related to cloud/database/AI.
+              It can reroute requests to Lovable services and break your Supabase connection.
+            </p>
             <div className="space-y-2 text-sm font-mono">
               <div className="flex items-start gap-2">
                 <span className="text-xs text-muted-foreground w-32 shrink-0">Supabase URL:</span>

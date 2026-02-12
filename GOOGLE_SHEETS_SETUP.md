@@ -81,6 +81,9 @@ Follow these steps in order:
 
 ## STEP 3: Create & Deploy the `google-sheets` Edge Function
 
+**🚨 IMPORTANT: Do NOT run Lovable “Security Fixer” for Edge Functions or anything related to cloud/database/AI.**
+Lovable may reroute requests to its own services, which will break your Supabase Edge Function connection.
+
 You will now create the Edge Function by pasting ready-made code directly into Supabase.
 
 ### 1) Open Supabase Dashboard
