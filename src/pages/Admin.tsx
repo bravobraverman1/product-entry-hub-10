@@ -200,7 +200,9 @@ function TreeEditorNode({
               onDelete={onDelete}
               onAddChild={onAddChild}
               expandAllSignal={expandAllSignal}
-              expandAllValue={expandAllValue}              readOnly={readOnly}            />
+              expandAllValue={expandAllValue}
+              readOnly={readOnly}
+            />
           ))}
         </div>
       )}
