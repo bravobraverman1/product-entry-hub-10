@@ -334,11 +334,14 @@ const Admin = () => {
   // Regex pattern for validating and extracting project ref from Supabase URL
   const SUPABASE_URL_PATTERN = /https:\/\/([a-z0-9-]+)\.supabase\.co/i;
   const supabaseProjectRef = supabaseUrl.match(SUPABASE_URL_PATTERN)?.[1] || "";
+  const functionsProjectRef = supabaseFunctionsUrl.match(SUPABASE_URL_PATTERN)?.[1] || "";
   
   // Validate if URL is a proper Supabase URL
   const isValidSupabaseUrl = SUPABASE_URL_PATTERN.test(supabaseUrl);
   const isFunctionsUrlMatch =
     !!supabaseFunctionsUrl && !!supabaseUrl && supabaseFunctionsUrl.startsWith(supabaseUrl);
+  const isFunctionsProjectMatch =
+    !functionsProjectRef || !supabaseProjectRef || functionsProjectRef === supabaseProjectRef;
   
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
@@ -496,6 +499,11 @@ const Admin = () => {
                   ⚠️ Functions URL does not match Supabase URL. Set VITE_SUPABASE_FUNCTIONS_URL to
                   {" "}
                   <span className="font-mono break-all">{`${supabaseUrl}/functions/v1`}</span>
+                </div>
+              )}
+              {!isFunctionsProjectMatch && (
+                <div className="text-xs text-red-600 dark:text-red-400">
+                  ⚠️ Functions URL project does not match Supabase URL project. Check your Lovable env vars.
                 </div>
               )}
             </div>
