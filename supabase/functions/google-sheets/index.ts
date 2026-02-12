@@ -69,7 +69,8 @@ function isValidAction(action: unknown): action is "read" | "write" | "write-cat
 function isValidTabNames(tabNames: unknown): boolean {
   if (!tabNames || typeof tabNames !== "object") return true; // Optional
   const obj = tabNames as Record<string, unknown>;
-  return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
+  // Allow empty strings (they'll use fallback defaults) and non-empty strings up to 255 chars
+  return Object.values(obj).every((v) => typeof v === "string" && v.length < 255);
 }
 
 function parseServiceAccountKey(raw: string): ServiceAccountKey | null {
