@@ -218,7 +218,7 @@ const Admin = () => {
 
   // ── Categories ──
   const { data: categoriesResult, error: categoriesError, isLoading: categoriesLoading } = useQuery({
-    queryKey: ["categories"],
+    queryKey: ["categories-with-source"],
     queryFn: fetchCategoriesWithSource,
     staleTime: 60_000,
     retry: false,
@@ -282,6 +282,7 @@ const Admin = () => {
     onSuccess: () => {
       toast({ title: "Saved", description: "Categories updated." });
       setDirty(false);
+      queryClient.invalidateQueries({ queryKey: ["categories-with-source"] });
       queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
     onError: (err) => {

@@ -29,20 +29,6 @@ function isConfigured(): boolean {
   return Boolean(BASE());
 }
 
-// ── Global Sheet Sync Status ────────────────────────────────
-// Tracks whether the last readGoogleSheets() call returned real data.
-// ALL write operations check this before proceeding.
-let _lastSheetReadSuccess = false;
-
-export function isSheetSynced(): boolean {
-  return _lastSheetReadSuccess;
-}
-
-/** Called internally after each readGoogleSheets() to update sync status */
-function markSheetSynced(synced: boolean): void {
-  _lastSheetReadSuccess = synced;
-}
-
 async function apiFetch<T>(
   path: string,
   options?: RequestInit
@@ -80,7 +66,6 @@ export async function fetchSkus(
     try {
       const data = await readGoogleSheets();
       if (data.products && !data.useDefaults) {
-        markSheetSynced(true);
         return data.products
           .map((p) => ({
             sku: p.sku,
@@ -92,7 +77,6 @@ export async function fetchSkus(
           .filter((s) => !status || s.status === status)
           .filter((s) => (s.visibility ?? 0) >= 1);
       }
-      if (data.useDefaults) markSheetSynced(false);
     } catch (error) {
       console.error("Error fetching from Supabase Google Sheets:", error);
       markSheetSynced(false);
@@ -125,11 +109,9 @@ export async function fetchBrand(sku: string): Promise<string> {
     try {
       const data = await readGoogleSheets();
       if (data.products && !data.useDefaults) {
-        markSheetSynced(true);
         const found = data.products.find((p) => p.sku === sku);
         if (found) return found.brand;
       }
-      if (data.useDefaults) markSheetSynced(false);
     } catch (error) {
       console.error("Error fetching brand from Supabase Google Sheets:", error);
       markSheetSynced(false);
@@ -161,16 +143,13 @@ export async function fetchCategoriesWithSource(): Promise<CategoriesFetchResult
     const data = await readGoogleSheets();
     if (!data.useDefaults && data.categories && data.categories.length > 0) {
       console.log("✓ Categories loaded from Google Sheets");
-      markSheetSynced(true);
       return { categories: data.categories, source: "google-sheets" };
     }
     if (!data.useDefaults && (!data.categories || data.categories.length === 0)) {
       throw new Error("CATEGORIES tab is empty. Add category paths to the CATEGORIES sheet, starting at row 2.");
     }
-    if (data.useDefaults) markSheetSynced(false);
   } catch (error) {
     console.error("Error fetching from Google Sheets:", error);
-    markSheetSynced(false);
     // Fall through to fallback
   }
 
@@ -198,11 +177,6 @@ export async function fetchCategories(): Promise<CategoryLevel[]> {
 export async function updateCategories(
   paths: string[]
 ): Promise<void> {
-  // SAFETY: Only allow writes when sheet connection is verified
-  if (!isSheetSynced()) {
-    throw new Error("Cannot save categories: not connected to Google Sheet. Reload the page and try again.");
-  }
-
   // Always write via Supabase Edge Function (uses server-side secrets)
   try {
     const success = await writeCategoriesToGoogleSheets(paths);
@@ -231,7 +205,6 @@ export async function fetchProperties(): Promise<{
     try {
       const data = await readGoogleSheets();
       if (data.properties && data.legalValues && !data.useDefaults) {
-        markSheetSynced(true);
         return {
           properties: data.properties,
           legalValues: data.legalValues,
@@ -240,12 +213,10 @@ export async function fetchProperties(): Promise<{
         };
       }
       if (data.useDefaults) {
-        markSheetSynced(false);
         return { properties: [], legalValues: [] };
       }
     } catch (error) {
       console.error("Error fetching properties from Supabase Google Sheets:", error);
-      markSheetSynced(false);
     }
   }
 
@@ -262,11 +233,6 @@ export async function addLegalValue(
   propertyName: string,
   value: string
 ): Promise<void> {
-  // SAFETY: Only allow writes when sheet connection is verified
-  if (!isSheetSynced()) {
-    throw new Error("Cannot add legal value: not connected to Google Sheet. Reload the page and try again.");
-  }
-
   if (isSupabaseGoogleSheetsConfigured()) {
     const success = await writeLegalValueToGoogleSheets(propertyName, value);
     if (!success) {
@@ -477,13 +443,10 @@ export async function fetchBrandsWithSource(): Promise<BrandFetchResult> {
     try {
       const data = await readGoogleSheets();
       if (data.brands && !data.useDefaults) {
-        markSheetSynced(true);
         return { brands: data.brands, source: "google-sheets" };
       }
-      if (data.useDefaults) markSheetSynced(false);
     } catch (error) {
       console.error("Error fetching brands from Supabase Google Sheets:", error);
-      markSheetSynced(false);
     }
   }
 
@@ -511,11 +474,6 @@ export async function fetchBrands(): Promise<BrandEntry[]> {
 }
 
 export async function saveBrands(brands: BrandEntry[]): Promise<void> {
-  // SAFETY: Only allow writes when sheet connection is verified
-  if (!isSheetSynced()) {
-    throw new Error("Cannot save brands: not connected to Google Sheet. Reload the page and try again.");
-  }
-
   // Use Supabase Google Sheets integration
   if (isSupabaseGoogleSheetsConfigured()) {
     try {
