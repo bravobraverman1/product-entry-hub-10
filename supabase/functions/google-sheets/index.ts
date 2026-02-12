@@ -817,6 +817,16 @@ async function clearAndWriteCategories(
     return;
   }
 
+  // SAFETY: Abort if diff would mass-delete (>50% of rows AND >5 rows)
+  // This catches corrupted/default data being written over real data
+  if (currentPaths.length > 0 && pathsToDelete.length > 5 && pathsToDelete.length > currentPaths.length * 0.5) {
+    throw new Error(
+      `SAFETY ABORT: Category sync would delete ${pathsToDelete.length} of ${currentPaths.length} rows (${Math.round(pathsToDelete.length / currentPaths.length * 100)}%). ` +
+      `This looks like corrupted or default data being written over real data. No changes were made. ` +
+      `If this is intentional, delete categories manually in the Google Sheet.`
+    );
+  }
+
   // Delete from bottom to top so row indices stay valid
   let deletedCount = 0;
   for (const dataIdx of pathsToDelete.sort((a, b) => b - a)) {
@@ -881,6 +891,15 @@ async function clearAndWriteBrands(
   if (rowsToDelete.length === 0 && brandsToAdd.length === 0) {
     console.log("No brand changes detected");
     return;
+  }
+
+  // SAFETY: Abort if diff would mass-delete (>50% of rows AND >5 rows)
+  if (currentBrands.length > 0 && rowsToDelete.length > 5 && rowsToDelete.length > currentBrands.length * 0.5) {
+    throw new Error(
+      `SAFETY ABORT: Brand sync would delete ${rowsToDelete.length} of ${currentBrands.length} rows (${Math.round(rowsToDelete.length / currentBrands.length * 100)}%). ` +
+      `This looks like corrupted or default data being written over real data. No changes were made. ` +
+      `If this is intentional, delete brands manually in the Google Sheet.`
+    );
   }
 
   // Delete from bottom to top
