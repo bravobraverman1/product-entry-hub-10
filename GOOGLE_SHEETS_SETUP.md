@@ -86,51 +86,6 @@ You will now create the Edge Function by pasting ready-made code directly into S
 ### 1) Open Supabase Dashboard
 
 - Go to [supabase.com/dashboard](https://supabase.com/dashboard)
-- Select your project
-
-### 1.1) Grab your Project URL and Publishable Key (for Lovable env vars + Admin panel)
-
-On your **project home page** in Supabase (not the user profile page):
-- Hover over the **Project URL** row and click **Copy**
-- Hover over the **Publishable Key** row and click **Copy**
-
-You’ll paste these into the Admin panel later under **Google Sheets Connection** → “Paste .env entries”, and into Lovable’s Environment Variables.
-
-### 1.2) Open the Edge Function editor
-
-- Left sidebar → **Edge Functions**
-- Click **Open Editor**
-
-### 2) Confirm you are on the correct screen
-
-You should see:
-- Title: **"Create new edge function"**
-- A code editor with sample 'Hello {name}' code
-- A **"Function name"** field at the bottom right
-- A green **"Deploy function"** button
-
-### 3) Set the Function name
-
-In the **"Function name"** field at the bottom right, type EXACTLY (copy this):
-
-```
-google-sheets
-```
-
-**⚠️ IMPORTANT:** The name must be exactly `google-sheets` - no spaces, no underscores, no capital letters, no changes. It's "google-sheets" with a hyphen (-).
-
-### 4) Replace the template code (IMPORTANT)
-
-- Click inside the editor
-- Select ALL (Cmd+A / Ctrl+A)
-- Delete everything
-- Paste the FULL code below (do not edit it)
-
-### 5) Copy the Edge Function code
-
-**⚠️ Copy EVERYTHING in this block. Do not skip any lines.**
-
-```typescript
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -160,6 +115,12 @@ function originMatches(allowed: string, origin: string): boolean {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
+type ServiceAccountKey = {
+  client_email?: string;
+  private_key?: string;
+  [key: string]: unknown;
+};
+
 function getSupabaseClient(authHeader: string) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -188,8 +149,8 @@ function getCorsHeaders(origin?: string) {
 }
 
 // Validate action parameter
-function isValidAction(action: unknown): action is "read" | "write" | "write-categories" | "write-brands" {
-  return ["read", "write", "write-categories", "write-brands"].includes(action as string);
+function isValidAction(action: unknown): action is "read" | "write" | "write-categories" | "write-brands" | "write-legal" {
+  return ["read", "write", "write-categories", "write-brands", "write-legal"].includes(action as string);
 }
 
 // Validate tabNames parameter
@@ -197,6 +158,36 @@ function isValidTabNames(tabNames: unknown): boolean {
   if (!tabNames || typeof tabNames !== "object") return true; // Optional
   const obj = tabNames as Record<string, unknown>;
   return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
+}
+
+function parseServiceAccountKey(raw: string): ServiceAccountKey | null {
+  const tryParse = (value: string): ServiceAccountKey | null => {
+    try {
+      return JSON.parse(value) as ServiceAccountKey;
+    } catch {
+      return null;
+    }
+  };
+
+  const direct = tryParse(raw);
+  if (direct) return direct;
+
+  // Attempt base64 decode (common when secrets are stored encoded)
+  try {
+    const decoded = atob(raw);
+    const decodedParsed = tryParse(decoded);
+    if (decodedParsed) return decodedParsed;
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+function normalizePrivateKey(key: string | undefined): string | undefined {
+  if (!key) return key;
+  const normalized = key.includes("\\n") ? key.replace(/\\n/g, "\n") : key;
+  return normalized.replace(/\r/g, "").trim();
 }
 
 serve(async (req) => {
@@ -239,9 +230,18 @@ serve(async (req) => {
       );
     }
 
-    // AUTHENTICATION
-    // Disabled for now to prevent 401s in preview/app calls.
-    // If you want to re-enable auth later, validate apikey/JWT here.
+    // AUTHENTICATION: Verify the request has a valid apikey header.
+    // The Supabase JS client automatically sends the anon key via the `apikey` header.
+    // Since this app has no user authentication, we just verify the apikey is present.
+    const apiKey = req.headers.get("apikey") || "";
+    const authHeader = req.headers.get("authorization") || "";
+    
+    if (!apiKey && !authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // SECURITY: Only use server-side secrets from Deno.env, never from request body
     // This prevents exposing credentials to the client
@@ -258,7 +258,24 @@ serve(async (req) => {
     }
 
     // Parse service account key
-    const keyData = JSON.parse(serviceAccountKey);
+    const keyData = parseServiceAccountKey(serviceAccountKey);
+    if (!keyData) {
+      console.error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY: unable to parse JSON");
+      return new Response(
+        JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY JSON" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    keyData.private_key = normalizePrivateKey(keyData.private_key);
+
+    if (!keyData.client_email || !keyData.private_key) {
+      console.error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY: missing fields");
+      return new Response(
+        JSON.stringify({ error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY: missing required fields" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Get access token via JWT
     const accessToken = await getAccessToken(keyData);
@@ -341,6 +358,36 @@ serve(async (req) => {
       });
     }
 
+    if (action === "write-legal") {
+      const { propertyName, value } = body;
+      if (
+        typeof propertyName !== "string" ||
+        typeof value !== "string" ||
+        propertyName.trim().length === 0 ||
+        value.trim().length === 0 ||
+        propertyName.length > 255 ||
+        value.length > 255
+      ) {
+        console.error("Invalid legal value payload:", { propertyName, value });
+        return new Response(
+          JSON.stringify({ error: "Invalid legal value payload" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      await addLegalValueToLegalTab(
+        accessToken,
+        sheetId,
+        resolveTabName(tabNames, "LEGAL", "LEGAL"),
+        propertyName,
+        value
+      );
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -358,8 +405,8 @@ serve(async (req) => {
 
 async function getAccessToken(keyData: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claim = btoa(
+  const header = base64UrlEncodeUtf8(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = base64UrlEncodeUtf8(
     JSON.stringify({
       iss: keyData.client_email,
       scope: "https://www.googleapis.com/auth/spreadsheets",
@@ -382,16 +429,34 @@ async function getAccessToken(keyData: any): Promise<string> {
 
   const tokenData = await tokenRes.json();
   if (!tokenData.access_token) {
-    throw new Error(`Failed to get access token: ${JSON.stringify(tokenData)}`);
+    const raw = JSON.stringify(tokenData);
+    if (tokenData?.error === "invalid_grant" && String(tokenData?.error_description || "").includes("Invalid JWT Signature")) {
+      throw new Error(
+        "Invalid service account key. The private key does not match the client_email or the key is malformed. Recreate the JSON key and update GOOGLE_SERVICE_ACCOUNT_KEY, then redeploy."
+      );
+    }
+    throw new Error(`Failed to get access token: ${raw}`);
   }
   return tokenData.access_token;
+}
+
+function base64UrlEncodeUtf8(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 async function importPrivateKey(pem: string) {
   const pemContents = pem
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\n/g, "");
+    .replace(/\s+/g, "");
 
   const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
 
@@ -490,12 +555,16 @@ async function readAllSheets(
   const propertiesTab = resolveTabName(tabNames, "PROPERTIES", "PROPERTIES");
   const legalTab = resolveTabName(tabNames, "LEGAL", "LEGAL");
   const brandsTab = resolveTabName(tabNames, "BRANDS", "BRANDS");
-  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw, brandsRaw] = await Promise.all([
+  const filterTab = resolveTabName(tabNames, "FILTER", "FILTER");
+  const filterDefaultsTab = resolveTabName(tabNames, "FILTER_DEFAULTS", "FILTER_DEFAULTS");
+  const [productsRaw, categoriesRaw, propertiesRaw, legalRaw, brandsRaw, filterRaw, filterDefaultsRaw] = await Promise.all([
     getSheetValues(token, sheetId, `${productsTab}!A:D`),
     getSheetValues(token, sheetId, `${categoriesTab}!A:A`),
     getSheetValues(token, sheetId, `${propertiesTab}!A:D`),
-    getSheetValues(token, sheetId, `${legalTab}!A:B`),
+    getSheetValues(token, sheetId, `${legalTab}!A:AZ`),
     getSheetValues(token, sheetId, `${brandsTab}!A:C`),
+    getSheetValues(token, sheetId, `${filterTab}!A:B`),
+    getSheetValues(token, sheetId, `${filterDefaultsTab}!A:AZ`),
   ]);
 
   // Parse PRODUCTS TO DO: SKU (A), Brand (B), Status (C), Visibility (D) - skip header row
@@ -533,19 +602,48 @@ async function readAllSheets(
   const leafPathCount = categoryPaths.length;
   console.log(`Successfully read ${leafPathCount} category paths from CATEGORIES tab`);
 
-  // Parse PROPERTIES: PropertyName, Key, InputType, Section
-  const properties = propertiesRaw.slice(1).map((row) => ({
-    name: row[0] ?? "",
-    key: row[1] ?? "",
-    inputType: (row[2] ?? "text") as "dropdown" | "text" | "number" | "boolean",
-    section: row[3] ?? "Other",
-  })).filter((p) => p.name && p.key);
+  // Parse LEGAL (row-based): Column A = PropertyName, Columns B+ = Allowed Values
+  const legalRows = legalRaw.slice(1).map((row) => {
+    const name = (row[0] ?? "").trim();
+    const values = row.slice(1).map((v) => (v ?? "").toString().trim()).filter(Boolean);
+    return { name, values };
+  }).filter((r) => r.name);
 
-  // Parse LEGAL: PropertyName, AllowedValue
-  const legalValues = legalRaw.slice(1).map((row) => ({
-    propertyName: row[0] ?? "",
-    allowedValue: row[1] ?? "",
-  })).filter((l) => l.propertyName && l.allowedValue);
+  const legalValues = legalRows.flatMap((row) =>
+    row.values.map((value) => ({
+      propertyName: row.name,
+      allowedValue: value,
+    }))
+  );
+
+  const properties = legalRows.map((row) => ({
+    name: row.name,
+    key: toPropertyKey(row.name),
+    inputType: row.values.length > 0 ? "dropdown" : "text",
+    section: "Filters",
+    unitSuffix: row.values.length > 0 ? undefined : "mm",
+  }));
+
+  // Parse FILTER: Category Keywords (A2+) -> Filter Default Names (B2+)
+  const categoryFilterMap = filterRaw.slice(1).map((row) => ({
+    categoryKeyword: (row[0] ?? "").trim(),
+    filterDefault: (row[1] ?? "").trim(),
+  })).filter((m) => m.categoryKeyword && m.filterDefault);
+
+  // Parse FILTER_DEFAULTS: Row 1 = Filter Default Names, Rows 2+ = Property Names per column
+  const filterDefaultMap: Array<{ name: string; allowedProperties: string[] }> = [];
+  if (filterDefaultsRaw.length > 0) {
+    const headerRow = filterDefaultsRaw[0];
+    for (let col = 0; col < headerRow.length; col += 1) {
+      const name = (headerRow[col] ?? "").trim();
+      if (!name) continue;
+      const allowedProperties = filterDefaultsRaw
+        .slice(1)
+        .map((row) => (row[col] ?? "").toString().trim())
+        .filter(Boolean);
+      filterDefaultMap.push({ name, allowedProperties });
+    }
+  }
 
   // Parse BRANDS: Brand, BrandName, Website (skip header row)
   const brands = brandsRaw.slice(1).map((row) => ({
@@ -554,7 +652,93 @@ async function readAllSheets(
     website: row[2] ?? "",
   })).filter((b) => b.brand);
 
-  return { products, brands, categories, properties, legalValues, categoryPathCount: leafPathCount };
+  if (properties.length === 0) {
+    return { products, brands, categories, properties: [], legalValues: [], categoryPathCount: leafPathCount, categoryFilterMap, filterDefaultMap };
+  }
+
+  return { 
+    products, 
+    brands, 
+    categories, 
+    properties, 
+    legalValues, 
+    categoryPathCount: leafPathCount,
+    categoryFilterMap,
+    filterDefaultMap,
+  };
+}
+
+function toPropertyKey(name: string): string {
+  const cleaned = name
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .toLowerCase();
+  if (!cleaned) return "";
+  const parts = cleaned.split(" ");
+  return parts[0] + parts.slice(1).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+}
+
+function columnLetter(index: number): string {
+  let n = index + 1;
+  let result = "";
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    result = String.fromCharCode(65 + rem) + result;
+    n = Math.floor((n - 1) / 26);
+  }
+  return result;
+}
+
+async function addLegalValueToLegalTab(
+  token: string,
+  sheetId: string,
+  legalTab: string,
+  propertyName: string,
+  value: string
+): Promise<void> {
+  const trimmedName = propertyName.trim();
+  const trimmedValue = value.trim();
+  if (!trimmedName || !trimmedValue) return;
+
+  const rows = await getSheetValues(token, sheetId, `${legalTab}!A:AZ`);
+  let rowIndex = -1;
+  let rowValues: string[] = [];
+
+  for (let i = 1; i < rows.length; i += 1) {
+    const name = (rows[i]?.[0] ?? "").toString().trim();
+    if (name === trimmedName) {
+      rowIndex = i + 1; // 1-based for sheets
+      rowValues = rows[i] ?? [];
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    await appendRow(token, sheetId, legalTab, [trimmedName, trimmedValue]);
+    return;
+  }
+
+  const existingValues = rowValues.slice(1).map((v) => (v ?? "").toString().trim()).filter(Boolean);
+  if (existingValues.includes(trimmedValue)) return;
+
+  const nextColIndex = Math.max(rowValues.length, 1);
+  const col = columnLetter(nextColIndex);
+  const range = `${legalTab}!${col}${rowIndex}`;
+
+  const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+  const res = await fetch(updateUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ values: [[sanitizeForFormulas(trimmedValue)]] }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to update LEGAL value: ${errText}`);
+  }
 }
 
 function buildCategoryTree(paths: string[]) {
@@ -639,6 +823,51 @@ async function clearAndWriteBrands(
   token: string,
   sheetId: string,
   brands: Array<{ brand: string; brandName: string; website: string }>,
+  brandsTab: string
+): Promise<void> {
+  // Clear existing data in BRANDS!A:C (keep header, delete data starting at row 2)
+  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2:C`)}:clear`;
+  const clearRes = await fetch(clearUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (!clearRes.ok) {
+    const errText = await clearRes.text();
+    throw new Error(`Failed to clear brands: ${errText}`);
+  }
+
+  // Sanitize brand data to prevent formula injection
+  const sanitizedBrands = brands.map((brand) => [
+    sanitizeForFormulas(brand.brand),
+    sanitizeForFormulas(brand.brandName),
+    sanitizeForFormulas(brand.website),
+  ]);
+
+  // Write new brands
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2`)}?valueInputOption=USER_ENTERED`;
+  const writeRes = await fetch(writeUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      values: sanitizedBrands,
+    }),
+  });
+
+  if (!writeRes.ok) {
+    const errText = await writeRes.text();
+    throw new Error(`Failed to write brands: ${errText}`);
+  }
+
+  console.log(`Successfully wrote ${brands.length} brands to ${brandsTab} tab`);
+}
   brandsTab: string
 ): Promise<void> {
   // Clear existing data in BRANDS!A:C (keep header, delete data starting at row 2)
