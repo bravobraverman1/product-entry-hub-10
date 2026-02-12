@@ -168,17 +168,22 @@ export function PdfViewer({
     dragStart.current = null;
   }, []);
 
-  // Zoom with scroll position preservation
+  // Zoom with center-point preservation
   const handleZoom = useCallback((delta: number) => {
     setZoom(prev => {
       const next = Math.max(50, Math.min(300, prev + delta));
       const sc = scrollContainerRef.current;
-      if (sc) {
-        const ratioX = sc.scrollWidth > 0 ? sc.scrollLeft / sc.scrollWidth : 0;
-        const ratioY = sc.scrollHeight > 0 ? sc.scrollTop / sc.scrollHeight : 0;
+      if (sc && prev !== next) {
+        // Calculate the center point of the visible area
+        const centerX = sc.scrollLeft + sc.clientWidth / 2;
+        const centerY = sc.scrollTop + sc.clientHeight / 2;
+        // Ratio of center within current scroll content
+        const ratioX = sc.scrollWidth > 0 ? centerX / sc.scrollWidth : 0.5;
+        const ratioY = sc.scrollHeight > 0 ? centerY / sc.scrollHeight : 0.5;
         requestAnimationFrame(() => {
-          sc.scrollLeft = ratioX * sc.scrollWidth;
-          sc.scrollTop = ratioY * sc.scrollHeight;
+          // After scale change, restore so same content point is centered
+          sc.scrollLeft = ratioX * sc.scrollWidth - sc.clientWidth / 2;
+          sc.scrollTop = ratioY * sc.scrollHeight - sc.clientHeight / 2;
         });
       }
       return next;
@@ -205,20 +210,14 @@ export function PdfViewer({
   const activeUrl = pdfView === "website" ? websiteUrl : datasheetUrl;
   const hasContent = pdfView === "website" ? hasWebsite : hasDatasheet;
 
-  if (!hasDatasheet && !hasWebsite) {
-    return (
-      <div className="border border-border rounded-lg bg-muted/20 h-[360px] flex items-center justify-center text-xs text-muted-foreground">
-        Upload a PDF to preview
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-1.5">
-      {/* Header */}
+      {/* Header - always show zoom, conditionally show PDF switcher */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium">
-          PDF: {pdfView === "website" ? "Website" : "Datasheet"}
+          {hasDatasheet || hasWebsite
+            ? `PDF: ${pdfView === "website" ? "Website" : "Datasheet"}`
+            : "PDF"}
         </span>
         <div className="flex items-center gap-2">
           {hasDatasheet && hasWebsite && (
@@ -263,7 +262,11 @@ export function PdfViewer({
 
       {/* Viewer */}
       <div className="border border-border rounded-lg bg-muted/20 h-[360px] overflow-hidden">
-        {!pdfjsReady ? (
+        {!hasContent ? (
+          <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+            Upload a PDF to preview
+          </div>
+        ) : !pdfjsReady ? (
           <div className="h-full flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>{pdfLoadTimedOut ? "PDF viewer blocked by browser" : "Loading PDF viewer…"}</span>
             {activeUrl && (
@@ -271,10 +274,6 @@ export function PdfViewer({
                 <a href={activeUrl} target="_blank" rel="noreferrer">Open PDF</a>
               </Button>
             )}
-          </div>
-        ) : !hasContent ? (
-          <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
-            Upload a PDF to preview
           </div>
         ) : pdfRenderError ? (
           <div className="h-full flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
@@ -297,7 +296,6 @@ export function PdfViewer({
             onMouseLeave={handleMouseUp}
             onMouseUp={handleMouseUp}
           >
-            {/* Both PDF containers always mounted, visibility toggled */}
             <div
               style={{
                 transform: `scale(${cssScale})`,
