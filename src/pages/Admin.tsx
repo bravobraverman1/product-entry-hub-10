@@ -492,24 +492,6 @@ const Admin = () => {
                   {supabaseAnonKey ? "✓ Detected" : "NOT CONFIGURED"}
                 </span>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="text-xs text-muted-foreground w-32 shrink-0">Functions URL:</span>
-                <span className={`text-xs break-all ${isFunctionsUrlMatch ? "text-foreground" : "text-red-600 dark:text-red-400"}`}>
-                  {supabaseFunctionsUrl || "NOT CONFIGURED"}
-                </span>
-              </div>
-              {!isFunctionsUrlMatch && supabaseFunctionsUrl && supabaseUrl && (
-                <div className="text-xs text-red-600 dark:text-red-400">
-                  ⚠️ Functions URL does not match Supabase URL. Set VITE_SUPABASE_FUNCTIONS_URL to
-                  {" "}
-                  <span className="font-mono break-all">{`${supabaseUrl}/functions/v1`}</span>
-                </div>
-              )}
-              {!isFunctionsProjectMatch && (
-                <div className="text-xs text-red-600 dark:text-red-400">
-                  ⚠️ Functions URL project does not match Supabase URL project. Check your Lovable env vars.
-                </div>
-              )}
             </div>
           </div>
 
