@@ -129,13 +129,19 @@ export async function fetchBrand(sku: string): Promise<string> {
 
 // ── Categories ──────────────────────────────────────────────
 
-export async function fetchCategories(): Promise<CategoryLevel[]> {
-  // Always try the edge function - it uses server-side Supabase secrets
+/** Result wrapper that tracks whether data came from live Google Sheet */
+export interface CategoriesFetchResult {
+  categories: CategoryLevel[];
+  source: "google-sheets" | "apps-script" | "defaults";
+}
+
+export async function fetchCategoriesWithSource(): Promise<CategoriesFetchResult> {
+  // Always try the edge function first - it uses server-side Supabase secrets
   try {
     const data = await readGoogleSheets();
     if (!data.useDefaults && data.categories && data.categories.length > 0) {
       console.log("✓ Categories loaded from Google Sheets");
-      return data.categories;
+      return { categories: data.categories, source: "google-sheets" };
     }
     if (!data.useDefaults && (!data.categories || data.categories.length === 0)) {
       throw new Error("CATEGORIES tab is empty. Add category paths to the CATEGORIES sheet, starting at row 2.");
@@ -148,15 +154,22 @@ export async function fetchCategories(): Promise<CategoryLevel[]> {
   // Fallback to Apps Script or defaults
   if (!isConfigured()) {
     console.log("No Apps Script URL configured, using default category tree");
-    return categoryTree;
+    return { categories: categoryTree, source: "defaults" };
   }
   
   try {
-    return await apiFetch<CategoryLevel[]>("/categories");
+    const cats = await apiFetch<CategoryLevel[]>("/categories");
+    return { categories: cats, source: "apps-script" };
   } catch (error) {
     console.warn("Apps Script also failed, using defaults:", error);
-    return categoryTree;
+    return { categories: categoryTree, source: "defaults" };
   }
+}
+
+/** Legacy wrapper – still used by non-admin pages that just need categories */
+export async function fetchCategories(): Promise<CategoryLevel[]> {
+  const result = await fetchCategoriesWithSource();
+  return result.categories;
 }
 
 export async function updateCategories(

@@ -77,7 +77,8 @@ function isValidTabNames(tabNames: unknown): boolean {
   }
   if (typeof tabNames !== "object" || Array.isArray(tabNames)) return false;
   const obj = tabNames as Record<string, unknown>;
-  return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
+  // Allow empty strings (they'll fall back to defaults via resolveTabName)
+  return Object.values(obj).every((v) => typeof v === "string" && v.length < 255);
 }
 
 function parseServiceAccountKey(raw: string): ServiceAccountKey | null {
@@ -464,6 +465,94 @@ async function appendRow(token: string, sheetId: string, sheet: string, rowData:
   console.log("Row appended successfully");
 }
 
+// Helper: get the numeric sheet ID for a tab by name
+async function getSheetTabId(token: string, spreadsheetId: string, sheetName: string): Promise<number> {
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) throw new Error("Failed to get sheet metadata");
+  const metadata = (await res.json()) as any;
+  const sheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
+  if (!sheet) throw new Error(`Sheet tab "${sheetName}" not found`);
+  return sheet.properties.sheetId;
+}
+
+// Helper: delete a single row and shift everything below up
+async function deleteSheetRow(token: string, spreadsheetId: string, sheetName: string, rowNumber: number): Promise<void> {
+  const tabId = await getSheetTabId(token, spreadsheetId, sheetName);
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      requests: [{
+        deleteDimension: {
+          range: { sheetId: tabId, dimension: "ROWS", startIndex: rowNumber - 1, endIndex: rowNumber },
+        },
+      }],
+    }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to delete row ${rowNumber}: ${errText}`);
+  }
+}
+
+// Helper: insert a blank row at position, then write data into it
+async function insertSheetRow(token: string, spreadsheetId: string, sheetName: string, rowNumber: number, rowData: string[]): Promise<void> {
+  const tabId = await getSheetTabId(token, spreadsheetId, sheetName);
+  // Insert blank row
+  const insertRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      requests: [{
+        insertDimension: {
+          range: { sheetId: tabId, dimension: "ROWS", startIndex: rowNumber - 1, endIndex: rowNumber },
+          inheritFromBefore: false,
+        },
+      }],
+    }),
+  });
+  if (!insertRes.ok) {
+    const errText = await insertRes.text();
+    throw new Error(`Failed to insert row at ${rowNumber}: ${errText}`);
+  }
+
+  // Write data into the new row
+  const sanitizedData = rowData.map(sanitizeForFormulas);
+  const range = `${sheetName}!A${rowNumber}`;
+  const writeRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+    {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ values: [sanitizedData] }),
+    }
+  );
+  if (!writeRes.ok) {
+    const errText = await writeRes.text();
+    throw new Error(`Failed to write data to inserted row ${rowNumber}: ${errText}`);
+  }
+}
+
+// Helper: update a single cell value in place (no shifting)
+async function updateSheetCell(token: string, spreadsheetId: string, sheetName: string, rowNumber: number, col: string, value: string): Promise<void> {
+  const range = `${sheetName}!${col}${rowNumber}`;
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+    {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ values: [[sanitizeForFormulas(value)]] }),
+    }
+  );
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to update cell ${range}: ${errText}`);
+  }
+}
+
 async function readAllSheets(
   token: string,
   sheetId: string,
@@ -699,44 +788,61 @@ async function clearAndWriteCategories(
   categoryPaths: string[],
   categoriesTab: string
 ): Promise<void> {
-  // Clear existing data in CATEGORIES!A:A (keep header, delete data starting at row 2)
-  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${categoriesTab}!A2:A`)}:clear`;
-  const clearRes = await fetch(clearUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({}),
-  });
+  const sanitizedNewPaths = categoryPaths.map(sanitizeForFormulas);
 
-  if (!clearRes.ok) {
-    const errText = await clearRes.text();
-    throw new Error(`Failed to clear categories: ${errText}`);
+  // Read current state from sheet
+  const currentRows = await getSheetValues(token, sheetId, `${categoriesTab}!A:A`);
+  const currentPaths: string[] = [];
+  for (let i = 1; i < currentRows.length; i++) {
+    const val = (currentRows[i]?.[0] ?? "").toString().trim();
+    if (val) currentPaths.push(val);
   }
 
-  // Sanitize category paths to prevent formula injection
-  const sanitizedPaths = categoryPaths.map(sanitizeForFormulas);
+  const newSet = new Set(sanitizedNewPaths);
+  const currentSet = new Set(currentPaths);
 
-  // Write new category paths
-  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${categoriesTab}!A2`)}?valueInputOption=USER_ENTERED`;
-  const writeRes = await fetch(writeUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      values: sanitizedPaths.map((path) => [path]),
-    }),
+  // Detect what changed
+  const pathsToDelete: number[] = []; // row indices (0-based within data)
+  currentPaths.forEach((path, idx) => {
+    if (!newSet.has(path)) pathsToDelete.push(idx);
   });
 
-  if (!writeRes.ok) {
-    const errText = await writeRes.text();
-    throw new Error(`Failed to write categories: ${errText}`);
+  const pathsToAdd: string[] = [];
+  sanitizedNewPaths.forEach((path) => {
+    if (!currentSet.has(path)) pathsToAdd.push(path);
+  });
+
+  if (pathsToDelete.length === 0 && pathsToAdd.length === 0) {
+    console.log("No category changes detected");
+    return;
   }
 
-  console.log(`Successfully wrote ${sanitizedPaths.length} category paths to ${categoriesTab} tab`);
+  // Delete from bottom to top so row indices stay valid
+  let deletedCount = 0;
+  for (const dataIdx of pathsToDelete.sort((a, b) => b - a)) {
+    const sheetRow = dataIdx + 2; // +1 header, +1 for 1-based
+    await deleteSheetRow(token, sheetId, categoriesTab, sheetRow);
+    deletedCount++;
+    console.log(`Deleted category row ${sheetRow}: ${currentPaths[dataIdx]}`);
+  }
+
+  // After deletions, re-read to get accurate row count for inserts
+  if (pathsToAdd.length > 0) {
+    const updatedRows = await getSheetValues(token, sheetId, `${categoriesTab}!A:A`);
+    // Find last non-empty data row
+    let lastDataRow = 1; // header
+    for (let i = updatedRows.length - 1; i >= 1; i--) {
+      if ((updatedRows[i]?.[0] ?? "").toString().trim()) { lastDataRow = i + 1; break; }
+    }
+    // Insert new paths after the last data row
+    for (const path of pathsToAdd) {
+      lastDataRow++;
+      await insertSheetRow(token, sheetId, categoriesTab, lastDataRow, [path]);
+      console.log(`Inserted category at row ${lastDataRow}: ${path}`);
+    }
+  }
+
+  console.log(`Category sync: ${deletedCount} deleted, ${pathsToAdd.length} added`);
 }
 
 async function clearAndWriteBrands(
@@ -745,46 +851,59 @@ async function clearAndWriteBrands(
   brands: Array<{ brand: string; brandName: string; website: string }>,
   brandsTab: string
 ): Promise<void> {
-  // Clear existing data in BRANDS!A:C (keep header, delete data starting at row 2)
-  const clearUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2:C`)}:clear`;
-  const clearRes = await fetch(clearUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({}),
-  });
+  const sanitizedNew = brands.map((b) => ({
+    key: `${sanitizeForFormulas(b.brand)}|${sanitizeForFormulas(b.brandName)}|${sanitizeForFormulas(b.website)}`,
+    data: [sanitizeForFormulas(b.brand), sanitizeForFormulas(b.brandName), sanitizeForFormulas(b.website)],
+  }));
 
-  if (!clearRes.ok) {
-    const errText = await clearRes.text();
-    throw new Error(`Failed to clear brands: ${errText}`);
+  // Read current state from sheet
+  const currentRows = await getSheetValues(token, sheetId, `${brandsTab}!A:C`);
+  const currentBrands: Array<{ key: string; row: number }> = [];
+  for (let i = 1; i < currentRows.length; i++) {
+    const brand = (currentRows[i]?.[0] ?? "").toString().trim();
+    if (!brand) continue;
+    const brandName = (currentRows[i]?.[1] ?? "").toString().trim();
+    const website = (currentRows[i]?.[2] ?? "").toString().trim();
+    currentBrands.push({ key: `${brand}|${brandName}|${website}`, row: i + 1 });
   }
 
-  // Sanitize brand data to prevent formula injection
-  const sanitizedBrands = brands.map((brand) => [
-    sanitizeForFormulas(brand.brand),
-    sanitizeForFormulas(brand.brandName),
-    sanitizeForFormulas(brand.website),
-  ]);
+  const newKeySet = new Set(sanitizedNew.map((b) => b.key));
+  const currentKeySet = new Set(currentBrands.map((b) => b.key));
 
-  // Write new brands
-  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`${brandsTab}!A2`)}?valueInputOption=USER_ENTERED`;
-  const writeRes = await fetch(writeUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      values: sanitizedBrands,
-    }),
+  // Detect what changed
+  const rowsToDelete: number[] = [];
+  currentBrands.forEach((b) => {
+    if (!newKeySet.has(b.key)) rowsToDelete.push(b.row);
   });
 
-  if (!writeRes.ok) {
-    const errText = await writeRes.text();
-    throw new Error(`Failed to write brands: ${errText}`);
+  const brandsToAdd = sanitizedNew.filter((b) => !currentKeySet.has(b.key));
+
+  if (rowsToDelete.length === 0 && brandsToAdd.length === 0) {
+    console.log("No brand changes detected");
+    return;
   }
 
-  console.log(`Successfully wrote ${brands.length} brands to ${brandsTab} tab`);
+  // Delete from bottom to top
+  let deletedCount = 0;
+  for (const row of rowsToDelete.sort((a, b) => b - a)) {
+    await deleteSheetRow(token, sheetId, brandsTab, row);
+    deletedCount++;
+    console.log(`Deleted brand at row ${row}`);
+  }
+
+  // After deletions, re-read for accurate row count
+  if (brandsToAdd.length > 0) {
+    const updatedRows = await getSheetValues(token, sheetId, `${brandsTab}!A:C`);
+    let lastDataRow = 1;
+    for (let i = updatedRows.length - 1; i >= 1; i--) {
+      if ((updatedRows[i]?.[0] ?? "").toString().trim()) { lastDataRow = i + 1; break; }
+    }
+    for (const { data } of brandsToAdd) {
+      lastDataRow++;
+      await insertSheetRow(token, sheetId, brandsTab, lastDataRow, data);
+      console.log(`Inserted brand at row ${lastDataRow}: ${data[0]}`);
+    }
+  }
+
+  console.log(`Brand sync: ${deletedCount} deleted, ${brandsToAdd.length} added`);
 }

@@ -20,12 +20,13 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
-  fetchCategories,
+  fetchCategoriesWithSource,
   updateCategories,
   fetchProperties,
   fetchFilterRules,
   saveFilterRules,
   type FilterRule,
+  type CategoriesFetchResult,
 } from "@/lib/api";
 import { CategoryLevel, isLeaf, getAllLeafPaths } from "@/data/categoryData";
 import {
@@ -79,6 +80,7 @@ interface TreeEditorNodeProps {
   onAddChild: (path: string[], childName: string) => void;
   expandAllSignal: number;
   expandAllValue: boolean | null;
+  readOnly?: boolean;
 }
 
 function TreeEditorNode({
@@ -89,6 +91,7 @@ function TreeEditorNode({
   onAddChild,
   expandAllSignal,
   expandAllValue,
+  readOnly = false,
 }: TreeEditorNodeProps) {
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -135,7 +138,7 @@ function TreeEditorNode({
           <span className="w-3.5" />
         )}
 
-        {editing ? (
+        {editing && !readOnly ? (
           <div className="flex items-center gap-1 flex-1">
             <Input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="h-6 text-xs flex-1" autoFocus
               onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setEditing(false); }} />
@@ -145,17 +148,19 @@ function TreeEditorNode({
         ) : (
           <>
             <span className="text-sm flex-1 truncate">{node.name}</span>
-            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
-              <button type="button" onClick={() => { setEditValue(node.name); setEditing(true); }} title="Rename">
-                <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-              </button>
-              <button type="button" onClick={() => setAdding(true)} title="Add child">
-                <FolderPlus className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-              </button>
-              <button type="button" onClick={() => setDeleteOpen(true)} title="Delete">
-                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
+                <button type="button" onClick={() => { setEditValue(node.name); setEditing(true); }} title="Rename">
+                  <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                </button>
+                <button type="button" onClick={() => setAdding(true)} title="Add child">
+                  <FolderPlus className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                </button>
+                <button type="button" onClick={() => setDeleteOpen(true)} title="Delete">
+                  <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -175,7 +180,7 @@ function TreeEditorNode({
         </AlertDialogContent>
       </AlertDialog>
 
-      {adding && (
+      {adding && !readOnly && (
         <div className="flex items-center gap-1 py-1" style={{ paddingLeft: `${(path.length + 1) * 16 + 8}px` }}>
           <Input value={newChildName} onChange={(e) => setNewChildName(e.target.value)} placeholder="New category name…" className="h-6 text-xs flex-1" autoFocus
             onKeyDown={(e) => { if (e.key === "Enter") handleAddChild(); if (e.key === "Escape") setAdding(false); }} />
@@ -195,8 +200,7 @@ function TreeEditorNode({
               onDelete={onDelete}
               onAddChild={onAddChild}
               expandAllSignal={expandAllSignal}
-              expandAllValue={expandAllValue}
-            />
+              expandAllValue={expandAllValue}              readOnly={readOnly}            />
           ))}
         </div>
       )}
@@ -211,12 +215,16 @@ const Admin = () => {
   const queryClient = useQueryClient();
 
   // ── Categories ──
-  const { data: loadedTree = [], error: categoriesError, isLoading: categoriesLoading } = useQuery({
+  const { data: categoriesResult, error: categoriesError, isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
-    queryFn: fetchCategories,
+    queryFn: fetchCategoriesWithSource,
     staleTime: 60_000,
     retry: false,
   });
+
+  const loadedTree = categoriesResult?.categories ?? [];
+  const categoriesSource = categoriesResult?.source ?? "defaults";
+  const loadedFromSheet = categoriesSource === "google-sheets" || categoriesSource === "apps-script";
 
   const [tree, setTree] = useState<CategoryLevel[]>([]);
   const [dirty, setDirty] = useState(false);
@@ -224,6 +232,8 @@ const Admin = () => {
   const [newRootName, setNewRootName] = useState("");
   const [expandAllSignal, setExpandAllSignal] = useState(0);
   const [expandAllValue, setExpandAllValue] = useState<boolean | null>(null);
+  // Editing is locked until categories are successfully loaded from Google Sheet
+  const editingLocked = !loadedFromSheet || categoriesLoading || !!categoriesError;
 
   // Show error if categories failed to load
   useEffect(() => {
@@ -237,12 +247,35 @@ const Admin = () => {
     }
   }, [categoriesError, toast]);
 
+  // Warn if loaded from defaults (not from sheet)
+  useEffect(() => {
+    if (categoriesResult && !loadedFromSheet) {
+      toast({
+        variant: "destructive",
+        title: "⚠️ Categories NOT from Google Sheet",
+        description: "Categories loaded from local defaults. Saving is DISABLED to prevent overwriting real data. Fix your Google Sheets connection first.",
+      });
+    }
+  }, [categoriesResult, loadedFromSheet, toast]);
+
   useEffect(() => {
     if (loadedTree.length > 0 && !dirty) setTree(loadedTree);
   }, [loadedTree, dirty]);
 
   const saveMutation = useMutation({
-    mutationFn: () => updateCategories(treeToPaths(tree)),
+    mutationFn: async () => {
+      // SAFETY: Block saving if data did not come from Google Sheet
+      if (!loadedFromSheet) {
+        throw new Error("Cannot save: categories were not loaded from Google Sheet. Fix your connection and reload before saving.");
+      }
+      // SAFETY: Re-fetch current sheet data and verify before writing
+      const freshResult = await fetchCategoriesWithSource();
+      if (freshResult.source !== "google-sheets" && freshResult.source !== "apps-script") {
+        throw new Error("Cannot save: failed to verify current sheet data before writing. Try again later.");
+      }
+      // Proceed with the write
+      await updateCategories(treeToPaths(tree));
+    },
     onSuccess: () => {
       toast({ title: "Saved", description: "Categories updated." });
       setDirty(false);
@@ -254,6 +287,12 @@ const Admin = () => {
   });
 
   const modifyTree = (fn: (draft: CategoryLevel[]) => CategoryLevel[]) => {
+    // SAFETY: Never allow tree modification if not synced with sheet
+    if (editingLocked) {
+      console.error("Blocked tree modification: categories not synced with Google Sheet");
+      toast({ variant: "destructive", title: "Edit Blocked", description: "Cannot modify categories — not synced with Google Sheet." });
+      return;
+    }
     setTree((prev) => fn(JSON.parse(JSON.stringify(prev))));
     setDirty(true);
   };
@@ -667,6 +706,17 @@ const Admin = () => {
               <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">⏳ Loading categories from Google Sheet...</p>
             </div>
           )}
+          {!categoriesLoading && !categoriesError && loadedFromSheet && (
+            <div className="rounded-lg border border-green-300 bg-green-50 dark:bg-green-950 p-3">
+              <p className="text-xs font-semibold text-green-900 dark:text-green-100">✅ Synced with Google Sheet — editing enabled</p>
+            </div>
+          )}
+          {!categoriesLoading && !categoriesError && !loadedFromSheet && (
+            <div className="rounded-lg border border-orange-300 bg-orange-50 dark:bg-orange-950 p-3">
+              <p className="text-xs font-semibold text-orange-900 dark:text-orange-100">🔒 Read-only — categories loaded from local defaults, not Google Sheet</p>
+              <p className="text-xs text-orange-800 dark:text-orange-200 mt-1">All editing is disabled. Fix your Google Sheets connection and reload the page to enable editing.</p>
+            </div>
+          )}
           <div className="border border-border rounded-lg p-2 max-h-[500px] overflow-y-auto">
             {tree.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No categories loaded.</p>
@@ -681,30 +731,34 @@ const Admin = () => {
                   onAddChild={handleAddChild}
                   expandAllSignal={expandAllSignal}
                   expandAllValue={expandAllValue}
+                  readOnly={editingLocked}
                 />
               ))
             )}
           </div>
 
-          {addingRoot ? (
+          {!editingLocked && addingRoot ? (
             <div className="flex items-center gap-2">
               <Input value={newRootName} onChange={(e) => setNewRootName(e.target.value)} placeholder="New root category…" className="h-8 text-sm flex-1 max-w-sm" autoFocus
                 onKeyDown={(e) => { if (e.key === "Enter") handleAddRoot(); if (e.key === "Escape") setAddingRoot(false); }} />
               <Button type="button" size="sm" className="h-8" onClick={handleAddRoot}><Check className="h-3.5 w-3.5 mr-1" /> Add</Button>
               <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => setAddingRoot(false)}>Cancel</Button>
             </div>
-          ) : (
+          ) : !editingLocked ? (
             <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setAddingRoot(true)}>
               <Plus className="h-3.5 w-3.5 mr-1" /> Add Root Category
             </Button>
-          )}
+          ) : null}
 
           <div className="flex items-center gap-3 pt-2 border-t border-border">
-            <Button type="button" disabled={!dirty || saveMutation.isPending} onClick={() => saveMutation.mutate()} className="h-9">
+            <Button type="button" disabled={!dirty || saveMutation.isPending || editingLocked} onClick={() => saveMutation.mutate()} className="h-9">
               {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
               Save Changes
             </Button>
-            {dirty && <p className="text-xs text-warning">Unsaved changes</p>}
+            {dirty && !editingLocked && <p className="text-xs text-warning">Unsaved changes</p>}
+            {editingLocked && (
+              <p className="text-xs text-destructive font-semibold">🔒 Editing & saving disabled — not synced with Google Sheet</p>
+            )}
           </div>
         </div>
       </FormSection>
