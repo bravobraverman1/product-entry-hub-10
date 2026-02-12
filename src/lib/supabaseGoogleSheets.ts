@@ -118,11 +118,40 @@ export function isSupabaseGoogleSheetsConfigured(): boolean {
 }
 
 /**
- * Calls the Supabase Edge Function to read data from Google Sheets
- * Uses ONLY server-side Supabase secrets (GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_SHEET_ID)
- * No credentials are sent from the browser
+ * Calls the Supabase Edge Function to read data from Google Sheets.
+ * Results are cached for 30 seconds so multiple React Query hooks
+ * (categories, brands, properties, etc.) share ONE edge-function call
+ * instead of each triggering a separate round-trip.
  */
+let _readCache: { data: GoogleSheetsReadResponse; ts: number } | null = null;
+let _readInflight: Promise<GoogleSheetsReadResponse> | null = null;
+const READ_CACHE_TTL = 30_000; // 30 seconds
+
 export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
+  // Return cached result if still fresh
+  if (_readCache && Date.now() - _readCache.ts < READ_CACHE_TTL) {
+    return _readCache.data;
+  }
+
+  // Deduplicate concurrent in-flight requests
+  if (_readInflight) return _readInflight;
+
+  _readInflight = _readGoogleSheetsImpl();
+  try {
+    const result = await _readInflight;
+    _readCache = { data: result, ts: Date.now() };
+    return result;
+  } finally {
+    _readInflight = null;
+  }
+}
+
+/** Force-clear the read cache (call after writes so the next read is fresh) */
+export function invalidateReadCache(): void {
+  _readCache = null;
+}
+
+async function _readGoogleSheetsImpl(): Promise<GoogleSheetsReadResponse> {
   try {
     const requestBody: any = {
       action: "read",
@@ -171,6 +200,8 @@ export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
   } catch (error) {
     console.error("Exception writing to google-sheets function:", error);
     return false;
+  } finally {
+    invalidateReadCache();
   }
 }
 /**
@@ -210,6 +241,8 @@ export async function writeCategoriesToGoogleSheets(
     throw error instanceof Error
       ? error
       : new Error("Failed to write categories to Google Sheets");
+  } finally {
+    invalidateReadCache();
   }
 }
 
@@ -250,6 +283,8 @@ export async function writeBrandsToGoogleSheets(
     throw error instanceof Error
       ? error
       : new Error("Failed to write brands to Google Sheets");
+  } finally {
+    invalidateReadCache();
   }
 }
 
@@ -284,5 +319,7 @@ export async function writeLegalValueToGoogleSheets(
   } catch (error) {
     console.error("Exception writing legal value to google-sheets function:", error);
     return false;
+  } finally {
+    invalidateReadCache();
   }
 }

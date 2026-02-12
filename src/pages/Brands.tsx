@@ -24,7 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Brands = () => {
   const { toast } = useToast();
@@ -117,29 +116,6 @@ const Brands = () => {
 
   return (
     <div className="space-y-6">
-      {/* Sync Status Banner */}
-      {!isLoading && (
-        editingLocked ? (
-          <Alert className="border-orange-300 bg-orange-50">
-            <AlertDescription className="text-orange-800 text-sm">
-              {brandsError
-                ? `\u26a0\ufe0f Error loading brands: ${brandsError instanceof Error ? brandsError.message : "Unknown error"}. Editing disabled.`
-                : brandsSource === "defaults"
-                ? "\ud83d\udd12 Brands loaded from defaults (Google Sheet not connected). Editing disabled to prevent data loss."
-                : brandsSource === "apps-script"
-                ? "\ud83d\udd12 Brands loaded from Apps Script fallback. Editing disabled \u2014 connect via Google Sheets for full access."
-                : "\ud83d\udd12 Loading..."}
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Alert className="border-green-300 bg-green-50">
-            <AlertDescription className="text-green-800 text-sm">
-              \u2705 Brands synced from Google Sheet. Editing enabled.
-            </AlertDescription>
-          </Alert>
-        )
-      )}
-
       <FormSection title="Brand List" defaultOpen>
         <div className="space-y-3">
           {isLoading ? (
