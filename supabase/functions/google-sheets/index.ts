@@ -316,8 +316,8 @@ serve(async (req) => {
 
 async function getAccessToken(keyData: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claim = btoa(
+  const header = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = base64UrlEncode(
     JSON.stringify({
       iss: keyData.client_email,
       scope: "https://www.googleapis.com/auth/spreadsheets",
@@ -343,6 +343,13 @@ async function getAccessToken(keyData: any): Promise<string> {
     throw new Error(`Failed to get access token: ${JSON.stringify(tokenData)}`);
   }
   return tokenData.access_token;
+}
+
+function base64UrlEncode(value: string): string {
+  return btoa(value)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 async function importPrivateKey(pem: string) {
