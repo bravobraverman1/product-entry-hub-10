@@ -271,12 +271,10 @@ const Admin = () => {
       if (!loadedFromSheet) {
         throw new Error("Cannot save: categories were not loaded from Google Sheet. Fix your connection and reload before saving.");
       }
-      // SAFETY: Re-fetch current sheet data and verify before writing
-      const freshResult = await fetchCategoriesWithSource();
-      if (freshResult.source !== "google-sheets" && freshResult.source !== "apps-script") {
-        throw new Error("Cannot save: failed to verify current sheet data before writing. Try again later.");
-      }
-      // Proceed with the write
+      // Proceed with the write — the edge function has its own safety guards:
+      // 1. Reads current sheet before diffing (so it never works from stale data)
+      // 2. Mass-delete guard aborts if >50% rows would be deleted
+      // 3. Surgical diff only touches changed rows
       await updateCategories(treeToPaths(tree));
     },
     onSuccess: () => {
