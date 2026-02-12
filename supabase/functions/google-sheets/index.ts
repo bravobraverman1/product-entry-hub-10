@@ -133,12 +133,16 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+    // Allow anon key without JWT claims (Supabase client sends anon key when no session exists)
+    if (token !== SUPABASE_ANON_KEY) {
+      const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(
+          JSON.stringify({ error: "Invalid or expired token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // SECURITY: Only use server-side secrets from Deno.env, never from request body
