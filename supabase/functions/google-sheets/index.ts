@@ -98,7 +98,8 @@ function parseServiceAccountKey(raw: string): ServiceAccountKey | null {
 
 function normalizePrivateKey(key: string | undefined): string | undefined {
   if (!key) return key;
-  return key.includes("\\n") ? key.replace(/\\n/g, "\n") : key;
+  const normalized = key.includes("\\n") ? key.replace(/\\n/g, "\n") : key;
+  return normalized.replace(/\r/g, "").trim();
 }
 
 serve(async (req) => {
@@ -316,8 +317,8 @@ serve(async (req) => {
 
 async function getAccessToken(keyData: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const header = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claim = base64UrlEncode(
+  const header = base64UrlEncodeUtf8(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = base64UrlEncodeUtf8(
     JSON.stringify({
       iss: keyData.client_email,
       scope: "https://www.googleapis.com/auth/spreadsheets",
@@ -340,13 +341,24 @@ async function getAccessToken(keyData: any): Promise<string> {
 
   const tokenData = await tokenRes.json();
   if (!tokenData.access_token) {
-    throw new Error(`Failed to get access token: ${JSON.stringify(tokenData)}`);
+    const raw = JSON.stringify(tokenData);
+    if (tokenData?.error === "invalid_grant" && String(tokenData?.error_description || "").includes("Invalid JWT Signature")) {
+      throw new Error(
+        "Invalid service account key. The private key does not match the client_email or the key is malformed. Recreate the JSON key and update GOOGLE_SERVICE_ACCOUNT_KEY, then redeploy."
+      );
+    }
+    throw new Error(`Failed to get access token: ${raw}`);
   }
   return tokenData.access_token;
 }
 
-function base64UrlEncode(value: string): string {
-  return btoa(value)
+function base64UrlEncodeUtf8(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
@@ -356,7 +368,7 @@ async function importPrivateKey(pem: string) {
   const pemContents = pem
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\n/g, "");
+    .replace(/\s+/g, "");
 
   const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
 
