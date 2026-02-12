@@ -309,68 +309,7 @@ const Admin = () => {
     setTabValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const triggerGitHubRedeploy = async () => {
-    try {
-      // Attempt to trigger GitHub Actions workflow via API
-      const githubToken = import.meta.env.VITE_GITHUB_TOKEN;
-      
-      if (!githubToken) {
-        // No token available - show link to manual trigger
-        toast({
-          title: "Redeploy Needed",
-          description: "Opening GitHub Actions to manually trigger redeploy...",
-        });
-        window.open(
-          `${GITHUB_REPO_URL}/actions/workflows/deploy-google-sheets.yml`,
-          "_blank"
-        );
-        return;
-      }
-
-      // Trigger workflow via GitHub API
-      const response = await fetch(
-        `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/actions/workflows/deploy-google-sheets.yml/dispatches`,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/vnd.github.v3+json",
-            Authorization: `token ${githubToken}`,
-          },
-          body: JSON.stringify({ ref: "main" }),
-        }
-      );
-
-      if (response.ok) {
-        toast({
-          title: "Redeploy Triggered!",
-          description: "GitHub Actions workflow is running. Check Actions tab for progress.",
-        });
-      } else if (response.status === 404 || response.status === 401) {
-        // Token invalid or workflow not found - open manual link
-        toast({
-          title: "Redeploy Needed",
-          description: "Opening GitHub Actions to manually trigger redeploy...",
-        });
-        window.open(
-          `${GITHUB_REPO_URL}/actions/workflows/deploy-google-sheets.yml`,
-          "_blank"
-        );
-      }
-    } catch (error) {
-      // Fallback to manual trigger link
-      console.error("Failed to trigger redeploy:", error);
-      toast({
-        title: "Opening GitHub Actions",
-        description: "Please manually trigger the Deploy Google Sheets Connection workflow.",
-      });
-      window.open(
-        `${GITHUB_REPO_URL}/actions/workflows/deploy-google-sheets.yml`,
-        "_blank"
-      );
-    }
-  };
-
-  const saveTabNames = async () => {
+  const saveTabNames = () => {
     for (const [key, value] of Object.entries(tabValues)) {
       setSheetTabName(key, value);
     }
@@ -379,10 +318,7 @@ const Admin = () => {
     queryClient.invalidateQueries({ queryKey: ["categories"] });
     queryClient.invalidateQueries({ queryKey: ["properties"] });
     queryClient.invalidateQueries({ queryKey: ["recent-submissions"] });
-    toast({ title: "Synced!", description: "Sheet tab names saved and refreshing from Google Sheets..." });
-    
-    // Trigger redeploy
-    await triggerGitHubRedeploy();
+    toast({ title: "Synced!", description: "Sheet tab names saved and all data refreshed from Google Sheets." });
   };
 
   // ── Connection Settings ──
