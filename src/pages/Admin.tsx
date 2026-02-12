@@ -327,6 +327,9 @@ const Admin = () => {
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     import.meta.env.VITE_SUPABASE_ANON_KEY ||
     "";
+  const supabaseFunctionsUrl =
+    import.meta.env.VITE_SUPABASE_FUNCTIONS_URL ||
+    (supabaseUrl ? `${supabaseUrl}/functions/v1` : "");
   
   // Regex pattern for validating and extracting project ref from Supabase URL
   const SUPABASE_URL_PATTERN = /https:\/\/([a-z0-9-]+)\.supabase\.co/i;
@@ -334,6 +337,8 @@ const Admin = () => {
   
   // Validate if URL is a proper Supabase URL
   const isValidSupabaseUrl = SUPABASE_URL_PATTERN.test(supabaseUrl);
+  const isFunctionsUrlMatch =
+    !!supabaseFunctionsUrl && !!supabaseUrl && supabaseFunctionsUrl.startsWith(supabaseUrl);
   
   const [pdfUrl, setPdfUrl] = useState(getConfigValue("INSTRUCTIONS_PDF_URL", "/chatgpt-product-instructions.pdf"));
   const [driveFolderId, setDriveFolderId] = useState(getConfigValue("DRIVE_CSV_FOLDER_ID", ""));
@@ -480,6 +485,19 @@ const Admin = () => {
                   {supabaseAnonKey ? "✓ Detected" : "NOT CONFIGURED"}
                 </span>
               </div>
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-32 shrink-0">Functions URL:</span>
+                <span className={`text-xs break-all ${isFunctionsUrlMatch ? "text-foreground" : "text-red-600 dark:text-red-400"}`}>
+                  {supabaseFunctionsUrl || "NOT CONFIGURED"}
+                </span>
+              </div>
+              {!isFunctionsUrlMatch && supabaseFunctionsUrl && supabaseUrl && (
+                <div className="text-xs text-red-600 dark:text-red-400">
+                  ⚠️ Functions URL does not match Supabase URL. Set VITE_SUPABASE_FUNCTIONS_URL to
+                  {" "}
+                  <span className="font-mono break-all">{`${supabaseUrl}/functions/v1`}</span>
+                </div>
+              )}
             </div>
           </div>
 
