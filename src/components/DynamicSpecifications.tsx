@@ -185,7 +185,9 @@ export function DynamicSpecifications({
       if (matchedKeyword) {
         // Find corresponding filter default
         const filterDefault = filterDefaultMap.find((f) => f.name === matchedKeyword.filterDefault);
-        if (filterDefault && filterDefault.allowedProperties.length > 0) {
+        // Only filter if we found a filter default with allowed properties
+        // Otherwise, show all properties (no filter applied)
+        if (filterDefault && filterDefault.allowedProperties && filterDefault.allowedProperties.length > 0) {
           // Only show properties that are in the allowed list
           filteredProperties = properties.filter((p) =>
             filterDefault.allowedProperties.some(
@@ -193,6 +195,7 @@ export function DynamicSpecifications({
             )
           );
         }
+        // If no filterDefault found or allowedProperties is empty, show all properties
       }
     }
 
