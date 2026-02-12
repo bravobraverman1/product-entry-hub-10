@@ -37,6 +37,7 @@ import {
   setSheetTabName,
 } from "@/config";
 import type { LegalValue } from "@/data/defaultProperties";
+import { invokeGoogleSheetsFunction } from "@/lib/supabaseGoogleSheets";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +48,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
 
 // GitHub repository configuration
 const GITHUB_REPO_OWNER = "bravobraverman1";
@@ -343,12 +343,12 @@ const Admin = () => {
     setTestingConnection(true);
     try {
       // Test the edge function connection (credentials should be in Supabase secrets)
-      const { data, error } = await supabase.functions.invoke("google-sheets", {
-        body: {
-          action: "read"
+      const { data, error } = await invokeGoogleSheetsFunction<{ useDefaults?: boolean; products?: unknown[]; categoryPathCount?: number }>(
+        {
+          action: "read",
           // No credentials in request - should use environment variables
-        },
-      });
+        }
+      );
 
       if (error) {
         // Provide specific error messages based on error type

@@ -4,7 +4,6 @@
 // using server-side Supabase secrets (never stored in the browser).
 // ============================================================
 
-import { supabase } from "@/integrations/supabase/client";
 import { config } from "@/config";
 import type { CategoryLevel } from "@/data/categoryData";
 import type { PropertyDefinition, LegalValue } from "@/data/defaultProperties";
@@ -49,6 +48,16 @@ interface SheetTabNamesPayload {
   BRANDS: string;
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+const SUPABASE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  "";
+
+const FUNCTIONS_BASE_URL =
+  import.meta.env.VITE_SUPABASE_FUNCTIONS_URL ||
+  (SUPABASE_URL ? `${SUPABASE_URL}/functions/v1` : "");
+
 function getSheetTabNamesPayload(): SheetTabNamesPayload {
   return {
     PRODUCTS: config.SHEET_PRODUCTS,
@@ -59,6 +68,44 @@ function getSheetTabNamesPayload(): SheetTabNamesPayload {
     RESPONSES: config.SHEET_OUTPUT,
     BRANDS: config.SHEET_BRANDS,
   };
+}
+
+export async function invokeGoogleSheetsFunction<T>(body: Record<string, unknown>) {
+  if (!FUNCTIONS_BASE_URL || !SUPABASE_KEY) {
+    return {
+      data: null as T | null,
+      error: new Error(
+        "Supabase environment variables are not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY."
+      ),
+    };
+  }
+
+  const res = await fetch(`${FUNCTIONS_BASE_URL}/google-sheets`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await res.text();
+  let parsed: any = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = text;
+  }
+
+  if (!res.ok) {
+    return {
+      data: parsed as T | null,
+      error: new Error(`Edge function returned ${res.status}: ${parsed?.error || text}`),
+    };
+  }
+
+  return { data: parsed as T, error: null as Error | null };
 }
 
 /**
@@ -82,16 +129,7 @@ export async function readGoogleSheets(): Promise<GoogleSheetsReadResponse> {
       tabNames: getSheetTabNamesPayload(),
     };
 
-    // Get the current session for authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : undefined;
-
-    const { data, error } = await supabase.functions.invoke("google-sheets", {
-      body: requestBody,
-      headers,
-    });
+    const { data, error } = await invokeGoogleSheetsFunction<GoogleSheetsReadResponse>(requestBody);
 
     if (error) {
       console.error("Error calling google-sheets function:", error);
@@ -122,16 +160,7 @@ export async function writeToGoogleSheets(rowData: string[]): Promise<boolean> {
       tabNames: getSheetTabNamesPayload(),
     };
 
-    // Get the current session for authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : undefined;
-
-    const { data, error } = await supabase.functions.invoke("google-sheets", {
-      body: requestBody,
-      headers,
-    });
+    const { data, error } = await invokeGoogleSheetsFunction<{ success?: boolean }>(requestBody);
 
     if (error) {
       console.error("Error writing to google-sheets function:", error);
@@ -158,16 +187,7 @@ export async function writeCategoriesToGoogleSheets(
       tabNames: getSheetTabNamesPayload(),
     };
 
-    // Get the current session for authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : undefined;
-
-    const { data, error } = await supabase.functions.invoke("google-sheets", {
-      body: requestBody,
-      headers,
-    });
+    const { data, error } = await invokeGoogleSheetsFunction<{ success?: boolean; error?: string; useDefaults?: boolean }>(requestBody);
 
     if (error) {
       console.error("Error writing categories to google-sheets function:", error);
@@ -207,16 +227,7 @@ export async function writeBrandsToGoogleSheets(
       tabNames: getSheetTabNamesPayload(),
     };
 
-    // Get the current session for authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : undefined;
-
-    const { data, error } = await supabase.functions.invoke("google-sheets", {
-      body: requestBody,
-      headers,
-    });
+    const { data, error } = await invokeGoogleSheetsFunction<{ success?: boolean; error?: string; useDefaults?: boolean }>(requestBody);
 
     if (error) {
       console.error("Error writing brands to google-sheets function:", error);
@@ -257,16 +268,7 @@ export async function writeLegalValueToGoogleSheets(
       tabNames: getSheetTabNamesPayload(),
     };
 
-    // Get the current session for authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : undefined;
-
-    const { data, error } = await supabase.functions.invoke("google-sheets", {
-      body: requestBody,
-      headers,
-    });
+    const { data, error } = await invokeGoogleSheetsFunction<{ success?: boolean; error?: string; useDefaults?: boolean }>(requestBody);
 
     if (error) {
       console.error("Error writing legal value to google-sheets function:", error);
