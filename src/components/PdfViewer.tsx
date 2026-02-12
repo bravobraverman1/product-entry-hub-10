@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ZoomIn, ZoomOut } from "lucide-react";
 
 declare global {
@@ -168,27 +169,39 @@ export function PdfViewer({
     dragStart.current = null;
   }, []);
 
+  const clampZoom = useCallback((value: number) => Math.max(50, Math.min(300, Math.round(value))), []);
+
   // Zoom with center-point preservation
-  const handleZoom = useCallback((delta: number) => {
-    setZoom(prev => {
-      const next = Math.max(50, Math.min(300, prev + delta));
+  const applyZoom = useCallback((nextZoom: number) => {
+    setZoom((prev) => {
+      const next = clampZoom(nextZoom);
       const sc = scrollContainerRef.current;
       if (sc && prev !== next) {
+        const prevScale = prev / 100;
+        const nextScale = next / 100;
         // Calculate the center point of the visible area
         const centerX = sc.scrollLeft + sc.clientWidth / 2;
         const centerY = sc.scrollTop + sc.clientHeight / 2;
-        // Ratio of center within current scroll content
-        const ratioX = sc.scrollWidth > 0 ? centerX / sc.scrollWidth : 0.5;
-        const ratioY = sc.scrollHeight > 0 ? centerY / sc.scrollHeight : 0.5;
+        // Convert the visible center to content coordinates
+        const contentX = prevScale > 0 ? centerX / prevScale : centerX;
+        const contentY = prevScale > 0 ? centerY / prevScale : centerY;
         requestAnimationFrame(() => {
-          // After scale change, restore so same content point is centered
-          sc.scrollLeft = ratioX * sc.scrollWidth - sc.clientWidth / 2;
-          sc.scrollTop = ratioY * sc.scrollHeight - sc.clientHeight / 2;
+          // After scale change, restore so the same content point is centered
+          const targetLeft = contentX * nextScale - sc.clientWidth / 2;
+          const targetTop = contentY * nextScale - sc.clientHeight / 2;
+          const maxLeft = Math.max(0, sc.scrollWidth - sc.clientWidth);
+          const maxTop = Math.max(0, sc.scrollHeight - sc.clientHeight);
+          sc.scrollLeft = Math.max(0, Math.min(targetLeft, maxLeft));
+          sc.scrollTop = Math.max(0, Math.min(targetTop, maxTop));
         });
       }
       return next;
     });
-  }, []);
+  }, [clampZoom]);
+
+  const handleZoom = useCallback((delta: number) => {
+    applyZoom(zoom + delta);
+  }, [applyZoom, zoom]);
 
   // Pinch-to-zoom via wheel
   useEffect(() => {
@@ -248,11 +261,28 @@ export function PdfViewer({
               </button>
             </div>
           )}
-          <span className="text-[10px] text-muted-foreground tabular-nums w-8 text-center">{zoom}%</span>
           <div className="flex items-center gap-1">
             <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => handleZoom(-10)}>
               <ZoomOut className="h-3.5 w-3.5" />
             </Button>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={zoom}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^\d]/g, "");
+                if (val === "") {
+                  setZoom(100);
+                } else {
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num)) {
+                    applyZoom(num);
+                  }
+                }
+              }}
+              className="h-7 w-14 px-2 text-center text-xs tabular-nums"
+            />
+            <span className="text-[10px] text-muted-foreground">%</span>
             <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => handleZoom(10)}>
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
