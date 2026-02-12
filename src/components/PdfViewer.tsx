@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -225,11 +225,16 @@ export function PdfViewer({
   }, [applyZoom, zoom]);
 
   const handleZoomInputChange = useCallback((value: string) => {
+    // Strip all non-digits (including %)
     const cleaned = value.replace(/[^\d]/g, "");
-    setZoomInput(cleaned);
+    setZoomInput(cleaned || "");
   }, []);
 
   const handleZoomInputCommit = useCallback(() => {
+    if (zoomInput === "") {
+      setZoomInput(zoom.toString());
+      return;
+    }
     const num = parseInt(zoomInput, 10);
     if (!isNaN(num) && num > 0) {
       applyZoom(num);
@@ -269,16 +274,21 @@ export function PdfViewer({
         </span>
         <div className="flex items-center gap-2">
           {hasDatasheet && hasWebsite && (
-            <div clas`${zoomInput}%`}
-              onChange={(e) => handleZoomInputChange(e.target.value)}
-              onBlur={handleZoomInputCommit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.currentTarget.blur();
-                }
-              }}
-              className="h-7 w-16 px-2 text-center text-xs tabular-nums"
-            /
+            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-background/70 p-0.5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => handleViewSwitch("datasheet")}
+                className={cn(
+                  "px-3 py-1 text-[11px] rounded-full transition-colors",
+                  pdfView === "datasheet"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Datasheet
+              </button>
+              <button
+                type="button"
                 onClick={() => handleViewSwitch("website")}
                 className={cn(
                   "px-3 py-1 text-[11px] rounded-full transition-colors",
@@ -295,24 +305,24 @@ export function PdfViewer({
             <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => handleZoom(-10)}>
               <ZoomOut className="h-3.5 w-3.5" />
             </Button>
-            <Input
-              type="text"
-              inputMode="numeric"
-              value={zoom}
-              onChange={(e) => {
-                const val = e.target.value.replace(/[^\d]/g, "");
-                if (val === "") {
-                  setZoom(100);
-                } else {
-                  const num = parseInt(val, 10);
-                  if (!isNaN(num)) {
-                    applyZoom(num);
+            <div className="relative">
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={zoomInput}
+                onChange={(e) => handleZoomInputChange(e.target.value)}
+                onBlur={handleZoomInputCommit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.currentTarget.blur();
                   }
-                }
-              }}
-              className="h-7 w-14 px-2 text-center text-xs tabular-nums"
-            />
-            <span className="text-[10px] text-muted-foreground">%</span>
+                }}
+                className="h-7 w-16 pl-2 pr-5 text-center text-xs tabular-nums"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
+                %
+              </span>
+            </div>
             <Button type="button" variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => handleZoom(10)}>
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
