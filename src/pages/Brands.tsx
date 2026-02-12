@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import {
 import { FormSection } from "@/components/FormSection";
 import { Plus, Pencil, Trash2, Check, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { fetchBrands, saveBrands, type BrandEntry } from "@/lib/api";
+import { fetchBrandsWithSource, saveBrands, type BrandEntry, type BrandFetchResult } from "@/lib/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,16 +24,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Brands = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: brands = [], isLoading } = useQuery<BrandEntry[]>({
-    queryKey: ["brands"],
-    queryFn: fetchBrands,
+  const {
+    data: brandsResult,
+    isLoading,
+    error: brandsError,
+  } = useQuery<BrandFetchResult>({
+    queryKey: ["brands-with-source"],
+    queryFn: fetchBrandsWithSource,
     staleTime: 60_000,
   });
+
+  const brands = useMemo(() => brandsResult?.brands ?? [], [brandsResult]);
+  const brandsSource = brandsResult?.source;
+  const loadedFromSheet = brandsSource === "google-sheets";
+
+  // Editing is locked unless brands were loaded from the actual Google Sheet
+  const editingLocked = !loadedFromSheet || isLoading || !!brandsError;
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editBrand, setEditBrand] = useState("");
@@ -46,17 +58,24 @@ const Brands = () => {
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const saveMutation = useMutation({
-    mutationFn: (updated: BrandEntry[]) => saveBrands(updated),
+    mutationFn: (updated: BrandEntry[]) => {
+      if (!loadedFromSheet) {
+        throw new Error("Cannot save: brands not loaded from Google Sheet");
+      }
+      return saveBrands(updated);
+    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands-with-source"] });
       queryClient.invalidateQueries({ queryKey: ["brands"] });
       toast({ title: "Saved", description: "Brands updated." });
     },
-    onError: () => {
-      toast({ variant: "destructive", title: "Error", description: "Failed to save brands." });
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to save brands." });
     },
   });
 
   const handleStartEdit = (index: number) => {
+    if (editingLocked) return;
     setEditingIndex(index);
     setEditBrand(brands[index].brand);
     setEditBrandName(brands[index].brandName);
@@ -64,7 +83,7 @@ const Brands = () => {
   };
 
   const handleSaveEdit = () => {
-    if (editingIndex === null || !editBrand.trim()) return;
+    if (editingIndex === null || !editBrand.trim() || editingLocked) return;
     const updated = [...brands];
     updated[editingIndex] = { 
       brand: editBrand.trim(), 
@@ -76,7 +95,7 @@ const Brands = () => {
   };
 
   const handleAdd = () => {
-    if (!newBrand.trim()) return;
+    if (!newBrand.trim() || editingLocked) return;
     const updated = [...brands, { 
       brand: newBrand.trim(), 
       brandName: newBrandName.trim(),
@@ -90,14 +109,37 @@ const Brands = () => {
   };
 
   const handleDelete = useCallback(() => {
-    if (deleteIndex === null) return;
+    if (deleteIndex === null || editingLocked) return;
     const updated = brands.filter((_, i) => i !== deleteIndex);
     saveMutation.mutate(updated);
     setDeleteIndex(null);
-  }, [deleteIndex, brands, saveMutation]);
+  }, [deleteIndex, brands, saveMutation, editingLocked]);
 
   return (
     <div className="space-y-6">
+      {/* Sync Status Banner */}
+      {!isLoading && (
+        editingLocked ? (
+          <Alert className="border-orange-300 bg-orange-50">
+            <AlertDescription className="text-orange-800 text-sm">
+              {brandsError
+                ? `\u26a0\ufe0f Error loading brands: ${brandsError instanceof Error ? brandsError.message : "Unknown error"}. Editing disabled.`
+                : brandsSource === "defaults"
+                ? "\ud83d\udd12 Brands loaded from defaults (Google Sheet not connected). Editing disabled to prevent data loss."
+                : brandsSource === "apps-script"
+                ? "\ud83d\udd12 Brands loaded from Apps Script fallback. Editing disabled \u2014 connect via Google Sheets for full access."
+                : "\ud83d\udd12 Loading..."}
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="border-green-300 bg-green-50">
+            <AlertDescription className="text-green-800 text-sm">
+              \u2705 Brands synced from Google Sheet. Editing enabled.
+            </AlertDescription>
+          </Alert>
+        )
+      )}
+
       <FormSection title="Brand List" defaultOpen>
         <div className="space-y-3">
           {isLoading ? (
@@ -159,12 +201,16 @@ const Brands = () => {
                             </a>
                           </TableCell>
                           <TableCell className="text-right space-x-1">
-                            <Button type="button" variant="ghost" size="sm" className="h-7" onClick={() => handleStartEdit(i)}>
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="sm" className="h-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteIndex(i)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            {!editingLocked && (
+                              <>
+                                <Button type="button" variant="ghost" size="sm" className="h-7" onClick={() => handleStartEdit(i)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button type="button" variant="ghost" size="sm" className="h-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteIndex(i)}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </>
+                            )}
                           </TableCell>
                         </>
                       )}
@@ -182,7 +228,7 @@ const Brands = () => {
             </div>
           )}
 
-          {adding ? (
+          {adding && !editingLocked ? (
             <div className="flex items-center gap-2">
               <Input
                 value={newBrand}
@@ -210,11 +256,11 @@ const Brands = () => {
                 Cancel
               </Button>
             </div>
-          ) : (
+          ) : !editingLocked ? (
             <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setAdding(true)}>
               <Plus className="h-3.5 w-3.5 mr-1" /> Add Brand
             </Button>
-          )}
+          ) : null}
         </div>
       </FormSection>
 
