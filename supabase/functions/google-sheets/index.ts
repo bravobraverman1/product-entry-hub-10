@@ -457,6 +457,135 @@ async function appendRow(token: string, sheetId: string, sheet: string, rowData:
   console.log("Row appended successfully");
 }
 
+async function deleteSheetRow(
+  token: string,
+  sheetId: string,
+  sheetName: string,
+  rowNumber: number
+): Promise<void> {
+  // Get sheet ID by name
+  const sheetsRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (!sheetsRes.ok) {
+    throw new Error("Failed to get sheet metadata");
+  }
+
+  const metadata = (await sheetsRes.json()) as any;
+  const sheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
+  if (!sheet) {
+    throw new Error(`Sheet "${sheetName}" not found`);
+  }
+
+  const sheetId_num = sheet.properties.sheetId;
+
+  // Delete row using batchUpdate
+  const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`;
+  const batchRes = await fetch(batchUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requests: [
+        {
+          deleteDimension: {
+            range: {
+              sheetId: sheetId_num,
+              dimension: "ROWS",
+              startIndex: rowNumber - 1, // 0-based
+              endIndex: rowNumber, // exclusive
+            },
+          },
+        },
+      ],
+    }),
+  });
+
+  if (!batchRes.ok) {
+    const errText = await batchRes.text();
+    throw new Error(`Failed to delete row ${rowNumber}: ${errText}`);
+  }
+}
+
+async function insertSheetRow(
+  token: string,
+  sheetId: string,
+  sheetName: string,
+  rowNumber: number,
+  rowData: string[]
+): Promise<void> {
+  // Get sheet ID by name
+  const sheetsRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (!sheetsRes.ok) {
+    throw new Error("Failed to get sheet metadata");
+  }
+
+  const metadata = (await sheetsRes.json()) as any;
+  const sheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
+  if (!sheet) {
+    throw new Error(`Sheet "${sheetName}" not found`);
+  }
+
+  const sheetId_num = sheet.properties.sheetId;
+
+  // Insert row using batchUpdate
+  const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`;
+  const batchRes = await fetch(batchUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requests: [
+        {
+          insertDimension: {
+            range: {
+              sheetId: sheetId_num,
+              dimension: "ROWS",
+              startIndex: rowNumber - 1, // 0-based
+              endIndex: rowNumber, // exclusive
+            },
+            inheritFromBefore: false,
+          },
+        },
+      ],
+    }),
+  });
+
+  if (!batchRes.ok) {
+    const errText = await batchRes.text();
+    throw new Error(`Failed to insert row ${rowNumber}: ${errText}`);
+  }
+
+  // Now write data to the inserted row
+  const sanitizedData = rowData.map(sanitizeForFormulas);
+  const range = `${sheetName}!A${rowNumber}`;
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+  const writeRes = await fetch(writeUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ values: [sanitizedData] }),
+  });
+
+  if (!writeRes.ok) {
+    const errText = await writeRes.text();
+    throw new Error(`Failed to write data to row ${rowNumber}: ${errText}`);
+  }
+}
+
+
 async function readAllSheets(
   token: string,
   sheetId: string,
@@ -692,120 +821,64 @@ async function clearAndWriteCategories(
   categoryPaths: string[],
   categoriesTab: string
 ): Promise<void> {
-  // Sanitize new paths
+  // Sanitize new paths to prevent formula injection
   const sanitizedNewPaths = categoryPaths.map(sanitizeForFormulas);
 
   // Read current categories from sheet
   const currentRows = await getSheetValues(token, sheetId, `${categoriesTab}!A:A`);
   const currentPaths = currentRows.slice(1).map((row) => (row[0] ?? "").toString().trim()).filter(Boolean);
 
-  // Convert to sets for easy comparison
-  const currentSet = new Set(currentPaths);
-  const newSet = new Set(sanitizedNewPaths);
+  // Build mapping of current paths to row numbers (1-based sheet indexing)
+  const currentPathToRow = new Map<string, number>();
+  currentPaths.forEach((path, index) => {
+    currentPathToRow.set(path, index + 2); // Row 2 is first data row
+  });
 
-  // Detect operations needed
-  const toDelete: string[] = []; // Paths that exist now but not in new
-  const toAdd: string[] = []; // Paths that are new
-  const toUpdate: Array<{ old: string; new: string }> = []; // Paths that changed
-  
+  const newPathSet = new Set(sanitizedNewPaths);
+  const currentPathSet = new Set(currentPaths);
+
+  // Detect changes
+  const toDelete: Array<{ path: string; row: number }> = [];
+  const toInsert: Array<{ path: string; position: number }> = [];
+  const toUpdate: Array<{ path: string; row: number; newValue: string }> = [];
+
+  // Find deletions (exist now but not in new list)
   currentPaths.forEach((path) => {
-    if (!newSet.has(path)) {
-      toDelete.push(path);
+    if (!newPathSet.has(path)) {
+      toDelete.push({ path, row: currentPathToRow.get(path)! });
     }
   });
 
-  sanitizedNewPaths.forEach((path) => {
-    if (!currentSet.has(path)) {
-      toAdd.push(path);
+  // Find additions and check for renames/updates
+  sanitizedNewPaths.forEach((newPath, index) => {
+    const position = index + 2; // Target row in final sheet
+    if (!currentPathSet.has(newPath)) {
+      // This path is new - needs to be inserted
+      toInsert.push({ path: newPath, position });
     }
   });
 
-  // Handle deletions first (from bottom to top to avoid row shifting issues)
-  for (const pathToDelete of toDelete.reverse()) {
-    const rowIndex = currentPaths.indexOf(pathToDelete);
-    if (rowIndex !== -1) {
-      const sheetRowNumber = rowIndex + 2; // +1 for 1-based, +1 for header
-      await deleteRowInSheet(token, sheetId, categoriesTab, sheetRowNumber);
-      console.log(`Deleted category at row ${sheetRowNumber}: ${pathToDelete}`);
-    }
+  // If nothing changed, skip
+  if (toDelete.length === 0 && toInsert.length === 0) {
+    console.log("No changes detected in categories");
+    return;
   }
 
-  // Handle additions (append to end)
-  if (toAdd.length > 0) {
-    const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(categoriesTab)}!A:A/append?valueInputOption=USER_ENTERED`;
-    const appendRes = await fetch(appendUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        values: toAdd.map((path) => [path]),
-      }),
-    });
+  console.log(`Detected changes: ${toDelete.length} deletions, ${toInsert.length} insertions`);
 
-    if (!appendRes.ok) {
-      const errText = await appendRes.text();
-      throw new Error(`Failed to append categories: ${errText}`);
-    }
-    console.log(`Added ${toAdd.length} new categories`);
+  // Apply changes: delete first (from bottom to top to avoid row shifting issues)
+  for (const { path, row } of toDelete.sort((a, b) => b.row - a.row)) {
+    await deleteSheetRow(token, sheetId, categoriesTab, row);
+    console.log(`Deleted category at row ${row}: ${path}`);
   }
 
-  console.log(`Category sync complete: ${sanitizedNewPaths.length} total paths, ${toDelete.length} deleted, ${toAdd.length} added`);
-}
-
-async function deleteRowInSheet(
-  token: string,
-  sheetId: string,
-  sheetName: string,
-  rowNumber: number
-): Promise<void> {
-  // Get sheet ID by name
-  const sheetsMetadata = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-
-  if (!sheetsMetadata.ok) {
-    throw new Error("Failed to get sheet metadata");
+  // Then insert (in order to maintain positions)
+  for (const { path, position } of toInsert) {
+    await insertSheetRow(token, sheetId, categoriesTab, position, [path]);
+    console.log(`Inserted category at row ${position}: ${path}`);
   }
 
-  const metadata = await sheetsMetadata.json() as any;
-  const sheet = metadata.sheets?.find((s: any) => s.properties?.title === sheetName);
-  if (!sheet) {
-    throw new Error(`Sheet "${sheetName}" not found`);
-  }
-
-  const sheetId_num = sheet.properties.sheetId;
-
-  // Delete the row using batch update
-  const deleteUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`;
-  const deleteRes = await fetch(deleteUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      requests: [
-        {
-          deleteDimension: {
-            range: {
-              sheetId: sheetId_num,
-              dimension: "ROWS",
-              startIndex: rowNumber - 1, // 0-based
-              endIndex: rowNumber, // exclusive
-            },
-          },
-        },
-      ],
-    }),
-  });
-
-  if (!deleteRes.ok) {
-    const errText = await deleteRes.text();
-    throw new Error(`Failed to delete row: ${errText}`);
-  }
+  console.log(`Category sync complete: ${sanitizedNewPaths.length} total paths`);
 }
 
 async function clearAndWriteBrands(
@@ -814,8 +887,8 @@ async function clearAndWriteBrands(
   brands: Array<{ brand: string; brandName: string; website: string }>,
   brandsTab: string
 ): Promise<void> {
-  // Sanitize brand data
-  const sanitizedBrands = brands.map((brand) => [
+  // Sanitize brand data to prevent formula injection
+  const sanitizedNewBrands = brands.map((brand) => [
     sanitizeForFormulas(brand.brand),
     sanitizeForFormulas(brand.brandName),
     sanitizeForFormulas(brand.website),
@@ -823,64 +896,54 @@ async function clearAndWriteBrands(
 
   // Read current brands from sheet
   const currentRows = await getSheetValues(token, sheetId, `${brandsTab}!A:C`);
-  const currentBrands = currentRows
-    .slice(1)
-    .map((row) => ({
-      brand: (row[0] ?? "").toString().trim(),
-      brandName: (row[1] ?? "").toString().trim(),
-      website: (row[2] ?? "").toString().trim(),
-    }))
-    .filter((b) => b.brand); // Filter out empty rows
+  const currentBrands = currentRows.slice(1).map((row) => ({
+    brand: (row[0] ?? "").toString().trim(),
+    brandName: (row[1] ?? "").toString().trim(),
+    website: (row[2] ?? "").toString().trim(),
+  }));
 
-  // Create comparison keys for brands
-  const currentKeys = currentBrands.map((b) => `${b.brand}|${b.brandName}|${b.website}`);
-  const newKeys = sanitizedBrands.map((b) => `${b[0]}|${b[1]}|${b[2]}`);
-  const newKeySet = new Set(newKeys);
-  const currentKeySet = new Set(currentKeys);
+  // Create keys for comparison (ignores empty rows)
+  const currentKeys = currentBrands
+    .filter((b) => b.brand) // Only non-empty brands
+    .map((b) => `${b.brand}|${b.brandName}|${b.website}`);
+  const newKeys = sanitizedNewBrands.map((b) => `${b[0]}|${b[1]}|${b[2]}`);
 
-  // Find brands to delete (in reverse order to avoid row shifting issues)
-  const toDelete: number[] = [];
-  currentBrands.forEach((brand, index) => {
-    const key = `${brand.brand}|${brand.brandName}|${brand.website}`;
-    if (!newKeySet.has(key)) {
-      toDelete.push(index);
+  const toDelete: Array<{ key: string; row: number }> = [];
+  const toInsert: Array<{ brand: string[]; position: number }> = [];
+
+  // Find deletions
+  currentKeys.forEach((key, index) => {
+    if (!newKeys.includes(key)) {
+      toDelete.push({ key, row: index + 2 }); // Row 2 is first data row
     }
   });
 
-  // Delete from bottom to top
-  for (const indexToDelete of toDelete.reverse()) {
-    const sheetRowNumber = indexToDelete + 2; // +1 for 1-based, +1 for header
-    await deleteRowInSheet(token, sheetId, brandsTab, sheetRowNumber);
-    console.log(`Deleted brand at row ${sheetRowNumber}`);
-  }
-
-  // Add new brands that don't exist
-  const toAdd: string[][] = [];
+  // Find insertions
   newKeys.forEach((key, index) => {
-    if (!currentKeySet.has(key)) {
-      toAdd.push(sanitizedBrands[index]);
+    if (!currentKeys.includes(key)) {
+      toInsert.push({ brand: sanitizedNewBrands[index], position: index + 2 });
     }
   });
 
-  if (toAdd.length > 0) {
-    const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(brandsTab)}!A:C/append?valueInputOption=USER_ENTERED`;
-    const appendRes = await fetch(appendUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        values: toAdd,
-      }),
-    });
-
-    if (!appendRes.ok) {
-      const errText = await appendRes.text();
-      throw new Error(`Failed to append brands: ${errText}`);
-    }
-    console.log(`Added ${toAdd.length} new brands`);
+  // If nothing changed, skip
+  if (toDelete.length === 0 && toInsert.length === 0) {
+    console.log("No changes detected in brands");
+    return;
   }
 
-  console.log(`Brand sync complete: ${sanitizedBrands.length} total brands, ${toDelete.length} deleted, ${toAdd.length} added`);
+  console.log(`Detected changes: ${toDelete.length} deletions, ${toInsert.length} insertions`);
+
+  // Apply changes: delete first (from bottom to top)
+  for (const { key, row } of toDelete.sort((a, b) => b.row - a.row)) {
+    await deleteSheetRow(token, sheetId, brandsTab, row);
+    console.log(`Deleted brand at row ${row}: ${key}`);
+  }
+
+  // Then insert (in order)
+  for (const { brand, position } of toInsert) {
+    await insertSheetRow(token, sheetId, brandsTab, position, brand);
+    console.log(`Inserted brand at row ${position}`);
+  }
+
+  console.log(`Brand sync complete: ${sanitizedNewBrands.length} total brands`);
 }
