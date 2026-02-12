@@ -370,7 +370,6 @@ export function PdfViewer({
               style={{
                 transform: `scale(${cssScale})`,
                 transformOrigin: "top left",
-                transition: "transform 0.15s ease-out",
               }}
             >
               <div
