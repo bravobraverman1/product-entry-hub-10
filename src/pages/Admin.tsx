@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -234,6 +234,9 @@ const Admin = () => {
   const [expandAllValue, setExpandAllValue] = useState<boolean | null>(null);
   // Editing is locked until categories are successfully loaded from Google Sheet
   const editingLocked = !loadedFromSheet || categoriesLoading || !!categoriesError;
+  // Ref so that memoized callbacks always see the latest value (avoids stale closure)
+  const editingLockedRef = useRef(editingLocked);
+  editingLockedRef.current = editingLocked;
 
   // Show error if categories failed to load
   useEffect(() => {
@@ -288,7 +291,8 @@ const Admin = () => {
 
   const modifyTree = (fn: (draft: CategoryLevel[]) => CategoryLevel[]) => {
     // SAFETY: Never allow tree modification if not synced with sheet
-    if (editingLocked) {
+    // Uses ref to always read the CURRENT value, not a stale closure from first render
+    if (editingLockedRef.current) {
       console.error("Blocked tree modification: categories not synced with Google Sheet");
       toast({ variant: "destructive", title: "Edit Blocked", description: "Cannot modify categories — not synced with Google Sheet." });
       return;
