@@ -67,15 +67,15 @@ function isValidAction(action: unknown): action is "read" | "write" | "write-cat
 
 // Validate tabNames parameter
 function isValidTabNames(tabNames: unknown): boolean {
-  // Allow undefined, null, or empty object
+  // Allow undefined, null, or empty object (but not arrays)
   if (
     tabNames === undefined ||
     tabNames === null ||
-    (typeof tabNames === "object" && Object.keys(tabNames).length === 0)
+    (typeof tabNames === "object" && !Array.isArray(tabNames) && Object.keys(tabNames).length === 0)
   ) {
     return true;
   }
-  if (typeof tabNames !== "object") return false;
+  if (typeof tabNames !== "object" || Array.isArray(tabNames)) return false;
   const obj = tabNames as Record<string, unknown>;
   return Object.values(obj).every((v) => typeof v === "string" && v.length > 0 && v.length < 255);
 }
@@ -143,9 +143,9 @@ serve(async (req) => {
     // INPUT VALIDATION: Validate tabNames parameter
     const { tabNames } = body;
     if (!isValidTabNames(tabNames)) {
-      console.error("Invalid tabNames:", tabNames);
+      console.error("Invalid tabNames (type:", typeof tabNames, ", value:", tabNames, ")");
       return new Response(
-        JSON.stringify({ error: "Invalid tabNames parameter" }),
+        JSON.stringify({ error: "Invalid tabNames parameter", received: tabNames }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
