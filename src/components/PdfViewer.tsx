@@ -33,6 +33,7 @@ export function PdfViewer({
   const [pdfLoadTimedOut, setPdfLoadTimedOut] = useState(false);
   const [pdfRenderError, setPdfRenderError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(100);
+  const [zoomInput, setZoomInput] = useState("100");
 
   // Per-PDF cached canvases & scroll positions
   const datasheetCanvasRef = useRef<HTMLDivElement | null>(null);
@@ -173,28 +174,48 @@ export function PdfViewer({
 
   // Zoom with center-point preservation
   const applyZoom = useCallback((nextZoom: number) => {
+    const sc = scrollContainerRef.current;
+    if (!sc) {
+      const clamped = clampZoom(nextZoom);
+      setZoom(clamped);
+      setZoomInput(clamped.toString());
+      return;
+    }
+
     setZoom((prev) => {
       const next = clampZoom(nextZoom);
-      const sc = scrollContainerRef.current;
-      if (sc && prev !== next) {
-        const prevScale = prev / 100;
-        const nextScale = next / 100;
-        // Calculate the center point of the visible area
-        const centerX = sc.scrollLeft + sc.clientWidth / 2;
-        const centerY = sc.scrollTop + sc.clientHeight / 2;
-        // Convert the visible center to content coordinates
-        const contentX = prevScale > 0 ? centerX / prevScale : centerX;
-        const contentY = prevScale > 0 ? centerY / prevScale : centerY;
-        requestAnimationFrame(() => {
-          // After scale change, restore so the same content point is centered
-          const targetLeft = contentX * nextScale - sc.clientWidth / 2;
-          const targetTop = contentY * nextScale - sc.clientHeight / 2;
-          const maxLeft = Math.max(0, sc.scrollWidth - sc.clientWidth);
-          const maxTop = Math.max(0, sc.scrollHeight - sc.clientHeight);
-          sc.scrollLeft = Math.max(0, Math.min(targetLeft, maxLeft));
-          sc.scrollTop = Math.max(0, Math.min(targetTop, maxTop));
-        });
-      }
+      if (prev === next) return prev;
+
+      const prevScale = prev / 100;
+      const nextScale = next / 100;
+      
+      // Get the center point of the visible viewport
+      const viewportCenterX = sc.scrollLeft + sc.clientWidth / 2;
+      const viewportCenterY = sc.scrollTop + sc.clientHeight / 2;
+      
+      // Convert to unscaled content coordinates
+      const contentCenterX = viewportCenterX / prevScale;
+      const contentCenterY = viewportCenterY / prevScale;
+      
+      // Apply zoom change after a microtask to let transform update
+      requestAnimationFrame(() => {
+        // Calculate where the content center should be in the new scale
+        const newViewportCenterX = contentCenterX * nextScale;
+        const newViewportCenterY = contentCenterY * nextScale;
+        
+        // Calculate scroll position to keep content center in viewport center
+        const targetScrollLeft = newViewportCenterX - sc.clientWidth / 2;
+        const targetScrollTop = newViewportCenterY - sc.clientHeight / 2;
+        
+        // Clamp to valid scroll range
+        const maxScrollLeft = Math.max(0, sc.scrollWidth - sc.clientWidth);
+        const maxScrollTop = Math.max(0, sc.scrollHeight - sc.clientHeight);
+        
+        sc.scrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
+        sc.scrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
+      });
+      
+      setZoomInput(next.toString());
       return next;
     });
   }, [clampZoom]);
@@ -202,6 +223,20 @@ export function PdfViewer({
   const handleZoom = useCallback((delta: number) => {
     applyZoom(zoom + delta);
   }, [applyZoom, zoom]);
+
+  const handleZoomInputChange = useCallback((value: string) => {
+    const cleaned = value.replace(/[^\d]/g, "");
+    setZoomInput(cleaned);
+  }, []);
+
+  const handleZoomInputCommit = useCallback(() => {
+    const num = parseInt(zoomInput, 10);
+    if (!isNaN(num) && num > 0) {
+      applyZoom(num);
+    } else {
+      setZoomInput(zoom.toString());
+    }
+  }, [zoomInput, zoom, applyZoom]);
 
   // Pinch-to-zoom via wheel
   useEffect(() => {
@@ -234,21 +269,16 @@ export function PdfViewer({
         </span>
         <div className="flex items-center gap-2">
           {hasDatasheet && hasWebsite && (
-            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-background/70 p-0.5 shadow-sm">
-              <button
-                type="button"
-                onClick={() => handleViewSwitch("datasheet")}
-                className={cn(
-                  "px-3 py-1 text-[11px] rounded-full transition-colors",
-                  pdfView === "datasheet"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Datasheet
-              </button>
-              <button
-                type="button"
+            <div clas`${zoomInput}%`}
+              onChange={(e) => handleZoomInputChange(e.target.value)}
+              onBlur={handleZoomInputCommit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                }
+              }}
+              className="h-7 w-16 px-2 text-center text-xs tabular-nums"
+            /
                 onClick={() => handleViewSwitch("website")}
                 className={cn(
                   "px-3 py-1 text-[11px] rounded-full transition-colors",
