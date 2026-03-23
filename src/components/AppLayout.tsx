@@ -1,9 +1,8 @@
 import { NavLink } from "react-router-dom";
-import { Coffee, ClipboardList, Truck, PackageSearch, Tag, Settings } from "lucide-react";
+import { Coffee, Truck, PackageSearch, Tag, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { to: "/", label: "Form", icon: ClipboardList, end: true },
   { to: "/loading-dock", label: "Loading Dock", icon: Truck },
   { to: "/product-options", label: "Product Options", icon: PackageSearch },
   { to: "/brands", label: "Brands", icon: Tag },
@@ -36,7 +35,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             <NavLink
               key={tab.to}
               to={tab.to}
-              end={tab.end}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
