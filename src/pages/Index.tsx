@@ -54,7 +54,7 @@ const Index = () => {
         title: "Signed in",
         description: "Redirecting to the workspace.",
       });
-      navigate("/loading-dock");
+      navigate("/");
     } catch (error) {
       toast({
         title: "Unable to sign in",
