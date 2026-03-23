@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -12,11 +11,6 @@ const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const hasSupabaseAuth = Boolean(
-    import.meta.env.VITE_SUPABASE_URL &&
-      (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY),
-  );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -30,31 +24,14 @@ const Index = () => {
       return;
     }
 
-    if (!hasSupabaseAuth) {
-      toast({
-        title: "Login not connected",
-        description: "This screen is ready, but Supabase auth variables are not configured in this environment yet.",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
+      // TODO: Implement authentication
       toast({
-        title: "Signed in",
-        description: "Redirecting to the workspace.",
+        title: "Not yet connected",
+        description: "Authentication has not been configured yet.",
       });
-      navigate("/");
     } catch (error) {
       toast({
         title: "Unable to sign in",
